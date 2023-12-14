@@ -70,27 +70,25 @@ def ae_num_hid_neuron():
     test_set_velo_1 = velo_1[2000:10000, :]
     test_set_velo_2 = velo_2
 
-    error_1 = []
-    error_2 = []
-    error_3 = []
-    error_4 = []
+    error_1, error_2, error_3, error_4, error_5, error_6 = [], [], [], [], [], []
+
     for i in range(1, 15):
         ae_disp = AutoEncoder([86, 40, 40, i])
         ae_velo = AutoEncoder([86, 40, 40, i])
         ae_disp.train_AE(
             train_set_disp_1,
             test_set_disp_1,
-            epochs=10000,
-            learning_rate=1e-3,
-            model_save_path="./dataset/ae_disptest_" + str(i) + ".pth",
+            epochs=50000,
+            learning_rate=1e-4,
+            model_save_path=None,
             loss_save_path=None,
         )
         ae_velo.train_AE(
             train_set_velo_1,
             test_set_velo_1,
-            epochs=10000,
-            learning_rate=1e-3,
-            model_save_path="./dataset/ae_velotest_" + str(i) + ".pth",
+            epochs=50000,
+            learning_rate=1e-4,
+            model_save_path=None,
             loss_save_path=None,
         )
         ae_disp.eval()
@@ -98,18 +96,24 @@ def ae_num_hid_neuron():
         with torch.no_grad():
             disp_pred_1 = ae_disp(test_set_disp_1)
             disp_pred_2 = ae_disp(test_set_disp_2)
+            disp_pred_3 = ae_disp(train_set_disp_1)
             velo_pred_1 = ae_velo(test_set_velo_1)
             velo_pred_2 = ae_velo(test_set_velo_2)
-            # Compute and append all metrics at once
+            velo_pred_3 = ae_velo(train_set_velo_1)
+        # Compute and append all metrics at once
         error_1.append(compute_metrics(disp_pred_1, test_set_disp_1))
         error_2.append(compute_metrics(disp_pred_2, test_set_disp_2))
-        error_3.append(compute_metrics(velo_pred_1, test_set_velo_1))
-        error_4.append(compute_metrics(velo_pred_2, test_set_velo_2))
+        error_3.append(compute_metrics(disp_pred_3, train_set_disp_1))
+        error_4.append(compute_metrics(velo_pred_1, test_set_velo_1))
+        error_5.append(compute_metrics(velo_pred_2, test_set_velo_2))
+        error_6.append(compute_metrics(velo_pred_3, train_set_velo_1))
 
     error_1 = np.array(error_1)
     error_2 = np.array(error_2)
     error_3 = np.array(error_3)
     error_4 = np.array(error_4)
+    error_5 = np.array(error_5)
+    error_6 = np.array(error_6)
 
     with open("./dataset/ae_num_hid_neuron.pkl", "wb") as f:
         pickle.dump(
@@ -118,6 +122,8 @@ def ae_num_hid_neuron():
                 "error_2": error_2,
                 "error_3": error_3,
                 "error_4": error_4,
+                "error_5": error_5,
+                "error_6": error_6,
             },
             f,
         )
@@ -134,32 +140,70 @@ def ae_train_data_size():
     disp_2 = torch.tensor(full_data_2["displacement"], dtype=torch.float32).to(device)
     velo_2 = torch.tensor(full_data_2["velocity"], dtype=torch.float32).to(device)
     num_data = [100, 200, 500, 1000, 2000, 4000, 8000]
-
+    error_1, error_2, error_3, error_4, error_5, error_6 = [], [], [], [], [], []
     for i in num_data:
         train_set_disp_1 = disp_1[:i, :]
-        test_set_disp_1 = disp_1[i:10000, :]
+        test_set_disp_1 = disp_1[8000:10000, :]
         test_set_disp_2 = disp_2
         train_set_velo_1 = velo_1[:i, :]
-        test_set_velo_1 = velo_1[i:10000, :]
+        test_set_velo_1 = velo_1[8000:10000, :]
         test_set_velo_2 = velo_2
 
-        ae_disp = AutoEncoder([86, 40, 40, 5])
-        ae_velo = AutoEncoder([86, 40, 40, 5])
+        ae_disp = AutoEncoder([86, 40, 40, 4])
+        ae_velo = AutoEncoder([86, 40, 40, 8])
         ae_disp.train_AE(
             train_set_disp_1,
             test_set_disp_1,
-            epochs=10000,
-            learning_rate=1e-3,
-            model_save_path="./dataset/ae_disptest_" + str(i) + ".pth",
+            epochs=50000,
+            learning_rate=1e-4,
+            model_save_path=None,
             loss_save_path=None,
         )
         ae_velo.train_AE(
             train_set_velo_1,
             test_set_velo_1,
-            epochs=10000,
-            learning_rate=1e-3,
-            model_save_path="./dataset/ae_velotest_" + str(i) + ".pth",
+            epochs=50000,
+            learning_rate=1e-4,
+            model_save_path=None,
             loss_save_path=None,
+        )
+        ae_disp.eval()
+        ae_velo.eval()
+
+        with torch.no_grad():
+            disp_pred_1 = ae_disp(test_set_disp_1)
+            disp_pred_2 = ae_disp(test_set_disp_2)
+            disp_pred_3 = ae_disp(train_set_disp_1)
+            velo_pred_1 = ae_velo(test_set_velo_1)
+            velo_pred_2 = ae_velo(test_set_velo_2)
+            velo_pred_3 = ae_velo(train_set_velo_1)
+                    # Compute and append all metrics at once
+        error_1.append(compute_metrics(disp_pred_1, test_set_disp_1))
+        error_2.append(compute_metrics(disp_pred_2, test_set_disp_2))
+        error_3.append(compute_metrics(disp_pred_3, train_set_disp_1))
+        error_4.append(compute_metrics(velo_pred_1, test_set_velo_1))
+        error_5.append(compute_metrics(velo_pred_2, test_set_velo_2))
+        error_6.append(compute_metrics(velo_pred_3, train_set_velo_1))
+
+
+    error_1 = np.array(error_1)
+    error_2 = np.array(error_2)
+    error_3 = np.array(error_3)
+    error_4 = np.array(error_4)
+    error_5 = np.array(error_5)
+    error_6 = np.array(error_6)
+
+    with open("./dataset/ae_train_data_size.pkl", "wb") as f:
+        pickle.dump(
+            {
+                "error_1": error_1,
+                "error_2": error_2,
+                "error_3": error_3,
+                "error_4": error_4,
+                "error_5": error_5,
+                "error_6": error_6,
+            },
+            f,
         )
 
 
