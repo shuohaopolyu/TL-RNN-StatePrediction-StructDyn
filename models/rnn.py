@@ -1,0 +1,176 @@
+import torch
+import torch.nn as nn
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
+# Define RNN
+class Rnn(nn.Module):
+    def __init__(
+        self,
+        input_size=2,
+        hidden_size=10,
+        output_size=6,
+        num_layers=1,
+        bidirectional=False,
+    ):
+        super(Rnn, self).__init__()
+        self.rnn = nn.RNN(
+            input_size,
+            hidden_size,
+            num_layers,
+            bidirectional=bidirectional,
+            batch_first=True,
+        ).to(device)
+        if bidirectional:
+            self.linear = nn.Linear(2 * hidden_size, output_size).to(device)
+        else:
+            self.linear = nn.Linear(hidden_size, output_size).to(device)
+
+    def forward(self, u, h0):
+        y, hn = self.rnn(u, h0)
+        y = self.linear(y)
+        return y, hn
+
+    def train_RNN(
+        self,
+        train_set,
+        test_set,
+        train_h0,
+        test_h0,
+        epochs,
+        learning_rate,
+        model_save_path,
+        loss_save_path,
+        train_msg=True,
+    ):
+        # Define the loss function
+        loss_fn = nn.MSELoss(reduction="mean")
+        # Define the optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        # Define the loss list
+        train_loss_list = []
+        test_loss_list = []
+        # Start training
+        for epoch in range(epochs):
+            self.train()
+            # Train the model
+            output_train, _ = self.forward(train_set["X"], train_h0)
+            loss_train = loss_fn(output_train, train_set["Y"])
+            optimizer.zero_grad()
+            loss_train.backward(retain_graph=True)
+            optimizer.step()
+            if (epoch + 1) % 2000 == 0:
+                train_loss_list.append(loss_train.item())
+                # Test the model
+                self.eval()
+                with torch.no_grad():
+                    output_test, _ = self.forward(test_set["X"], test_h0)
+                loss_test = loss_fn(output_test, test_set["Y"])
+                test_loss_list.append(loss_test.item())
+                if train_msg:
+                    print(
+                        "Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e"
+                        % (epoch + 1, epochs, loss_train.item(), loss_test.item())
+                    )
+                # Save the model
+                if model_save_path is not None:
+                    torch.save(self.state_dict(), model_save_path)
+                    print(f"Model saved to {model_save_path}")
+
+                if loss_save_path is not None:
+                    torch.save(
+                        {
+                            "train_loss_list": train_loss_list,
+                            "test_loss_list": test_loss_list,
+                        },
+                        loss_save_path,
+                    )
+                    print(f"Loss saved to {loss_save_path}")
+        return train_loss_list, test_loss_list
+
+
+# Define LSTM
+class Lstm(nn.Module):
+    def __init__(
+        self,
+        input_size=2,
+        hidden_size=10,
+        output_size=6,
+        num_layers=1,
+        bidirectional=False,
+    ):
+        super(Lstm, self).__init__()
+        self.lstm = nn.LSTM(
+            input_size,
+            hidden_size,
+            num_layers,
+            bias=True,
+            bidirectional=bidirectional,
+            batch_first=True,
+        ).to(device)
+        if bidirectional:
+            self.linear = nn.Linear(2 * hidden_size, output_size, bias=True).to(device)
+        else:
+            self.linear = nn.Linear(hidden_size, output_size, bias=True).to(device)
+
+    def forward(self, u, h0, c0):
+        y, (hn, cn) = self.lstm(u, (h0, c0))
+        y = self.linear(y)
+        return y
+
+    def train_LSTM(
+        self,
+        train_set,
+        test_set,
+        train_hc0,
+        test_hc0,
+        epochs,
+        learning_rate,
+        model_save_path,
+        loss_save_path,
+        train_msg=True,
+    ):
+        # Define the loss function
+        loss_fn = nn.MSELoss(reduction="mean")
+        # Define the optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        # Define the loss list
+        train_loss_list = []
+        test_loss_list = []
+        # Start training
+        for epoch in range(epochs):
+            self.train()
+            # Train the model
+            output_train = self.forward(train_set["X"], train_hc0[0], train_hc0[1])
+            loss_train = loss_fn(output_train, train_set["Y"])
+            optimizer.zero_grad()
+            loss_train.backward(retain_graph=True)
+            optimizer.step()
+            if (epoch + 1) % 2000 == 0:
+                train_loss_list.append(loss_train.item())
+                # Test the model
+                self.eval()
+                with torch.no_grad():
+                    output_test = self.forward(test_set["X"], test_hc0[0], test_hc0[1])
+                loss_test = loss_fn(output_test, test_set["Y"])
+                test_loss_list.append(loss_test.item())
+                if train_msg:
+                    print(
+                        "Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e"
+                        % (epoch + 1, epochs, loss_train.item(), loss_test.item())
+                    )
+                # Save the model
+                if model_save_path is not None:
+                    torch.save(self.state_dict(), model_save_path)
+                    print(f"Model saved to {model_save_path}")
+                if loss_save_path is not None:
+                    torch.save(
+                        {
+                            "train_loss_list": train_loss_list,
+                            "test_loss_list": test_loss_list,
+                        },
+                        loss_save_path,
+                    )
+                    print(f"Loss saved to {loss_save_path}")
+        return train_loss_list, test_loss_list
