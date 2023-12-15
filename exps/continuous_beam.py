@@ -165,6 +165,24 @@ def ae_train_data_size():
     velo_2 = torch.tensor(full_data_2["velocity"], dtype=torch.float32).to(device)
     num_data = [20, 50, 100, 200, 500, 1000, 2000, 4000, 8000]
     num_trials = 10
+    errors_mean = [np.zeros((len(num_data), 3)) for _ in range(6)]
+    (
+        error_disp_train_mean,
+        error_disp_test_1_mean,
+        error_disp_test_2_mean,
+        error_velo_train_mean,
+        error_velo_test_1_mean,
+        error_velo_test_2_mean,
+    ) = errors_mean
+    errors_std = [np.zeros((len(num_data), 3)) for _ in range(6)]
+    (
+        error_disp_train_std,
+        error_disp_test_1_std,
+        error_disp_test_2_std,
+        error_velo_train_std,
+        error_velo_test_1_std,
+        error_velo_test_2_std,
+    ) = errors_std
     for i, num in enumerate(num_data):
         errors = [np.zeros((num_trials, 3)) for _ in range(6)]
         (
@@ -175,24 +193,7 @@ def ae_train_data_size():
             error_velo_test_1,
             error_velo_test_2,
         ) = errors
-        errors_mean = [np.zeros((len(num_data), 3)) for _ in range(6)]
-        (
-            error_disp_train_mean,
-            error_disp_test_1_mean,
-            error_disp_test_2_mean,
-            error_velo_train_mean,
-            error_velo_test_1_mean,
-            error_velo_test_2_mean,
-        ) = errors_mean
-        errors_std = [np.zeros((len(num_data), 3)) for _ in range(6)]
-        (
-            error_disp_train_std,
-            error_disp_test_1_std,
-            error_disp_test_2_std,
-            error_velo_train_std,
-            error_velo_test_1_std,
-            error_velo_test_2_std,
-        ) = errors_std
+
         for j in range(num_trials):
             (
                 train_set_disp_1,
@@ -205,7 +206,7 @@ def ae_train_data_size():
                 test_set_velo_2,
             ) = _rand_generate_train_test_set(velo_1, velo_2, num, 2000)
             metrics_disp = _train_an_ae(
-                train_set_disp_1, test_set_disp_1, test_set_disp_2, 4, 50000, 1e-5
+                train_set_disp_1, test_set_disp_1, test_set_disp_2, 4, 50000, 6e-5
             )
             metrics_velo = _train_an_ae(
                 train_set_velo_1, test_set_velo_1, test_set_velo_2, 8, 50000, 1e-4
@@ -371,7 +372,8 @@ def _dkf(
     elif output == "velocity":
         vel_pred = md_mtx @ zeta_mtx[num_modes:, :]
         return vel_pred
-    
+
+
 def tune_dkf_params(start, steps):
     R_values = np.logspace(-4, 2, 100)
     disp_rmse = np.zeros(len(R_values))
@@ -381,13 +383,30 @@ def tune_dkf_params(start, steps):
     disp = full_data["displacement"].T
     velo = full_data["velocity"].T
     for i, R_value in enumerate(R_values):
-        disp_pred = _dkf(start, steps, [13, 17, 32, 50, 67, 77], 6, 1, [1e-20, R_value, 3e9], "displacement")
-        vel_pred = _dkf(start, steps, [13, 17, 32, 50, 67, 77], 6, 1, [1e-20, R_value, 3e9], "velocity")
-        disp_rmse[i] = np.sqrt(np.mean((disp_pred - disp)**2))
-        vel_rmse[i] = np.sqrt(np.mean((vel_pred - velo)**2))
+        disp_pred = _dkf(
+            start,
+            steps,
+            [13, 17, 32, 50, 67, 77],
+            6,
+            1,
+            [1e-20, R_value, 3e9],
+            "displacement",
+        )
+        vel_pred = _dkf(
+            start,
+            steps,
+            [13, 17, 32, 50, 67, 77],
+            6,
+            1,
+            [1e-20, R_value, 3e9],
+            "velocity",
+        )
+        disp_rmse[i] = np.sqrt(np.mean((disp_pred - disp) ** 2))
+        vel_rmse[i] = np.sqrt(np.mean((vel_pred - velo) ** 2))
     results = {"R_values": R_values, "disp_rmse": disp_rmse, "vel_rmse": vel_rmse}
     with open("./dataset/dkf_tune.pkl", "wb") as f:
         pickle.dump(results, f)
+
 
 def dkf_eval():
     dkf_disp_1 = _dkf(
@@ -403,17 +422,22 @@ def dkf_eval():
         0, 10000, [13, 17, 32, 50, 67, 77], 6, 2, [1e-20, 2.66, 3e9], "velocity"
     )
 
+
 def _rnn():
     pass
+
 
 def _lstm():
     pass
 
+
 def _birnn():
     pass
 
+
 def _bilstm():
     pass
+
 
 def rnn_ae_performance_eval():
     pass
