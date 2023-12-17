@@ -48,18 +48,18 @@ def data_size():
 
     num_data = np.array([20, 50, 100, 200, 500, 1000, 2000, 4000, 8000])
 
-
+    print(error_disp_train_mean.shape)
     # fill the interval between mean - std and mean + std
-    plt.fill_between(num_data, error_disp_train_mean - error_disp_train_std, error_disp_train_mean + error_disp_train_std, alpha=0.2, color="blue")
-    plt.fill_between(num_data, error_disp_test_1_mean - error_disp_test_1_std, error_disp_test_1_mean + error_disp_test_1_std, alpha=0.2, color="blue")
-    plt.fill_between(num_data, error_disp_test_2_mean - error_disp_test_2_std, error_disp_test_2_mean + error_disp_test_2_std, alpha=0.2, color="blue")
-    plt.fill_between(num_data, error_velo_train_mean - error_velo_train_std, error_velo_train_mean + error_velo_train_std, alpha=0.2, color="red")
-    plt.fill_between(num_data, error_velo_test_1_mean - error_velo_test_1_std, error_velo_test_1_mean + error_velo_test_1_std, alpha=0.2, color="red")
-    plt.fill_between(num_data, error_velo_test_2_mean - error_velo_test_2_std, error_velo_test_2_mean + error_velo_test_2_std, alpha=0.2, color="red")
-
-    plt.yscale("log")
+    plt.fill_between(num_data, error_disp_train_mean[:, 2] - error_disp_train_std[:, 2], error_disp_train_mean[:, 2] + error_disp_train_std[:, 2], alpha=0.2, color="blue")
+    plt.fill_between(num_data, error_disp_test_1_mean[:, 2] - error_disp_test_1_std[:, 2], error_disp_test_1_mean[:, 2] + error_disp_test_1_std[:, 2], alpha=0.2, color="blue")
+    plt.fill_between(num_data, error_disp_test_2_mean[:, 2] - error_disp_test_2_std[:, 2], error_disp_test_2_mean[:, 2] + error_disp_test_2_std[:, 2], alpha=0.2, color="blue")
+    # plt.fill_between(num_data, error_velo_train_mean[:, 2] - error_velo_train_std[:, 2], error_velo_train_mean[:, 2] + error_velo_train_std[:, 2], alpha=0.2, color="red")
+    # plt.fill_between(num_data, error_velo_test_1_mean[:, 2] - error_velo_test_1_std[:, 2], error_velo_test_1_mean[:, 2] + error_velo_test_1_std[:, 2], alpha=0.2, color="red")
+    # plt.fill_between(num_data, error_velo_test_2_mean[:, 2] - error_velo_test_2_std[:, 2], error_velo_test_2_mean[:, 2]+ error_velo_test_2_std[:, 2], alpha=0.2, color="red")
+    # print(error_disp_test_1_mean[:, 2] - error_disp_test_1_std[:, 2])
+    # plt.yscale("log")
     plt.xscale("log")
-    plt.legend()
+    # plt.legend()
     plt.xlabel("Number of training data")
     plt.ylabel("Mean Saure Error")
     plt.savefig("./figures/data_size.png")

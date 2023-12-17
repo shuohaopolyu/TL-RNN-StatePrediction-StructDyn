@@ -165,7 +165,7 @@ def ae_train_data_size():
     velo_2 = torch.tensor(full_data_2["velocity"], dtype=torch.float32).to(device)
     num_data = [20, 50, 100, 200, 500, 1000, 2000, 4000, 8000]
     num_trials = 10
-    errors_mean = [np.zeros((len(num_data), 3)) for _ in range(6)]
+    errors = [np.zeros((len(num_data), 3)) for _ in range(6)]
     (
         error_disp_train_mean,
         error_disp_test_1_mean,
@@ -173,8 +173,25 @@ def ae_train_data_size():
         error_velo_train_mean,
         error_velo_test_1_mean,
         error_velo_test_2_mean,
-    ) = errors_mean
-    errors_std = [np.zeros((len(num_data), 3)) for _ in range(6)]
+    ) = errors
+    (
+        error_disp_train_max,
+        error_disp_test_1_max,
+        error_disp_test_2_max,
+        error_velo_train_max,
+        error_velo_test_1_max,
+        error_velo_test_2_max,
+
+    ) = errors
+    (
+        error_disp_train_min,
+        error_disp_test_1_min,
+        error_disp_test_2_min,
+        error_velo_train_min,
+        error_velo_test_1_min,
+        error_velo_test_2_min,
+
+    ) = errors
     (
         error_disp_train_std,
         error_disp_test_1_std,
@@ -182,7 +199,7 @@ def ae_train_data_size():
         error_velo_train_std,
         error_velo_test_1_std,
         error_velo_test_2_std,
-    ) = errors_std
+    ) = errors
     for i, num in enumerate(num_data):
         errors = [np.zeros((num_trials, 3)) for _ in range(6)]
         (
@@ -225,16 +242,13 @@ def ae_train_data_size():
             error_disp_train_mean[i, :],
             error_disp_test_1_mean[i, :],
             error_disp_test_2_mean[i, :],
+            error_velo_train_mean[i, :],
+            error_velo_test_1_mean[i, :],
+            error_velo_test_2_mean[i, :],            
         ) = (
             np.mean(error_disp_train, axis=0),
             np.mean(error_disp_test_1, axis=0),
             np.mean(error_disp_test_2, axis=0),
-        )
-        (
-            error_velo_train_mean[i, :],
-            error_velo_test_1_mean[i, :],
-            error_velo_test_2_mean[i, :],
-        ) = (
             np.mean(error_velo_train, axis=0),
             np.mean(error_velo_test_1, axis=0),
             np.mean(error_velo_test_2, axis=0),
@@ -243,20 +257,48 @@ def ae_train_data_size():
             error_disp_train_std[i, :],
             error_disp_test_1_std[i, :],
             error_disp_test_2_std[i, :],
-        ) = (
-            np.std(error_disp_train, axis=0),
-            np.std(error_disp_test_1, axis=0),
-            np.std(error_disp_test_2, axis=0),
-        )
-        (
             error_velo_train_std[i, :],
             error_velo_test_1_std[i, :],
             error_velo_test_2_std[i, :],
         ) = (
+            np.std(error_disp_train, axis=0),
+            np.std(error_disp_test_1, axis=0),
+            np.std(error_disp_test_2, axis=0),
             np.std(error_velo_train, axis=0),
             np.std(error_velo_test_1, axis=0),
             np.std(error_velo_test_2, axis=0),
         )
+        (
+            error_disp_train_max[i, :],
+            error_disp_test_1_max[i, :],
+            error_disp_test_2_max[i, :],
+            error_velo_train_max[i, :],
+            error_velo_test_1_max[i, :],
+            error_velo_test_2_max[i, :],
+        ) = (
+            np.max(error_disp_train, axis=0),
+            np.max(error_disp_test_1, axis=0),
+            np.max(error_disp_test_2, axis=0),
+            np.max(error_velo_train, axis=0),
+            np.max(error_velo_test_1, axis=0),
+            np.max(error_velo_test_2, axis=0),
+        )
+        (
+            error_disp_train_min[i, :],
+            error_disp_test_1_min[i, :],
+            error_disp_test_2_min[i, :],
+            error_velo_train_min[i, :],
+            error_velo_test_1_min[i, :],
+            error_velo_test_2_min[i, :],
+        ) = (
+            np.min(error_disp_train, axis=0),
+            np.min(error_disp_test_1, axis=0),
+            np.min(error_disp_test_2, axis=0),
+            np.min(error_velo_train, axis=0),
+            np.min(error_velo_test_1, axis=0),
+            np.min(error_velo_test_2, axis=0),
+        )
+
     with open("./dataset/ae_train_data_size.pkl", "wb") as f:
         pickle.dump(
             {
@@ -272,6 +314,18 @@ def ae_train_data_size():
                 "error_velo_train_std": error_velo_train_std,
                 "error_velo_test_1_std": error_velo_test_1_std,
                 "error_velo_test_2_std": error_velo_test_2_std,
+                "error_disp_train_max": error_disp_train_max,
+                "error_disp_test_1_max": error_disp_test_1_max,
+                "error_disp_test_2_max": error_disp_test_2_max,
+                "error_velo_train_max": error_velo_train_max,
+                "error_velo_test_1_max": error_velo_test_1_max,
+                "error_velo_test_2_max": error_velo_test_2_max,
+                "error_disp_train_min": error_disp_train_min,
+                "error_disp_test_1_min": error_disp_test_1_min,
+                "error_disp_test_2_min": error_disp_test_2_min,
+                "error_velo_train_min": error_velo_train_min,
+                "error_velo_test_1_min": error_velo_test_1_min,
+                "error_velo_test_2_min": error_velo_test_2_min,
             },
             f,
         )
