@@ -44,6 +44,9 @@ class Rnn(nn.Module):
         loss_save_path,
         train_msg=True,
     ):
+        assert test_set["X"].shape[0] % train_set["X"].shape[0] == 0, "Wrong data size"
+        length_ratio = test_set["X"].shape[0] // train_set["X"].shape[0]
+        input_length = train_set["X"].shape[0]
         # Define the loss function
         loss_fn = nn.MSELoss(reduction="mean")
         # Define the optimizer
@@ -65,7 +68,16 @@ class Rnn(nn.Module):
                 # Test the model
                 self.eval()
                 with torch.no_grad():
-                    output_test, _ = self.forward(test_set["X"], test_h0)
+                    hn = test_h0
+                    for i in range(length_ratio):
+                        input_test_X = test_set["X"][
+                            i * input_length : (i + 1) * input_length, :
+                        ]
+                        pred, hn = self.forward(input_test_X, hn)
+                        if i == 0:
+                            output_test = pred
+                        else:
+                            output_test = torch.cat((output_test, pred), dim=0)
                 loss_test = loss_fn(output_test, test_set["Y"])
                 test_loss_list.append(loss_test.item())
                 if train_msg:
@@ -131,6 +143,9 @@ class Lstm(nn.Module):
         loss_save_path,
         train_msg=True,
     ):
+        assert test_set["X"].shape[0] % train_set["X"].shape[0] == 0, "Wrong data size"
+        length_ratio = test_set["X"].shape[0] // train_set["X"].shape[0]
+        input_length = train_set["X"].shape[0]
         # Define the loss function
         loss_fn = nn.MSELoss(reduction="mean")
         # Define the optimizer
@@ -152,7 +167,16 @@ class Lstm(nn.Module):
                 # Test the model
                 self.eval()
                 with torch.no_grad():
-                    output_test = self.forward(test_set["X"], test_hc0[0], test_hc0[1])
+                    hn, cn = test_hc0
+                    for i in range(length_ratio):
+                        input_test_X = test_set["X"][
+                            i * input_length : (i + 1) * input_length, :
+                        ]
+                        pred, (hn, cn) = self.forward(input_test_X, hn, cn)
+                        if i == 0:
+                            output_test = pred
+                        else:
+                            output_test = torch.cat((output_test, pred), dim=0)
                 loss_test = loss_fn(output_test, test_set["Y"])
                 test_loss_list.append(loss_test.item())
                 if train_msg:

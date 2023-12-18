@@ -34,32 +34,50 @@ def data_size():
     with open("./dataset/ae_train_data_size.pkl", "rb") as f:
         data = pickle.load(f)
     error_disp_train_mean = data["error_disp_train_mean"]
+    error_disp_train_max = data["error_disp_train_max"]
+    error_disp_train_min = data["error_disp_train_min"]
     error_disp_train_std = data["error_disp_train_std"]
     error_disp_test_1_mean = data["error_disp_test_1_mean"]
+    error_disp_test_1_max = data["error_disp_test_1_max"]
+    error_disp_test_1_min = data["error_disp_test_1_min"]
     error_disp_test_1_std = data["error_disp_test_1_std"]
     error_disp_test_2_mean = data["error_disp_test_2_mean"]
+    error_disp_test_2_max = data["error_disp_test_2_max"]
+    error_disp_test_2_min = data["error_disp_test_2_min"]
     error_disp_test_2_std = data["error_disp_test_2_std"]
     error_velo_train_mean = data["error_velo_train_mean"]
-    error_velo_train_std = data["error_velo_train_std"]
+    error_velo_train_max = data["error_velo_train_max"]
+    error_velo_train_min = data["error_velo_train_min"]
     error_velo_test_1_mean = data["error_velo_test_1_mean"]
-    error_velo_test_1_std = data["error_velo_test_1_std"]
+    error_velo_test_1_max = data["error_velo_test_1_max"]
+    error_velo_test_1_min = data["error_velo_test_1_min"]
     error_velo_test_2_mean = data["error_velo_test_2_mean"]
+    error_velo_test_2_max = data["error_velo_test_2_max"]
+    error_velo_test_2_min = data["error_velo_test_2_min"]
     error_velo_test_2_std = data["error_velo_test_2_std"]
 
     num_data = np.array([20, 50, 100, 200, 500, 1000, 2000, 4000, 8000])
-
-    print(error_disp_train_mean.shape)
-    # fill the interval between mean - std and mean + std
-    plt.fill_between(num_data, error_disp_train_mean[:, 2] - error_disp_train_std[:, 2], error_disp_train_mean[:, 2] + error_disp_train_std[:, 2], alpha=0.2, color="blue")
-    plt.fill_between(num_data, error_disp_test_1_mean[:, 2] - error_disp_test_1_std[:, 2], error_disp_test_1_mean[:, 2] + error_disp_test_1_std[:, 2], alpha=0.2, color="blue")
-    plt.fill_between(num_data, error_disp_test_2_mean[:, 2] - error_disp_test_2_std[:, 2], error_disp_test_2_mean[:, 2] + error_disp_test_2_std[:, 2], alpha=0.2, color="blue")
-    # plt.fill_between(num_data, error_velo_train_mean[:, 2] - error_velo_train_std[:, 2], error_velo_train_mean[:, 2] + error_velo_train_std[:, 2], alpha=0.2, color="red")
-    # plt.fill_between(num_data, error_velo_test_1_mean[:, 2] - error_velo_test_1_std[:, 2], error_velo_test_1_mean[:, 2] + error_velo_test_1_std[:, 2], alpha=0.2, color="red")
-    # plt.fill_between(num_data, error_velo_test_2_mean[:, 2] - error_velo_test_2_std[:, 2], error_velo_test_2_mean[:, 2]+ error_velo_test_2_std[:, 2], alpha=0.2, color="red")
+    
+    # fill the interval between max and min
+    plt.plot(num_data, error_disp_train_mean[:, 2], label="error_disp_train", marker="o", color="blue")
+    # plt.fill_between(num_data, error_disp_train_min[:, 2], error_disp_train_max[:, 2], alpha=0.2, color="blue")
+    plt.plot(num_data, error_disp_test_1_mean[:, 2], label="error_disp_test_1", marker="s", color="blue", linestyle="dashed")
+    # plt.fill_between(num_data, error_disp_test_1_min[:, 2], error_disp_test_1_max[:, 2], alpha=0.2, color="blue")
+    plt.plot(num_data, error_disp_test_2_mean[:, 2], label="error_disp_test_2", marker="^", color="blue", linestyle="-.")
+    # plt.fill_between(num_data, error_disp_test_2_min[:, 2], error_disp_test_2_max[:, 2], alpha=0.2, color="blue")
+    plt.plot(num_data, error_velo_train_mean[:, 2], label="error_velo_train", marker="D", color="red")
+    # plt.fill_between(num_data, error_velo_train_min[:, 2], error_velo_train_max[:, 2], alpha=0.2, color="red")
+    plt.plot(num_data, error_velo_test_1_mean[:, 2], label="error_velo_test_1", marker="v", color="red", linestyle="dashed")
+    # plt.fill_between(num_data, error_velo_test_1_min[:, 2], error_velo_test_1_max[:, 2], alpha=0.2, color="red")
+    plt.plot(num_data, error_velo_test_2_mean[:, 2], label="error_velo_test_2", marker="P", color="red", linestyle="-.")
+    # plt.fill_between(num_data, error_velo_test_2_min[:, 2], error_velo_test_2_max[:, 2], alpha=0.2, color="red")
+    plt.yscale("log")
     # print(error_disp_test_1_mean[:, 2] - error_disp_test_1_std[:, 2])
-    # plt.yscale("log")
+    plt.yscale("log")
     plt.xscale("log")
-    # plt.legend()
+    plt.ylim(1e-9, 1e-4)
+    plt.xlim(20, 8000)
+    plt.legend()
     plt.xlabel("Number of training data")
     plt.ylabel("Mean Saure Error")
     plt.savefig("./figures/data_size.png")
