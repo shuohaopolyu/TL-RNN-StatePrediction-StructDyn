@@ -70,7 +70,7 @@ def num_hid_neuron():
     plt.ylabel("Mean Saure Error")
     plt.tight_layout()
     plt.savefig("./figures/num_hid_neuron.png", dpi=300)
-    # plt.show()
+    plt.show()
 
 
 def data_size():
@@ -134,19 +134,16 @@ def data_size():
         label="Velocity: Test 2",
     )
     plt.yscale("log")
-    # print(error_disp_test_1_mean[:, 2] - error_disp_test_1_std[:, 2])
-    plt.yscale("log")
     plt.xscale("log")
     plt.ylim(1e-9, 1e-3)
     plt.xlim(20, 8000)
-    # plt.xticks([20, 50, 100, 200, 500, 1000, 2000, 4000, 8000])
     plt.tick_params(axis="both", direction="in", which="both", top=True, right=True)
     plt.legend()
     plt.xlabel("Number of Training Data")
     plt.ylabel("Mean Saure Error")
     plt.tight_layout()
     plt.savefig("./figures/data_size.png", dpi=300)
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":

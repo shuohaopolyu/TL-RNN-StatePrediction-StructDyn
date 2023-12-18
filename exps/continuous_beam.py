@@ -1157,28 +1157,28 @@ def models_performance_eval():
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
         hidden_size_velo=16,
-        epochs=20000,
+        epochs=100000,
     )
     rnn_ae_eval(
         num_ele_per_seg=2000,
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
         hidden_size_velo=16,
-        epochs=20000,
+        epochs=100000,
     )
     bilstm_ae_eval(
         num_ele_per_seg=2000,
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
         hidden_size_velo=16,
-        epochs=20000,
+        epochs=100000,
     )
     lstm_ae_eval(
         num_ele_per_seg=2000,
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
         hidden_size_velo=16,
-        epochs=20000,
+        epochs=100000,
     )
 
 
