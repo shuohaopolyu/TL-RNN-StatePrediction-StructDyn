@@ -129,7 +129,7 @@ class Lstm(nn.Module):
     def forward(self, u, h0, c0):
         y, (hn, cn) = self.lstm(u, (h0, c0))
         y = self.linear(y)
-        return y
+        return y, hn, cn
 
     def train_LSTM(
         self,
@@ -157,7 +157,9 @@ class Lstm(nn.Module):
         for epoch in range(epochs):
             self.train()
             # Train the model
-            output_train = self.forward(train_set["X"], train_hc0[0], train_hc0[1])
+            output_train, _, _ = self.forward(
+                train_set["X"], train_hc0[0], train_hc0[1]
+            )
             loss_train = loss_fn(output_train, train_set["Y"])
             optimizer.zero_grad()
             loss_train.backward(retain_graph=True)
@@ -172,7 +174,7 @@ class Lstm(nn.Module):
                         input_test_X = test_set["X"][
                             i * input_length : (i + 1) * input_length, :
                         ]
-                        pred, (hn, cn) = self.forward(input_test_X, hn, cn)
+                        pred, hn, cn = self.forward(input_test_X, hn, cn)
                         if i == 0:
                             output_test = pred
                         else:
