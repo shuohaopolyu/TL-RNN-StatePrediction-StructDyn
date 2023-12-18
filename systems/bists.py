@@ -1,7 +1,7 @@
 """
 Base isolated shear type structure subjected to ground motion.
 
-Input:
+Inputs:
     mass_super_vec:  array like, with shape (n, )
                     mass of the superstructure from bottom to top
     stiff_super_vec: array like, with shape (n, )
