@@ -2,6 +2,12 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 
+def loss_plot():
+
+    # birnn_ae_disp
+    with open("./dataset/birnn_ae_disp_loss.pkl", "rb") as f:
+        birnn_ae_disp_loss = pickle.load(f)
+
 def models_performance_eval():
     # dual kalman filter
     with open("./dataset/dkf_eval.pkl", "rb") as f:
