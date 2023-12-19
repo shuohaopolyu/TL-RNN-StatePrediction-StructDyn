@@ -7,6 +7,8 @@ from models import AutoEncoder, Rnn, Lstm, Mlp
 import os
 from utils import compute_metrics
 from numpy import linalg as LA
+import random
+
 
 
 def compute_response(excitation_pattern=1):
@@ -729,7 +731,7 @@ def birnn_ae_eval(
         train_set=train_set_acc_2_velo,
         test_set=test_set_acc_2_velo,
         input_size=len(acc_idx),
-        hidden_size=16,
+        hidden_size=hidden_size_velo,
         output_size=8,
         num_layers=1,
         cell_type="RNN",
@@ -1151,34 +1153,35 @@ def nn_ae_eval():
 
 
 def models_performance_eval():
+    random.seed(0)
     dkf_eval()
     birnn_ae_eval(
         num_ele_per_seg=2000,
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
-        hidden_size_velo=10,
-        epochs=50000,
+        hidden_size_velo=12,
+        epochs=100000,
     )
     rnn_ae_eval(
         num_ele_per_seg=2000,
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
-        hidden_size_velo=10,
-        epochs=50000,
+        hidden_size_velo=12,
+        epochs=100000,
     )
     bilstm_ae_eval(
         num_ele_per_seg=2000,
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
-        hidden_size_velo=10,
-        epochs=50000,
+        hidden_size_velo=12,
+        epochs=100000,
     )
     lstm_ae_eval(
         num_ele_per_seg=2000,
         acc_idx=[13, 17, 32, 50, 67, 77],
         hidden_size_disp=8,
-        hidden_size_velo=10,
-        epochs=50000,
+        hidden_size_velo=12,
+        epochs=100000,
     )
 
 

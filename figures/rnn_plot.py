@@ -29,7 +29,7 @@ def disp_loss_plot():
         lstm_ae_disp_train_loss = lstm_ae_disp_loss["train_loss_list"]
         lstm_ae_disp_test_loss = lstm_ae_disp_loss["test_loss_list"]
 
-    epochs = np.arange(0, 100000, 2000)
+    epochs = np.arange(0, 60000, 2000)
     plt.plot(epochs, brinn_ae_disp_train_loss, label="BiRNN-AE Train", color="darkred")
     plt.plot(epochs, brinn_ae_disp_test_loss, label="BiRNN-AE Test", color="darkred", linestyle="--")
     plt.plot(epochs, rnn_ae_disp_train_loss, label="RNN-AE Train", color="darkorange")
@@ -41,7 +41,7 @@ def disp_loss_plot():
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.yscale("log")
-    plt.xticks(np.arange(0, 100000, 20000))
+    plt.xticks(np.arange(0, 60000, 10000))
     plt.legend()
     plt.tight_layout()
     plt.savefig("./figures/disp_loss_plot.png", dpi=300)
@@ -73,7 +73,7 @@ def velo_loss_plot():
             lstm_ae_velo_train_loss = lstm_ae_velo_loss["train_loss_list"]
             lstm_ae_velo_test_loss = lstm_ae_velo_loss["test_loss_list"]
     
-        epochs = np.arange(0, 100000, 2000)
+        epochs = np.arange(0, 60000, 2000)
         plt.plot(epochs, brinn_ae_velo_train_loss, label="BiRNN-AE Train", color="darkred")
         plt.plot(epochs, brinn_ae_velo_test_loss, label="BiRNN-AE Test", color="darkred", linestyle="--")
         plt.plot(epochs, rnn_ae_velo_train_loss, label="RNN-AE Train", color="darkorange")
@@ -85,7 +85,7 @@ def velo_loss_plot():
         plt.xlabel("Epochs")
         plt.ylabel("Loss")
         plt.yscale("log")
-        plt.xticks(np.arange(0, 100000, 20000))
+        plt.xticks(np.arange(0, 60000, 10000))
         plt.legend()
         plt.tight_layout()
         plt.savefig("./figures/velo_loss_plot.png", dpi=300)
@@ -224,5 +224,5 @@ if __name__ == "__main__":
     plt.rc("font", family="serif")
     plt.rc("font", size=12)
     models_performance_eval()
-    # disp_loss_plot()
+    disp_loss_plot()
     velo_loss_plot()
