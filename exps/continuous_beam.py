@@ -8,7 +8,10 @@ import os
 from utils import compute_metrics
 from numpy import linalg as LA
 import random
+import concurrent.futures
+
 random.seed(0)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def compute_response(excitation_pattern=1):
@@ -84,7 +87,6 @@ def _rand_generate_train_test_set(data_1, data_2, num_train, num_test):
 
 
 def ae_num_hid_neuron():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with open("./dataset/full_response_excitation_pattern_1.pkl", "rb") as f:
         full_data_1 = pickle.load(f)
     with open("./dataset/full_response_excitation_pattern_2.pkl", "rb") as f:
@@ -156,7 +158,6 @@ def ae_num_hid_neuron():
 
 
 def ae_train_data_size():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with open("./dataset/full_response_excitation_pattern_1.pkl", "rb") as f:
         full_data_1 = pickle.load(f)
     with open("./dataset/full_response_excitation_pattern_2.pkl", "rb") as f:
@@ -299,7 +300,6 @@ def ae_train_data_size():
 
 
 def ae_disp_velo():
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with open("./dataset/full_response_excitation_pattern_1.pkl", "rb") as f:
         full_data = pickle.load(f)
     disp = torch.tensor(full_data["displacement"], dtype=torch.float32).to(device)
@@ -505,7 +505,6 @@ def _rnn(
     loss_save_path,
     train_msg,
 ):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if ae_model is not None:
         ae_model.eval()
         with torch.no_grad():
@@ -612,7 +611,6 @@ def _ae_models(pred_type="disp"):
 
 
 def _data_for_rnn_training(num_ele_per_seg, sensor_idx, pred_type="disp"):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with open("./dataset/full_response_excitation_pattern_1.pkl", "rb") as f:
         full_data = pickle.load(f)
     disp = torch.tensor(full_data["displacement"], dtype=torch.float32).to(device)
@@ -642,7 +640,6 @@ def _data_for_rnn_training(num_ele_per_seg, sensor_idx, pred_type="disp"):
 
 
 def _data_for_rnn_testing(num_ele_per_seg, sensor_idx, pred_type="disp"):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with open("./dataset/full_response_excitation_pattern_1.pkl", "rb") as f:
         full_data_1 = pickle.load(f)
     with open("./dataset/full_response_excitation_pattern_2.pkl", "rb") as f:
@@ -712,7 +709,7 @@ def rnn_ae_eval(
     num_ele_per_seg=2000,
     acc_idx=[13, 17, 32, 50, 67, 77],
     hidden_size=8,
-    epochs=100000,
+    epochs=35000,
     learning_rate=1e-5,
     cell_type="RNN",
     num_layers=1,
@@ -720,7 +717,6 @@ def rnn_ae_eval(
     pred_type="disp",
     train_msg=False,
 ):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     ae = _ae_models(pred_type)
     if bidirectional:
         kw = "bi"
@@ -765,7 +761,7 @@ def rnn_ae_eval(
             rnn_model,
             test_set_i,
             num_ele_per_seg,
-            i + 4,
+            i + 1,
             cell_type,
             _h_0,
             _c_0,
@@ -780,62 +776,81 @@ def nn_ae_eval():
 
 def model_eval():
     dkf_eval()
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="RNN",
-        bidirectional=True,
-        pred_type="disp",
-    )
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="RNN",
-        bidirectional=False,
-        pred_type="disp",
-    )
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="LSTM",
-        bidirectional=True,
-        pred_type="disp",
-    )
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="LSTM",
-        bidirectional=False,
-        pred_type="disp",
-    )
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="RNN",
-        bidirectional=True,
-        pred_type="velo",
-    )
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="RNN",
-        bidirectional=False,
-        pred_type="velo",
-    )
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="LSTM",
-        bidirectional=True,
-        pred_type="velo",
-    )
-    rnn_ae_eval(
-        hidden_size=6,
-        learning_rate=1e-3,
-        cell_type="LSTM",
-        bidirectional=False,
-        pred_type="velo",
-    )
+    with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+        futures = [
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=8,
+                learning_rate=1e-3,
+                cell_type="RNN",
+                bidirectional=True,
+                pred_type="disp",
+            ),
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=8,
+                learning_rate=1e-3,
+                cell_type="RNN",
+                bidirectional=False,
+                pred_type="disp",
+            ),
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=8,
+                learning_rate=1e-3,
+                cell_type="LSTM",
+                bidirectional=True,
+                pred_type="disp",
+            ),
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=8,
+                learning_rate=1e-3,
+                cell_type="LSTM",
+                bidirectional=False,
+                pred_type="disp",
+            ),
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+        # f5 = executor.submit(
+        #     rnn_ae_eval(
+        #         hidden_size=6,
+        #         learning_rate=1e-3,
+        #         cell_type="RNN",
+        #         bidirectional=True,
+        #         pred_type="velo",
+        #     )
+        # )
+        # f6 = executor.submit(
+        #     rnn_ae_eval(
+        #         hidden_size=6,
+        #         learning_rate=1e-3,
+        #         cell_type="RNN",
+        #         bidirectional=False,
+        #         pred_type="velo",
+        #     )
+        # )
+        # f7 = executor.submit(
+        #     rnn_ae_eval(
+        #         hidden_size=6,
+        #         learning_rate=1e-3,
+        #         cell_type="LSTM",
+        #         bidirectional=True,
+        #         pred_type="velo",
+        #     )
+        # )
+        # f8 = executor.submit(
+        #     rnn_ae_eval(
+        #         hidden_size=6,
+        #         learning_rate=1e-3,
+        #         cell_type="LSTM",
+        #         bidirectional=False,
+        #         pred_type="velo",
+        #     )
+        # )
+    print("All models evaluation finished!")
+
 
 
 def rnn_ae_noise_robustness():

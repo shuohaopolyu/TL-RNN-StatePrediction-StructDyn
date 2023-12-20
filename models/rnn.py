@@ -3,7 +3,6 @@ import torch.nn as nn
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-
 # Define RNN
 class Rnn(nn.Module):
     def __init__(
@@ -21,14 +20,19 @@ class Rnn(nn.Module):
             num_layers,
             bidirectional=bidirectional,
             batch_first=True,
+            bias = False,
         ).to(device)
         if bidirectional:
             self.linear = nn.Linear(2 * hidden_size, output_size).to(device)
         else:
             self.linear = nn.Linear(hidden_size, output_size).to(device)
+        self.dropout_1 = nn.Dropout(p=0.1)
+        self.dropout_2 = nn.Dropout(p=0.1)
 
     def forward(self, u, h0):
+        # u = self.dropout_1(u)
         y, hn = self.rnn(u, h0)
+        # y = self.dropout_2(y)
         y = self.linear(y)
         return y, hn
 
@@ -117,7 +121,7 @@ class Lstm(nn.Module):
             input_size,
             hidden_size,
             num_layers,
-            bias=True,
+            bias=False,
             bidirectional=bidirectional,
             batch_first=True,
         ).to(device)
@@ -125,9 +129,13 @@ class Lstm(nn.Module):
             self.linear = nn.Linear(2 * hidden_size, output_size, bias=True).to(device)
         else:
             self.linear = nn.Linear(hidden_size, output_size, bias=True).to(device)
+        self.dropout_1 = nn.Dropout(p=0.1)
+        self.dropout_2 = nn.Dropout(p=0.1)
 
     def forward(self, u, h0, c0):
+        # u = self.dropout_1(u)
         y, (hn, cn) = self.lstm(u, (h0, c0))
+        # y = self.dropout_2(y)
         y = self.linear(y)
         return y, hn, cn
 
