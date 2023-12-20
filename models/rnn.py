@@ -20,7 +20,7 @@ class Rnn(nn.Module):
             num_layers,
             bidirectional=bidirectional,
             batch_first=True,
-            bias = False,
+            # bias = False,
         ).to(device)
         if bidirectional:
             self.linear = nn.Linear(2 * hidden_size, output_size).to(device)
@@ -121,7 +121,7 @@ class Lstm(nn.Module):
             input_size,
             hidden_size,
             num_layers,
-            bias=False,
+            # bias=False,
             bidirectional=bidirectional,
             batch_first=True,
         ).to(device)
