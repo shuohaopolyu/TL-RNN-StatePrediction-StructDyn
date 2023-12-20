@@ -88,7 +88,7 @@ class Rnn(nn.Module):
                 # Save the model
                 if model_save_path is not None:
                     torch.save(self.state_dict(), model_save_path)
-                    print(f"Model saved to {model_save_path}")
+                    # print(f"Model saved to {model_save_path}")
 
                 if loss_save_path is not None:
                     torch.save(
@@ -98,7 +98,7 @@ class Rnn(nn.Module):
                         },
                         loss_save_path,
                     )
-                    print(f"Loss saved to {loss_save_path}")
+                    # print(f"Loss saved to {loss_save_path}")
         return train_loss_list, test_loss_list
 
 
@@ -189,7 +189,7 @@ class Lstm(nn.Module):
                 # Save the model
                 if model_save_path is not None:
                     torch.save(self.state_dict(), model_save_path)
-                    print(f"Model saved to {model_save_path}")
+                    # print(f"Model saved to {model_save_path}")
                 if loss_save_path is not None:
                     torch.save(
                         {
@@ -198,5 +198,5 @@ class Lstm(nn.Module):
                         },
                         loss_save_path,
                     )
-                    print(f"Loss saved to {loss_save_path}")
+                    # print(f"Loss saved to {loss_save_path}")
         return train_loss_list, test_loss_list

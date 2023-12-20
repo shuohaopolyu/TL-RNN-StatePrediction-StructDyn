@@ -16,4 +16,4 @@ if __name__ == '__main__':
     # continuous_beam.ae_train_data_size()
 
     # continuous_beam.ae_disp_velo()
-    continuous_beam.models_performance_eval()
+    continuous_beam.model_eval()

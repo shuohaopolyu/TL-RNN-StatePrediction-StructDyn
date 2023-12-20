@@ -8,7 +8,7 @@ import os
 from utils import compute_metrics
 from numpy import linalg as LA
 import random
-
+random.seed(0)
 
 
 def compute_response(excitation_pattern=1):
@@ -416,14 +416,17 @@ def _dkf(
         )
         P_mtx[:, :, i + 1] = P_k_m - G_k_zeta @ G @ P_k_m
 
-        progress_percentage = (i + 2) / (steps) * 100
-        if progress_percentage % 10 == 0:
-            print(f"Progress: {progress_percentage:.0f}%")
+        # print progress every 10% for test
+        # progress_percentage = (i + 2) / (steps) * 100
+        # if progress_percentage % 10 == 0:
+        #     print(f"Progress: {progress_percentage:.0f}%")
     if output == "displacement":
         disp_pred = md_mtx @ zeta_mtx[:num_modes, :]
+        print("Dual Kalman Filter finished for displacement prediction!")
         return disp_pred
     elif output == "velocity":
         vel_pred = md_mtx @ zeta_mtx[num_modes:, :]
+        print("Dual Kalman Filter finished for velocity prediction!")
         return vel_pred
 
 
@@ -515,8 +518,12 @@ def _rnn(
     _test_set = {"X": test_set["X"], "Y": Y_compressed_test_1}
 
     if cell_type == "LSTM":
-        _h_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(device)
-        _c_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(device)
+        _h_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(
+            device
+        )
+        _c_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(
+            device
+        )
         _train_hc_0 = (_h_0, _c_0)
         _test_hc_0 = (_h_0, _c_0)
 
@@ -535,7 +542,9 @@ def _rnn(
         return lstm
 
     elif cell_type == "RNN":
-        _h_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(device)
+        _h_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(
+            device
+        )
         _train_h_0 = _h_0
         _test_h_0 = _h_0
 
@@ -587,75 +596,83 @@ def _mlp(
     )
 
 
-def _ae_models():
-    ae_disp = AutoEncoder([86, 40, 40, 4])
-    ae_velo = AutoEncoder([86, 40, 40, 8])
-    ae_disp.load_state_dict(torch.load("./dataset/ae_disp.pth"))
-    ae_velo.load_state_dict(torch.load("./dataset/ae_velo.pth"))
-    ae_disp.eval()
-    ae_velo.eval()
-    return ae_disp, ae_velo
+def _ae_models(pred_type="disp"):
+    if pred_type == "disp":
+        ae_disp = AutoEncoder([86, 40, 40, 4])
+        ae_disp.load_state_dict(torch.load("./dataset/ae_disp.pth"))
+        ae_disp.eval()
+        return ae_disp
+    elif pred_type == "velo":
+        ae_velo = AutoEncoder([86, 40, 40, 8])
+        ae_velo.load_state_dict(torch.load("./dataset/ae_velo.pth"))
+        ae_velo.eval()
+        return ae_velo
+    else:
+        raise ValueError("pred_type should be either disp or velo")
 
 
-def _data_for_rnn_training(num_ele_per_seg, sensor_idx):
+def _data_for_rnn_training(num_ele_per_seg, sensor_idx, pred_type="disp"):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with open("./dataset/full_response_excitation_pattern_1.pkl", "rb") as f:
         full_data = pickle.load(f)
     disp = torch.tensor(full_data["displacement"], dtype=torch.float32).to(device)
     velo = torch.tensor(full_data["velocity"], dtype=torch.float32).to(device)
     acc = torch.tensor(full_data["acceleration"], dtype=torch.float32).to(device)
-
-    train_set_disp = disp[:num_ele_per_seg, :]
-    test_set_disp = disp[num_ele_per_seg:10000, :]
-    train_set_velo = velo[:num_ele_per_seg, :]
-    test_set_velo = velo[num_ele_per_seg:10000, :]
     train_set_acc = acc[:num_ele_per_seg, sensor_idx]
     test_set_acc = acc[num_ele_per_seg:10000, sensor_idx]
 
-    train_set_acc_2_disp = {"X": train_set_acc, "Y": train_set_disp}
-    test_set_acc_2_disp = {"X": test_set_acc, "Y": test_set_disp}
-    train_set_acc_2_velo = {"X": train_set_acc, "Y": train_set_velo}
-    test_set_acc_2_velo = {"X": test_set_acc, "Y": test_set_velo}
+    if pred_type == "disp":
+        train_set_disp = disp[:num_ele_per_seg, :]
+        test_set_disp = disp[num_ele_per_seg:10000, :]
+        train_set_acc_2_disp = {"X": train_set_acc, "Y": train_set_disp}
+        test_set_acc_2_disp = {"X": test_set_acc, "Y": test_set_disp}
+        return train_set_acc_2_disp, test_set_acc_2_disp
 
-    return (
-        train_set_acc_2_disp,
-        test_set_acc_2_disp,
-        train_set_acc_2_velo,
-        test_set_acc_2_velo,
-    )
+    elif pred_type == "velo":
+        train_set_disp = disp[:num_ele_per_seg, :]
+        test_set_disp = disp[num_ele_per_seg:10000, :]
+        train_set_velo = velo[:num_ele_per_seg, :]
+        test_set_velo = velo[num_ele_per_seg:10000, :]
+        train_set_acc_2_velo = {"X": train_set_acc, "Y": train_set_velo}
+        test_set_acc_2_velo = {"X": test_set_acc, "Y": test_set_velo}
+        return train_set_acc_2_velo, test_set_acc_2_velo
+
+    else:
+        raise ValueError("pred_type should be either disp or velo")
 
 
-def _data_for_rnn_testing(num_ele_per_seg, sensor_idx):
+def _data_for_rnn_testing(num_ele_per_seg, sensor_idx, pred_type="disp"):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     with open("./dataset/full_response_excitation_pattern_1.pkl", "rb") as f:
         full_data_1 = pickle.load(f)
     with open("./dataset/full_response_excitation_pattern_2.pkl", "rb") as f:
         full_data_2 = pickle.load(f)
-    disp_1 = torch.tensor(full_data_1["displacement"], dtype=torch.float32).to(device)
-    velo_1 = torch.tensor(full_data_1["velocity"], dtype=torch.float32).to(device)
     acc_1 = torch.tensor(full_data_1["acceleration"], dtype=torch.float32).to(device)
-    disp_2 = torch.tensor(full_data_2["displacement"], dtype=torch.float32).to(device)
-    velo_2 = torch.tensor(full_data_2["velocity"], dtype=torch.float32).to(device)
     acc_2 = torch.tensor(full_data_2["acceleration"], dtype=torch.float32).to(device)
-
-    test_set_disp_1 = disp_1[num_ele_per_seg:10000, :]
-    test_set_velo_1 = velo_1[num_ele_per_seg:10000, :]
     test_set_acc_1 = acc_1[num_ele_per_seg:10000, sensor_idx]
-    test_set_disp_2 = disp_2
-    test_set_velo_2 = velo_2
     test_set_acc_2 = acc_2[:, sensor_idx]
 
-    test_set_acc_2_disp_1 = {"X": test_set_acc_1, "Y": test_set_disp_1}
-    test_set_acc_2_velo_1 = {"X": test_set_acc_1, "Y": test_set_velo_1}
-    test_set_acc_2_disp_2 = {"X": test_set_acc_2, "Y": test_set_disp_2}
-    test_set_acc_2_velo_2 = {"X": test_set_acc_2, "Y": test_set_velo_2}
+    if pred_type == "disp":
+        disp_1 = torch.tensor(full_data_1["displacement"], dtype=torch.float32).to(
+            device
+        )
+        disp_2 = torch.tensor(full_data_2["displacement"], dtype=torch.float32).to(
+            device
+        )
+        test_set_disp_1 = disp_1[num_ele_per_seg:10000, :]
+        test_set_disp_2 = disp_2
+        test_set_acc_2_disp_1 = {"X": test_set_acc_1, "Y": test_set_disp_1}
+        test_set_acc_2_disp_2 = {"X": test_set_acc_2, "Y": test_set_disp_2}
+        return test_set_acc_2_disp_1, test_set_acc_2_disp_2
 
-    return (
-        test_set_acc_2_disp_1,
-        test_set_acc_2_velo_1,
-        test_set_acc_2_disp_2,
-        test_set_acc_2_velo_2,
-    )
+    elif pred_type == "velo":
+        velo_1 = torch.tensor(full_data_1["velocity"], dtype=torch.float32).to(device)
+        velo_2 = torch.tensor(full_data_2["velocity"], dtype=torch.float32).to(device)
+        test_set_velo_1 = velo_1[num_ele_per_seg:10000, :]
+        test_set_velo_2 = velo_2
+        test_set_acc_2_velo_1 = {"X": test_set_acc_1, "Y": test_set_velo_1}
+        test_set_acc_2_velo_2 = {"X": test_set_acc_2, "Y": test_set_velo_2}
+        return test_set_acc_2_velo_1, test_set_acc_2_velo_2
 
 
 def _test_rnn(
@@ -691,460 +708,69 @@ def _test_rnn(
     return pred
 
 
-def birnn_ae_eval(
-    num_ele_per_seg=2000,
-    acc_idx=[13, 17, 32, 50, 67, 77],
-    hidden_size_disp=8,
-    hidden_size_velo=16,
-    epochs=200000,
-):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    ae_disp, ae_velo = _ae_models()
-    (
-        train_set_acc_2_disp,
-        test_set_acc_2_disp,
-        train_set_acc_2_velo,
-        test_set_acc_2_velo,
-    ) = _data_for_rnn_training(num_ele_per_seg, acc_idx)
-    model_save_path_disp = "./dataset/birnn_ae_disp.pth"
-    loss_save_path_disp = "./dataset/birnn_ae_disp_loss.pkl"
-    birnn_disp = _rnn(
-        ae_model=ae_disp,
-        train_set=train_set_acc_2_disp,
-        test_set=test_set_acc_2_disp,
-        input_size=len(acc_idx),
-        hidden_size=hidden_size_disp,
-        output_size=4,
-        num_layers=1,
-        cell_type="RNN",
-        bidirectional=True,
-        epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_disp,
-        loss_save_path=loss_save_path_disp,
-        train_msg=True,
-    )
-    model_save_path_velo = "./dataset/birnn_ae_velo.pth"
-    loss_save_path_velo = "./dataset/birnn_ae_velo_loss.pkl"
-    birnn_velo = _rnn(
-        ae_model=ae_velo,
-        train_set=train_set_acc_2_velo,
-        test_set=test_set_acc_2_velo,
-        input_size=len(acc_idx),
-        hidden_size=hidden_size_velo,
-        output_size=8,
-        num_layers=1,
-        cell_type="RNN",
-        bidirectional=True,
-        epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_velo,
-        loss_save_path=loss_save_path_velo,
-        train_msg=True,
-    )
-    print("BiRNN training finished!")
-
-    (
-        test_set_acc_2_disp_1,
-        test_set_acc_2_velo_1,
-        test_set_acc_2_disp_2,
-        test_set_acc_2_velo_2,
-    ) = _data_for_rnn_testing(num_ele_per_seg, acc_idx)
-
-    pred_save_path_1 = "./dataset/birnn_ae_disp_pred_1.pkl"
-    pred_save_path_2 = "./dataset/birnn_ae_disp_pred_2.pkl"
-    pred_save_path_3 = "./dataset/birnn_ae_velo_pred_1.pkl"
-    pred_save_path_4 = "./dataset/birnn_ae_velo_pred_2.pkl"
-
-    _h_0 = torch.zeros(1 * (1 + int(1)), hidden_size_disp).to(device)
-    pred_disp_1 = _test_rnn(
-        ae_disp,
-        birnn_disp,
-        test_set_acc_2_disp_1,
-        num_ele_per_seg,
-        4,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_1,
-    )
-    pred_disp_2 = _test_rnn(
-        ae_disp,
-        birnn_disp,
-        test_set_acc_2_disp_2,
-        num_ele_per_seg,
-        5,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_2,
-    )
-    _h_0 = torch.zeros(1 * (1 + int(1)), hidden_size_velo).to(device)
-    pred_velo_1 = _test_rnn(
-        ae_velo,
-        birnn_velo,
-        test_set_acc_2_velo_1,
-        num_ele_per_seg,
-        4,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_3,
-    )
-    pred_velo_2 = _test_rnn(
-        ae_velo,
-        birnn_velo,
-        test_set_acc_2_velo_2,
-        num_ele_per_seg,
-        5,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_4,
-    )
-
-
 def rnn_ae_eval(
     num_ele_per_seg=2000,
     acc_idx=[13, 17, 32, 50, 67, 77],
-    hidden_size_disp=8,
-    hidden_size_velo=16,
-    epochs=200000,
+    hidden_size=8,
+    epochs=100000,
+    learning_rate=1e-5,
+    cell_type="RNN",
+    num_layers=1,
+    bidirectional=True,
+    pred_type="disp",
+    train_msg=False,
 ):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    ae_disp, ae_velo = _ae_models()
-    (
-        train_set_acc_2_disp,
-        test_set_acc_2_disp,
-        train_set_acc_2_velo,
-        test_set_acc_2_velo,
-    ) = _data_for_rnn_training(num_ele_per_seg, acc_idx)
-    model_save_path_disp = "./dataset/rnn_ae_disp.pth"
-    loss_save_path_disp = "./dataset/rnn_ae_disp_loss.pkl"
-    rnn_disp = _rnn(
-        ae_model=ae_disp,
-        train_set=train_set_acc_2_disp,
-        test_set=test_set_acc_2_disp,
+    ae = _ae_models(pred_type)
+    if bidirectional:
+        kw = "bi"
+    else:
+        kw = ""
+    train_set, test_set = _data_for_rnn_training(num_ele_per_seg, acc_idx, pred_type)
+    model_save_path = f"./dataset/{kw}{cell_type.lower()}_ae_{pred_type.lower()}.pth"
+    loss_save_path = (
+        f"./dataset/{kw}{cell_type.lower()}_ae_{pred_type.lower()}_loss.pkl"
+    )
+    rnn_model = _rnn(
+        ae_model=ae,
+        train_set=train_set,
+        test_set=test_set,
         input_size=len(acc_idx),
-        hidden_size=hidden_size_disp,
-        output_size=4,
-        num_layers=1,
-        cell_type="RNN",
-        bidirectional=False,
+        hidden_size=hidden_size,
+        output_size=4 if pred_type == "disp" else 8,
+        num_layers=num_layers,
+        cell_type=cell_type,
+        bidirectional=bidirectional,
         epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_disp,
-        loss_save_path=loss_save_path_disp,
-        train_msg=True,
+        learning_rate=learning_rate,
+        model_save_path=model_save_path,
+        loss_save_path=loss_save_path,
+        train_msg=train_msg,
     )
-    model_save_path_velo = "./dataset/rnn_ae_velo.pth"
-    loss_save_path_velo = "./dataset/rnn_ae_velo_loss.pkl"
-    rnn_velo = _rnn(
-        ae_model=ae_velo,
-        train_set=train_set_acc_2_velo,
-        test_set=test_set_acc_2_velo,
-        input_size=len(acc_idx),
-        hidden_size=hidden_size_velo,
-        output_size=8,
-        num_layers=1,
-        cell_type="RNN",
-        bidirectional=False,
-        epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_velo,
-        loss_save_path=loss_save_path_velo,
-        train_msg=True,
+    print(f"{kw}{cell_type.lower()}_ae_{pred_type.lower()} training finished!")
+    pred_save_path_1 = (
+        f"./dataset/{kw}{cell_type.lower()}_ae_{pred_type.lower()}_pred_1.pkl"
     )
-    print("RNN training finished!")
+    pred_save_path_2 = (
+        f"./dataset/{kw}{cell_type.lower()}_ae_{pred_type.lower()}_pred_2.pkl"
+    )
+    pred_save_path = [pred_save_path_1, pred_save_path_2]
+    test_set = _data_for_rnn_testing(num_ele_per_seg, acc_idx, pred_type)
 
-    (
-        test_set_acc_2_disp_1,
-        test_set_acc_2_velo_1,
-        test_set_acc_2_disp_2,
-        test_set_acc_2_velo_2,
-    ) = _data_for_rnn_testing(num_ele_per_seg, acc_idx)
-
-    pred_save_path_1 = "./dataset/rnn_ae_disp_pred_1.pkl"
-    pred_save_path_2 = "./dataset/rnn_ae_disp_pred_2.pkl"
-    pred_save_path_3 = "./dataset/rnn_ae_velo_pred_1.pkl"
-    pred_save_path_4 = "./dataset/rnn_ae_velo_pred_2.pkl"
-
-    _h_0 = torch.zeros(1 * (1 + int(0)), hidden_size_disp).to(device)
-    pred_disp_1 = _test_rnn(
-        ae_disp,
-        rnn_disp,
-        test_set_acc_2_disp_1,
-        num_ele_per_seg,
-        4,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_1,
-    )
-    pred_disp_2 = _test_rnn(
-        ae_disp,
-        rnn_disp,
-        test_set_acc_2_disp_2,
-        num_ele_per_seg,
-        5,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_2,
-    )
-    _h_0 = torch.zeros(1 * (1 + int(0)), hidden_size_velo).to(device)
-    pred_velo_1 = _test_rnn(
-        ae_velo,
-        rnn_velo,
-        test_set_acc_2_velo_1,
-        num_ele_per_seg,
-        4,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_3,
-    )
-    pred_velo_2 = _test_rnn(
-        ae_velo,
-        rnn_velo,
-        test_set_acc_2_velo_2,
-        num_ele_per_seg,
-        5,
-        "RNN",
-        _h_0,
-        None,
-        pred_save_path_4,
-    )
-
-
-def bilstm_ae_eval(
-    num_ele_per_seg=2000,
-    acc_idx=[13, 17, 32, 50, 67, 77],
-    hidden_size_disp=8,
-    hidden_size_velo=16,
-    epochs=200000,
-):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    ae_disp, ae_velo = _ae_models()
-    (
-        train_set_acc_2_disp,
-        test_set_acc_2_disp,
-        train_set_acc_2_velo,
-        test_set_acc_2_velo,
-    ) = _data_for_rnn_training(num_ele_per_seg, acc_idx)
-    model_save_path_disp = "./dataset/bilstm_ae_disp.pth"
-    loss_save_path_disp = "./dataset/bilstm_ae_disp_loss.pkl"
-    bilstm_disp = _rnn(
-        ae_model=ae_disp,
-        train_set=train_set_acc_2_disp,
-        test_set=test_set_acc_2_disp,
-        input_size=len(acc_idx),
-        hidden_size=hidden_size_disp,
-        output_size=4,
-        num_layers=1,
-        cell_type="LSTM",
-        bidirectional=True,
-        epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_disp,
-        loss_save_path=loss_save_path_disp,
-        train_msg=True,
-    )
-    model_save_path_velo = "./dataset/bilstm_ae_velo.pth"
-    loss_save_path_velo = "./dataset/bilstm_ae_velo_loss.pkl"
-    bilstm_velo = _rnn(
-        ae_model=ae_velo,
-        train_set=train_set_acc_2_velo,
-        test_set=test_set_acc_2_velo,
-        input_size=len(acc_idx),
-        hidden_size=hidden_size_velo,
-        output_size=8,
-        num_layers=1,
-        cell_type="LSTM",
-        bidirectional=True,
-        epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_velo,
-        loss_save_path=loss_save_path_velo,
-        train_msg=True,
-    )
-    print("BiLSTM training finished!")
-
-    (
-        test_set_acc_2_disp_1,
-        test_set_acc_2_velo_1,
-        test_set_acc_2_disp_2,
-        test_set_acc_2_velo_2,
-    ) = _data_for_rnn_testing(num_ele_per_seg, acc_idx)
-
-    pred_save_path_1 = "./dataset/bilstm_ae_disp_pred_1.pkl"
-    pred_save_path_2 = "./dataset/bilstm_ae_disp_pred_2.pkl"
-    pred_save_path_3 = "./dataset/bilstm_ae_velo_pred_1.pkl"
-    pred_save_path_4 = "./dataset/bilstm_ae_velo_pred_2.pkl"
-
-    _h_0 = torch.zeros(1 * (1 + int(1)), hidden_size_disp).to(device)
-    _c_0 = torch.zeros(1 * (1 + int(1)), hidden_size_disp).to(device)
-    pred_disp_1 = _test_rnn(
-        ae_disp,
-        bilstm_disp,
-        test_set_acc_2_disp_1,
-        num_ele_per_seg,
-        4,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_1,
-    )
-    pred_disp_2 = _test_rnn(
-        ae_disp,
-        bilstm_disp,
-        test_set_acc_2_disp_2,
-        num_ele_per_seg,
-        5,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_2,
-    )
-    _h_0 = torch.zeros(1 * (1 + int(1)), hidden_size_velo).to(device)
-    _c_0 = torch.zeros(1 * (1 + int(1)), hidden_size_velo).to(device)
-    pred_velo_1 = _test_rnn(
-        ae_velo,
-        bilstm_velo,
-        test_set_acc_2_velo_1,
-        num_ele_per_seg,
-        4,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_3,
-    )
-    pred_velo_2 = _test_rnn(
-        ae_velo,
-        bilstm_velo,
-        test_set_acc_2_velo_2,
-        num_ele_per_seg,
-        5,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_4,
-    )
-
-
-def lstm_ae_eval(
-    num_ele_per_seg=2000,
-    acc_idx=[13, 17, 32, 50, 67, 77],
-    hidden_size_disp=8,
-    hidden_size_velo=16,
-    epochs=200000,
-):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    ae_disp, ae_velo = _ae_models()
-    (
-        train_set_acc_2_disp,
-        test_set_acc_2_disp,
-        train_set_acc_2_velo,
-        test_set_acc_2_velo,
-    ) = _data_for_rnn_training(num_ele_per_seg, acc_idx)
-    model_save_path_disp = "./dataset/lstm_ae_disp.pth"
-    loss_save_path_disp = "./dataset/lstm_ae_disp_loss.pkl"
-    lstm_disp = _rnn(
-        ae_model=ae_disp,
-        train_set=train_set_acc_2_disp,
-        test_set=test_set_acc_2_disp,
-        input_size=len(acc_idx),
-        hidden_size=hidden_size_disp,
-        output_size=4,
-        num_layers=1,
-        cell_type="LSTM",
-        bidirectional=False,
-        epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_disp,
-        loss_save_path=loss_save_path_disp,
-        train_msg=True,
-    )
-    model_save_path_velo = "./dataset/lstm_ae_velo.pth"
-    loss_save_path_velo = "./dataset/lstm_ae_velo_loss.pkl"
-    lstm_velo = _rnn(
-        ae_model=ae_velo,
-        train_set=train_set_acc_2_velo,
-        test_set=test_set_acc_2_velo,
-        input_size=len(acc_idx),
-        hidden_size=hidden_size_velo,
-        output_size=8,
-        num_layers=1,
-        cell_type="LSTM",
-        bidirectional=False,
-        epochs=epochs,
-        learning_rate=1e-4,
-        model_save_path=model_save_path_velo,
-        loss_save_path=loss_save_path_velo,
-        train_msg=True,
-    )
-    print("LSTM training finished!")
-
-    (
-        test_set_acc_2_disp_1,
-        test_set_acc_2_velo_1,
-        test_set_acc_2_disp_2,
-        test_set_acc_2_velo_2,
-    ) = _data_for_rnn_testing(num_ele_per_seg, acc_idx)
-
-    pred_save_path_1 = "./dataset/lstm_ae_disp_pred_1.pkl"
-    pred_save_path_2 = "./dataset/lstm_ae_disp_pred_2.pkl"
-    pred_save_path_3 = "./dataset/lstm_ae_velo_pred_1.pkl"
-    pred_save_path_4 = "./dataset/lstm_ae_velo_pred_2.pkl"
-
-    _h_0 = torch.zeros(1 * (1 + int(0)), hidden_size_disp).to(device)
-    _c_0 = torch.zeros(1 * (1 + int(0)), hidden_size_disp).to(device)
-    pred_disp_1 = _test_rnn(
-        ae_disp,
-        lstm_disp,
-        test_set_acc_2_disp_1,
-        num_ele_per_seg,
-        4,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_1,
-    )
-    pred_disp_2 = _test_rnn(
-        ae_disp,
-        lstm_disp,
-        test_set_acc_2_disp_2,
-        num_ele_per_seg,
-        5,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_2,
-    )
-    _h_0 = torch.zeros(1 * (1 + int(0)), hidden_size_velo).to(device)
-    _c_0 = torch.zeros(1 * (1 + int(0)), hidden_size_velo).to(device)
-    pred_velo_1 = _test_rnn(
-        ae_velo,
-        lstm_velo,
-        test_set_acc_2_velo_1,
-        num_ele_per_seg,
-        4,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_3,
-    )
-    pred_velo_2 = _test_rnn(
-        ae_velo,
-        lstm_velo,
-        test_set_acc_2_velo_2,
-        num_ele_per_seg,
-        5,
-        "LSTM",
-        _h_0,
-        _c_0,
-        pred_save_path_4,
-    )
+    _h_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(device)
+    _c_0 = torch.zeros(num_layers * (1 + int(bidirectional)), hidden_size).to(device)
+    for i, test_set_i in enumerate(test_set):
+        pred = _test_rnn(
+            ae,
+            rnn_model,
+            test_set_i,
+            num_ele_per_seg,
+            i + 4,
+            cell_type,
+            _h_0,
+            _c_0,
+            pred_save_path[i],
+        )
 
 
 def nn_ae_eval():
@@ -1152,36 +778,63 @@ def nn_ae_eval():
     raise NotImplementedError
 
 
-def models_performance_eval():
-    random.seed(0)
+def model_eval():
     dkf_eval()
-    birnn_ae_eval(
-        num_ele_per_seg=2000,
-        acc_idx=[13, 17, 32, 50, 67, 77],
-        hidden_size_disp=8,
-        hidden_size_velo=12,
-        epochs=100000,
+    rnn_ae_eval(
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="RNN",
+        bidirectional=True,
+        pred_type="disp",
     )
     rnn_ae_eval(
-        num_ele_per_seg=2000,
-        acc_idx=[13, 17, 32, 50, 67, 77],
-        hidden_size_disp=8,
-        hidden_size_velo=12,
-        epochs=100000,
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="RNN",
+        bidirectional=False,
+        pred_type="disp",
     )
-    bilstm_ae_eval(
-        num_ele_per_seg=2000,
-        acc_idx=[13, 17, 32, 50, 67, 77],
-        hidden_size_disp=8,
-        hidden_size_velo=12,
-        epochs=100000,
+    rnn_ae_eval(
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="LSTM",
+        bidirectional=True,
+        pred_type="disp",
     )
-    lstm_ae_eval(
-        num_ele_per_seg=2000,
-        acc_idx=[13, 17, 32, 50, 67, 77],
-        hidden_size_disp=8,
-        hidden_size_velo=12,
-        epochs=100000,
+    rnn_ae_eval(
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="LSTM",
+        bidirectional=False,
+        pred_type="disp",
+    )
+    rnn_ae_eval(
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="RNN",
+        bidirectional=True,
+        pred_type="velo",
+    )
+    rnn_ae_eval(
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="RNN",
+        bidirectional=False,
+        pred_type="velo",
+    )
+    rnn_ae_eval(
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="LSTM",
+        bidirectional=True,
+        pred_type="velo",
+    )
+    rnn_ae_eval(
+        hidden_size=6,
+        learning_rate=1e-3,
+        cell_type="LSTM",
+        bidirectional=False,
+        pred_type="velo",
     )
 
 
