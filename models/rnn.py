@@ -3,6 +3,7 @@ import torch.nn as nn
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+
 # Define RNN
 class Rnn(nn.Module):
     def __init__(
@@ -26,8 +27,11 @@ class Rnn(nn.Module):
             self.linear = nn.Linear(2 * hidden_size, output_size).to(device)
         else:
             self.linear = nn.Linear(hidden_size, output_size).to(device)
-        self.dropout_1 = nn.Dropout(p=0.1)
-        self.dropout_2 = nn.Dropout(p=0.1)
+        # the dropout layer is not used in the paper, because the input data and hidden state are not too large.
+        # the weight decay (L2 regularization) is used in the paper to avoid overfitting.
+        # but one can try to use the dropout layer to see if it can improve the performance.
+        # self.dropout_1 = nn.Dropout(p=0.1)
+        # self.dropout_2 = nn.Dropout(p=0.1)
 
     def forward(self, u, h0):
         # u = self.dropout_1(u)
@@ -47,6 +51,7 @@ class Rnn(nn.Module):
         model_save_path,
         loss_save_path,
         train_msg=True,
+        weight_decay=1e-6,
     ):
         assert test_set["X"].shape[0] % train_set["X"].shape[0] == 0, "Wrong data size"
         length_ratio = test_set["X"].shape[0] // train_set["X"].shape[0]
@@ -54,7 +59,9 @@ class Rnn(nn.Module):
         # Define the loss function
         loss_fn = nn.MSELoss(reduction="mean")
         # Define the optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
         # Define the loss list
         train_loss_list = []
         test_loss_list = []
@@ -129,8 +136,8 @@ class Lstm(nn.Module):
             self.linear = nn.Linear(2 * hidden_size, output_size, bias=True).to(device)
         else:
             self.linear = nn.Linear(hidden_size, output_size, bias=True).to(device)
-        self.dropout_1 = nn.Dropout(p=0.1)
-        self.dropout_2 = nn.Dropout(p=0.1)
+        # self.dropout_1 = nn.Dropout(p=0.1)
+        # self.dropout_2 = nn.Dropout(p=0.1)
 
     def forward(self, u, h0, c0):
         # u = self.dropout_1(u)
@@ -150,6 +157,7 @@ class Lstm(nn.Module):
         model_save_path,
         loss_save_path,
         train_msg=True,
+        weight_decay=1e-6,
     ):
         assert test_set["X"].shape[0] % train_set["X"].shape[0] == 0, "Wrong data size"
         length_ratio = test_set["X"].shape[0] // train_set["X"].shape[0]
@@ -157,7 +165,9 @@ class Lstm(nn.Module):
         # Define the loss function
         loss_fn = nn.MSELoss(reduction="mean")
         # Define the optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
         # Define the loss list
         train_loss_list = []
         test_loss_list = []

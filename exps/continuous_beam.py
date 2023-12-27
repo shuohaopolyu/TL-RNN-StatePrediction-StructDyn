@@ -10,7 +10,7 @@ from numpy import linalg as LA
 import random
 import concurrent.futures
 
-random.seed(0)
+# random.seed(0)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -504,6 +504,7 @@ def _rnn(
     model_save_path,
     loss_save_path,
     train_msg,
+    weight_decay,
 ):
     if ae_model is not None:
         ae_model.eval()
@@ -537,6 +538,7 @@ def _rnn(
             model_save_path=model_save_path,
             loss_save_path=loss_save_path,
             train_msg=train_msg,
+            weight_decay=weight_decay,
         )
         return lstm
 
@@ -558,6 +560,7 @@ def _rnn(
             model_save_path=model_save_path,
             loss_save_path=loss_save_path,
             train_msg=train_msg,
+            weight_decay=weight_decay,
         )
         return rnn
 
@@ -709,13 +712,14 @@ def rnn_ae_eval(
     num_ele_per_seg=2000,
     acc_idx=[13, 17, 32, 50, 67, 77],
     hidden_size=8,
-    epochs=100000,
+    epochs=80000,
     learning_rate=1e-5,
     cell_type="RNN",
     num_layers=1,
     bidirectional=True,
     pred_type="disp",
-    train_msg=False,
+    train_msg=True,
+    weight_decay=0,
 ):
     ae = _ae_models(pred_type)
     if bidirectional:
@@ -742,6 +746,7 @@ def rnn_ae_eval(
         model_save_path=model_save_path,
         loss_save_path=loss_save_path,
         train_msg=train_msg,
+        weight_decay=weight_decay,
     )
     print(f"{kw}{cell_type.lower()}_ae_{pred_type.lower()} training finished!")
     pred_save_path_1 = (
@@ -776,7 +781,7 @@ def nn_ae_eval():
 
 def model_eval():
     dkf_eval()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
         futures = [
             executor.submit(
                 rnn_ae_eval,
@@ -785,6 +790,7 @@ def model_eval():
                 cell_type="RNN",
                 bidirectional=True,
                 pred_type="disp",
+                weight_decay=1e-6,
             ),
             executor.submit(
                 rnn_ae_eval,
@@ -793,6 +799,7 @@ def model_eval():
                 cell_type="RNN",
                 bidirectional=False,
                 pred_type="disp",
+                weight_decay=1e-6,
             ),
             executor.submit(
                 rnn_ae_eval,
@@ -801,6 +808,7 @@ def model_eval():
                 cell_type="LSTM",
                 bidirectional=True,
                 pred_type="disp",
+                weight_decay=2e-6,
             ),
             executor.submit(
                 rnn_ae_eval,
@@ -809,48 +817,49 @@ def model_eval():
                 cell_type="LSTM",
                 bidirectional=False,
                 pred_type="disp",
+                weight_decay=4e-6,
+            ),
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=6,
+                learning_rate=1e-3,
+                cell_type="RNN",
+                bidirectional=True,
+                pred_type="velo",
+                weight_decay=1e-5,
+            ),
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=6,
+                learning_rate=1e-3,
+                cell_type="RNN",
+                bidirectional=False,
+                pred_type="velo",
+                weight_decay=1e-5,
+            ),
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=6,
+                learning_rate=1e-3,
+                cell_type="LSTM",
+                bidirectional=True,
+                pred_type="velo",
+                weight_decay=1e-5,
+            ),
+            executor.submit(
+                rnn_ae_eval,
+                hidden_size=6,
+                learning_rate=1e-3,
+                cell_type="LSTM",
+                bidirectional=False,
+                pred_type="velo",
+                weight_decay=1e-5,
             ),
         ]
+
         for future in concurrent.futures.as_completed(futures):
             result = future.result()
-        # f5 = executor.submit(
-        #     rnn_ae_eval(
-        #         hidden_size=6,
-        #         learning_rate=1e-3,
-        #         cell_type="RNN",
-        #         bidirectional=True,
-        #         pred_type="velo",
-        #     )
-        # )
-        # f6 = executor.submit(
-        #     rnn_ae_eval(
-        #         hidden_size=6,
-        #         learning_rate=1e-3,
-        #         cell_type="RNN",
-        #         bidirectional=False,
-        #         pred_type="velo",
-        #     )
-        # )
-        # f7 = executor.submit(
-        #     rnn_ae_eval(
-        #         hidden_size=6,
-        #         learning_rate=1e-3,
-        #         cell_type="LSTM",
-        #         bidirectional=True,
-        #         pred_type="velo",
-        #     )
-        # )
-        # f8 = executor.submit(
-        #     rnn_ae_eval(
-        #         hidden_size=6,
-        #         learning_rate=1e-3,
-        #         cell_type="LSTM",
-        #         bidirectional=False,
-        #         pred_type="velo",
-        #     )
-        # )
     print("All models evaluation finished!")
-
 
 
 def rnn_ae_noise_robustness():

@@ -2,7 +2,7 @@ from models import AutoEncoder
 from exps import continuous_beam
 import os
 import random
-random.seed(0)
+# random.seed(0)
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
