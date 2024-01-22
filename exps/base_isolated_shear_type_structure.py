@@ -23,11 +23,11 @@ def read_smc_file(filename):
     return time, acc[:, 0] * 1e-2
 
 
-def compute_response():
+def compute_response(num=2):
     acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
 
     acc_file_list = [
-        acc_file_root_name + format(i, "03") + ".smc" for i in range(1, 51)
+        acc_file_root_name + format(i, "03") + ".smc" for i in range(1, num+1)
     ]
 
     for acc_file_i in acc_file_list:
@@ -44,7 +44,8 @@ def compute_response():
             damp_params=(0, 3, 0.03),
             mass_base=1e6,
             isolator_params={
-                "c_b": 5e5,
+                # 5e5
+                "c_b": 0.0,
                 "k_b": 1.2e8,
                 "q": 4e-2,
                 "A": 1,
@@ -53,7 +54,7 @@ def compute_response():
                 "n": 2,
                 "z_0": 0,
                 "F_y": 3.5e6,
-                "alpha": 0.5,
+                "alpha": 1.0,
             },
             x_0=np.zeros(13),
             x_dot_0=np.zeros(13),

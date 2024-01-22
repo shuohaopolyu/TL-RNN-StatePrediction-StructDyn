@@ -21,10 +21,10 @@ def read_smc_file(filename):
     time = np.linspace(0, 0.02*(len(acc[:, 0])-1), len(acc[:, 0]))
     return time, acc[:, 0]*1e-2
 
-def compute_response():
+def compute_response(num=2):
     acc_file_root_name = './excitations/SMSIM/m7.0r10.0_00'
 
-    acc_file_list = [acc_file_root_name + format(i, '03') + '.smc' for i in range(1, 51)]
+    acc_file_list = [acc_file_root_name + format(i, '03') + '.smc' for i in range(1, num+1)]
 
     for acc_file_i in acc_file_list:
         time, acc = read_smc_file(acc_file_i)
@@ -34,7 +34,7 @@ def compute_response():
         mass_vec=5e5 * np.ones(13)
         mass_vec[0] = 1e6
         stiff_vec=1e9 * np.ones(13)
-        stiff_vec[0] = 5e7
+        stiff_vec[0] = 1.2e8 * 1.0 
         sts = ShearTypeStructure(
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,

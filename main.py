@@ -2,6 +2,8 @@ from models import AutoEncoder
 from exps import continuous_beam, shear_type_structure, base_isolated_shear_type_structure
 import os
 import random
+import pickle
+import matplotlib.pyplot as plt
 # random.seed(0)
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -18,8 +20,22 @@ if __name__ == '__main__':
     # continuous_beam.ae_disp_velo()
     # continuous_beam.model_eval()
 
-    # shear_type_structure.compute_response()
-    shear_type_structure.plot_response()
+    # shear_type_structure.compute_response(1)
+    # shear_type_structure.plot_response()
 
-    # base_isolated_shear_type_structure.compute_response()
+    base_isolated_shear_type_structure.compute_response(1)
     # base_isolated_shear_type_structure.plot_response()
+
+    with open('./dataset/shear_type_structure/solution001.pkl', 'rb') as f:
+        solution = pickle.load(f)
+    time = solution['time']
+    disp = solution['disp']
+    plt.plot(time, disp[1, :])
+    with open('./dataset/base_isolated_structure/solution001.pkl', 'rb') as f:
+        solution = pickle.load(f)
+    time = solution['time']
+    disp = solution['disp']
+    plt.plot(time, disp[0, :] + disp[1, :])
+    plt.xlabel('Time (s)')
+    plt.ylabel('Base displacement (m)')
+    plt.show()
