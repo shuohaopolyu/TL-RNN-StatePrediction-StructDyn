@@ -3,7 +3,7 @@ import pickle
 from systems import ContinuousBridge
 from excitations import PSDExcitationGenerator, RollOffPSD, FlatNoisePSD
 import torch
-from models import AutoEncoder, Rnn, Lstm, Mlp
+from models import AutoEncoder, Rnn, Lstm, Mlp, LRnn
 import os
 from utils import compute_metrics
 from numpy import linalg as LA
@@ -563,7 +563,28 @@ def _rnn(
             weight_decay=weight_decay,
         )
         return rnn
+    
+    elif cell_type == "LRNN":
+        _h_0 = torch.zeros((1 + int(bidirectional)), hidden_size).to(
+            device
+        )
+        _train_h_0 = _h_0
+        _test_h_0 = _h_0
 
+        lrnn = LRnn(input_size, hidden_size, output_size, bidirectional)
+        lrnn.train_LRNN(
+            train_set=_train_set,
+            test_set=_test_set,
+            train_h0=_train_h_0,
+            test_h0=_test_h_0,
+            epochs=epochs,
+            learning_rate=learning_rate,
+            model_save_path=model_save_path,
+            loss_save_path=loss_save_path,
+            train_msg=train_msg,
+            weight_decay=weight_decay,
+        )
+        return lrnn
 
 def _mlp(
     ae_model,
@@ -696,6 +717,8 @@ def _test_rnn(
                 y, h_n, c_n = rnn_model.forward(input_X, h_n, c_n)
             elif cell_type == "RNN":
                 y, h_n = rnn_model(input_X, h_n)
+            elif cell_type == "LRNN":
+                y = rnn_model(input_X, h_n)
             if i == 0:
                 pred = y
             else:
@@ -821,45 +844,63 @@ def model_eval():
             # ),
             executor.submit(
                 rnn_ae_eval,
-                hidden_size=16,
-                learning_rate=1e-4,
-                cell_type="RNN",
+                hidden_size=10,
+                learning_rate=3e-5,
+                cell_type="LRNN",
                 bidirectional=True,
-                pred_type="velo",
-                weight_decay=0,
-                epochs=30000,
+                pred_type="disp",
+                weight_decay=0.0,
             ),
             executor.submit(
                 rnn_ae_eval,
-                hidden_size=16,
-                learning_rate=6e-5,
-                cell_type="RNN",
+                hidden_size=10,
+                learning_rate=3e-5,
+                cell_type="LRNN",
                 bidirectional=False,
-                pred_type="velo",
-                weight_decay=0,
-                epochs=30000,
+                pred_type="disp",
+                weight_decay=0.0,
+            ),
+            # executor.submit(
+            #     rnn_ae_eval,
+            #     hidden_size=16,
+            #     learning_rate=1e-4,
+            #     cell_type="RNN",
+            #     bidirectional=True,
+            #     pred_type="velo",
+            #     weight_decay=0,
+            #     epochs=30000,
+            # ),
+            # executor.submit(
+            #     rnn_ae_eval,
+            #     hidden_size=16,
+            #     learning_rate=6e-5,
+            #     cell_type="RNN",
+            #     bidirectional=False,
+            #     pred_type="velo",
+            #     weight_decay=0,
+            #     epochs=30000,
 
-            ),
-            executor.submit(
-                rnn_ae_eval,
-                hidden_size=16,
-                learning_rate=6e-5,
-                cell_type="LSTM",
-                bidirectional=True,
-                pred_type="velo",
-                weight_decay=0,
-                epochs=30000,
-            ),
-            executor.submit(
-                rnn_ae_eval,
-                hidden_size=16,
-                learning_rate=6e-5,
-                cell_type="LSTM",
-                bidirectional=False,
-                pred_type="velo",
-                weight_decay=0,
-                epochs=30000,
-            ),
+            # ),
+            # executor.submit(
+            #     rnn_ae_eval,
+            #     hidden_size=16,
+            #     learning_rate=6e-5,
+            #     cell_type="LSTM",
+            #     bidirectional=True,
+            #     pred_type="velo",
+            #     weight_decay=0,
+            #     epochs=30000,
+            # ),
+            # executor.submit(
+            #     rnn_ae_eval,
+            #     hidden_size=16,
+            #     learning_rate=6e-5,
+            #     cell_type="LSTM",
+            #     bidirectional=False,
+            #     pred_type="velo",
+            #     weight_decay=0,
+            #     epochs=30000,
+            # ),
         ]
 
         for future in concurrent.futures.as_completed(futures):

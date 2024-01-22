@@ -29,6 +29,19 @@ def disp_loss_plot():
         lstm_ae_disp_train_loss = lstm_ae_disp_loss["train_loss_list"]
         lstm_ae_disp_test_loss = lstm_ae_disp_loss["test_loss_list"]
 
+    # bilrnn_ae_disp
+    with open("./dataset/bilrnn_ae_disp_loss.pkl", "rb") as f:
+        bilrnn_ae_disp_loss = torch.load(f)
+        bilrnn_ae_disp_train_loss = bilrnn_ae_disp_loss["train_loss_list"]
+        bilrnn_ae_disp_test_loss = bilrnn_ae_disp_loss["test_loss_list"]
+
+    # lrnn_ae_disp
+    with open("./dataset/lrnn_ae_disp_loss.pkl", "rb") as f:
+        lrnn_ae_disp_loss = torch.load(f)
+        lrnn_ae_disp_train_loss = lrnn_ae_disp_loss["train_loss_list"]
+        lrnn_ae_disp_test_loss = lrnn_ae_disp_loss["test_loss_list"]
+
+
     epochs = np.arange(0, 100000, 2000)
     epoch_plot = epochs[1:len(brinn_ae_disp_train_loss)+1]
     plt.plot(epoch_plot, brinn_ae_disp_train_loss, label="BiRNN-AE Train", color="darkred")
@@ -42,6 +55,12 @@ def disp_loss_plot():
     epoch_plot = epochs[1:len(lstm_ae_disp_train_loss)+1]
     plt.plot(epoch_plot, lstm_ae_disp_train_loss, label="LSTM-AE Train", color="darkblue")
     plt.plot(epoch_plot, lstm_ae_disp_test_loss, label="LSTM-AE Test", color="darkblue", linestyle="--")
+    epoch_plot = epochs[1:len(bilrnn_ae_disp_train_loss)+1]
+    plt.plot(epoch_plot, bilrnn_ae_disp_train_loss, label="BiRNN-AE Train", color="darkcyan")
+    plt.plot(epoch_plot, bilrnn_ae_disp_test_loss, label="BiRNN-AE Test", color="darkcyan", linestyle="--")
+    epoch_plot = epochs[1:len(lrnn_ae_disp_train_loss)+1]
+    plt.plot(epoch_plot, lrnn_ae_disp_train_loss, label="LRNN-AE Train", color="darkmagenta")
+    plt.plot(epoch_plot, lrnn_ae_disp_test_loss, label="LRNN-AE Test", color="darkmagenta", linestyle="--")
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.yscale("log")
@@ -232,5 +251,5 @@ if __name__ == "__main__":
     plt.rc("font", family="serif")
     plt.rc("font", size=12)
     # models_performance_eval()
-    # disp_loss_plot()
-    velo_loss_plot()
+    disp_loss_plot()
+    # velo_loss_plot()
