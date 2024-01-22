@@ -219,106 +219,13 @@ class Lstm(nn.Module):
                     # print(f"Loss saved to {loss_save_path}")
         return train_loss_list, test_loss_list
     
-# class LRnn(nn.Module):
-#     def __init__(self,input_size=2, hidden_size=10, output_size=6, bidirectional=False):
-#         super(LRnn, self).__init__()
-#         self.input_size = input_size
-#         self.hidden_size = hidden_size
-#         self.output_size = output_size
-#         self.bidirectional = bidirectional
-#         self.linear_0 = nn.Linear(input_size, hidden_size).to(device)
-#         self.linear_1 = nn.Linear(hidden_size, hidden_size).to(device)
-#         self.linear_00 = nn.Linear(input_size, hidden_size).to(device)
-#         self.linear_11 = nn.Linear(hidden_size, hidden_size).to(device)
-#         if bidirectional:
-#             self.linear_2 = nn.Linear(2*hidden_size, output_size).to(device)
-#         else:
-#             self.linear_2 = nn.Linear(hidden_size, output_size).to(device)
-
-
-#     def lru(self, u, h0):
-#         if self.bidirectional:
-#             h1 = h0[0:1, :]
-#             h2 = h0[1:2, :]
-#             outputs_1 = []
-#             outputs_2 = []
-#             for i in range(u.shape[0]):
-#                 output_1 = self.linear_0(u[i, :]) + self.linear_1(h1)
-#                 outputs_1.append(output_1)
-#                 h1 = output_1
-#             for i in reversed(range(u.shape[0])):
-#                 output_2 = self.linear_00(u[i, :]) + self.linear_11(h2)
-#                 outputs_2.append(output_2)
-#                 h2 = output_2
-#             y1 = torch.stack(outputs_1, dim=0)
-#             y2 = torch.stack(outputs_2, dim=0)
-#             y = torch.cat((y1, y2), dim=1)
-#             return y.squeeze(), torch.cat((h1, h2), dim=1)             
-
-#         else:
-#             outputs = []
-#             for i in range(u.shape[0]):
-#                 output = self.linear_0(u[i,:]) + self.linear_1(h0)
-#                 outputs.append(output)
-#                 h0 = output
-#             y = torch.stack(outputs, dim=0)
-#             return y.squeeze(), h0
-        
-#     def forward(self, u, h0):
-#         y, h0 = self.lru(u, h0)
-#         y = self.linear_2(y)
-#         return y, h0
-    
-#     def train_LRNN(self, train_set, test_set, train_h0, test_h0, epochs, learning_rate, model_save_path, loss_save_path, train_msg=True, weight_decay=1e-6):
-#         # torch.autograd.set_detect_anomaly(True)
-#         assert test_set['X'].shape[0] % train_set['X'].shape[0] == 0, 'Wrong data size'
-#         length_ratio = test_set['X'].shape[0] // train_set['X'].shape[0]
-#         input_length = train_set['X'].shape[0]
-#         # Define the loss function
-#         loss_fn = nn.MSELoss(reduction='mean')
-#         # Define the optimizer
-#         optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=weight_decay)
-#         # Define the loss list
-#         train_loss_list = []
-#         test_loss_list = []
-#         # Start training
-#         for epoch in range(epochs):
-#             self.train()
-#             # Train the model
-#             output_train, _ = self.forward(train_set['X'], train_h0)
-#             loss_train = loss_fn(output_train, train_set['Y'])
-#             print(loss_train)
-#             optimizer.zero_grad()
-#             loss_train.backward(retain_graph=True)
-#             optimizer.step()
-#             if (epoch+1) % 2000 == 0:
-#                 train_loss_list.append(loss_train.item())
-#                 # Test the model
-#                 self.eval()
-#                 with torch.no_grad():
-#                     hn = test_h0
-#                     for i in range(length_ratio):
-#                         input_test_X = test_set['X'][i*input_length:(i+1)*input_length,:]
-#                         pred = self.forward(input_test_X, hn)
-#                         if i == 0:
-#                             output_test = pred
-#                         else:
-#                             output_test = torch.cat((output_test, pred), dim=0)
-#                 loss_test = loss_fn(output_test, test_set['Y'])
-#                 test_loss_list.append(loss_test.item())
-#                 if train_msg:
-#                     print('Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e' % (epoch+1, epochs, loss_train.item(), loss_test.item()))
-#                 # Save the model
-#                 if model_save_path is not None:
-#                     torch.save(self.state_dict(), model_save_path)
-#                     # print(f"Model saved to {model_save_path}")
-#                 if loss_save_path is not None:
-#                     torch.save({'train_loss_list': train_loss_list, 'test_loss_list': test_loss_list}, loss_save_path)
-#                     # print(f"Loss saved to {loss_save_path}")
-#         return train_loss_list, test_loss_list
 
 
 class LRnn(nn.Module):
+    """
+    We find that LRNN is not as good as RNN and LSTM in terms of 
+    accuracy and training speed for the state estimation problem.
+    """
     def __init__(self, input_size=2, hidden_size=10, output_size=6, bidirectional=False):
         super(LRnn, self).__init__()
         self.hidden_size = hidden_size

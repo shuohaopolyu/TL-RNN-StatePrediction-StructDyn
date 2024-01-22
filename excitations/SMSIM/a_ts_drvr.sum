@@ -1,0 +1,317 @@
+ Summary file for program a_ts_drvr
+   Using control file: a_ts_drvr.ctl                                                                                                                                                                                           
+ *** Results computed using A_TS_DRVR ***
+ 
+   ***************** SMSIM, 08Jul22 Version  ************************
+ 
+ test a_ts_drvr                                                                 
+ 
+ Date: 2024/01/22
+ Time Start: 14:39:32.528
+ 
+ file with parameters: ofr.params
+ !Title:
+     Sample data file **** NOT FOR A PARTICULAR APPLICATION **            
+ !rho, beta, prtitn, rtp, fs:
+   2.80  3.60 0.710 0.55 2.00
+ !spectral shape: source number, pf_a, pd_a, pf_b, pd_b
+ !  (1=Single Corner;2=Joyner;3=A93;...;8=Jena;9=AS00;10=A05;11=Generalized multiplicative 2-corner; 12=Generalized additive 2-corner)
+ !  pf, pd (1-corner spectrum = 1/(1+(f/fc)**pf)**pd; 0.0 otherwise)
+ !  (usual model: pf=2.0,pd=1.0; Butterworth: pf=4.0,pd=0.5)
+ !  (Note: power of high freq decay --> pf*pd)
+ !  NOTE: see a params file for more complete description of parameters
+   1 2.00 1.00 0.00 0.00
+ ! stress specification:  istress_model, scoeff01, scoeff02, scoeff03, scoeff04, scoeff05
+ !  (see params file for meaning of params)
+  1  6.0000E+02  0.0000E+00  6.5000E+00  4.0000E+00  0.0000E+00
+ ! spectral scaling:  c1_fa, c2_fa, amagc4fa, c1_eps, c2_eps, amagc4eps, mag4eps1
+ !  (fbdfa, amagc for Joyner model, usually 4.0, 7.0)
+ !  (not used for srce 3, but placeholders still needed)
+ !  NOTE: see ofr.params for more complete description of parameters
+  0.000E+00  0.000E+00  0.00  0.000E+00  0.000E+00  0.00 0.00
+ !
+ !finite_fault factor specification:
+DeltaM (0 0 0 0 0 0 0 if a finite-fault factor is not to be used)
+ !
+
+ !    If iflag_f_ff = 1: rps = sqrt(r^2 + f_ff^2))
+ !    If iflag_f_ff = 2: rps =  r + f_ff
+ !   Use rps in the calculations (this variable is called rmod in the code; it should be changed to rps to
+ !   reflect my current preferred terminology.  I do not have time to do this now).
+ !  Specification of the finite-fault factor h:
+ !    If nlines = 1
+ !      log10(f_ff) = c1 + c2*amag
+ !    If nlines = 2
+ !      log10(f_ff) = c1 + c2*amag  for amag<Mh
+ !      log10(f_ff) = c3 + c4*amag  for amag>=Mh
+ !      where Mh is determined by the intersection of the two lines
+ !      (this is computed in the program)
+ !    If nlines = 3
+ !      log10(f_ff) = c1 + c2*amag  for amag<Mh-DeltaM/2
+ !      log10(f_ff) = c3 + c4*amag  for amag>=Mh+DeltaM/2
+ !      log10(f_ff) given by a cubic in amag between the two lines (this
+ !        produces a smooth transition over the magnitude range DeltaM
+ !    If nlines = 999, uses a single equation approximation of the nlines=3 spreading function, as discussed in generalize_boore-thompson_2015_finite-fault_factor.v3.pdf, included in the SMSIM distribution file
+ !    If nlines = 1000, implements Staffords equation, with h_a = c1, h_b = c2, h_g = c3, h_d = c4, and h_e = DeltaM
+ 0 0 0.00000000E+00 0.00000000E+00 0.00000000E+00 0.00000000E+00 0.00000000E+00
+     mh_f_ff, m1t_f_ff, m2t_f_ff =   0.00  0.00  0.00
+     c0t_f_ff, c1t_f_ff, c2t_f_ff, c3t_f_ff =   0.000E+00  0.000E+00  0.000E+00  0.000E+00
+ i_gsprd_option =  0
+  r1_dmb_gsprd, pgsprd_r_le_r1_lf, pgsprd_r_le_r1_hf, pgsprd_r_gt_r1, ft1_dmb_gsprd, ft2_dmb_gsprd = 
+   0.00  0.00  0.00  0.00  0.00  0.00
+ gsprd: r_ref, nsegs, (rlow(i), a_s, b_s, m_s(i))  (Usually set r_ref = 1.0 km)
+    1.00
+    3
+     1.00 -1.000E+00  0.000E+00 6.50
+    70.00  0.000E+00  0.000E+00 6.50
+   130.00 -5.000E-01  0.000E+00 6.50
+ q: fr1, Qr1, s1, ft1, ft2, fr2, qr2, s2, c_q
+    0.100  275.00 -2.000   0.200   0.600   1.000   88.00  0.900 3.60
+ source duration: weights of 1/fa, 1/fb
+  8.00 0.00
+ path duration: nknots, (rdur(i), dur(i), slope of last segment
+    4
+     0.0   0.00
+    10.0   0.00
+    70.0   9.60
+   130.0   7.80
+   4.000E-02
+ site amplification: namps, (famp(i), amp(i))
+    5
+    0.100  1.000
+    1.000  1.500
+    2.000  2.000
+    5.000  2.500
+   10.000  3.000
+ site diminution parameters: fm, akappa, dkappadmag, amagkref
+  100.000  2.000E-01  0.000E+00 6.00
+ low-cut filter parameters: fcut, nslope
+    0.000  8
+ high-cut filter parameters: 
+   itype_hcfilt
+     0=no high-cut filter (but the other parameters are needed as placeholders)
+     1=raised half cycle of cosine
+     2= quarter cycle of a cosine
+     fhc1, fhc2 (low and high frequency
+     eta_hcfilt (power of cosine)
+ 0 25.0000000 50.0000000 1.00000000
+ window params: indxwind(0=box,1=exp),  taper, eps_w, eta_w, f_tb2te, f_te_xtnd
+  1 0.05  0.20  0.050  2.1  1.0
+ timing stuff: dur_fctr, dt, tshift, seed, nsims, iran_type
+  1.30 0.0020  20.00  123.0  800 0
+ Stem = m7.0r10.0_
+ amag    r =
+  6.90   10.00
+ nsims_total, nsims_start, nsims2save = 
+ 100 1 100
+ nstart, nstop =   10000  45918
+ npw2, te =   65536    71.84
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       1    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       2    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       3    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       4    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       5    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       6    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       7    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       8    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =       9    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      10    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      11    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      12    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      13    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      14    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      15    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      16    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      17    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      18    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      19    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      20    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      21    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      22    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      23    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      24    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      25    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      26    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      27    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      28    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      29    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      30    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      31    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      32    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      33    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      34    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      35    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      36    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      37    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      38    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      39    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      40    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      41    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      42    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      43    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      44    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      45    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      46    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      47    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      48    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      49    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      50    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      51    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      52    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      53    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      54    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      55    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      56    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      57    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      58    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      59    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      60    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      61    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      62    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      63    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      64    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      65    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      66    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      67    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      68    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      69    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      70    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      71    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      72    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      73    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      74    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      75    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      76    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      77    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      78    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      79    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      80    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      81    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      82    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      83    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      84    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      85    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      86    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      87    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      88    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      89    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      90    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      91    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      92    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      93    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      94    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      95    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      96    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      97    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      98    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =      99    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ jsim, real_head(2), dble(real_head(2)), 1.0d0/dble(dt),           dt =     100    5.000000E+02    5.000000E+02    5.000000E+02    2.000000E-03
+ 
+ index       pga
+    21  1.635E+02
+    38  1.638E+02
+    73  1.709E+02
+    94  1.726E+02
+    56  1.760E+02
+    70  1.781E+02
+    18  1.788E+02
+    63  1.791E+02
+    87  1.823E+02
+    93  1.827E+02
+    55  1.838E+02
+     1  1.849E+02
+    98  1.851E+02
+    29  1.861E+02
+    36  1.861E+02
+    58  1.867E+02
+     5  1.877E+02
+    30  1.880E+02
+    83  1.882E+02
+    23  1.885E+02
+    69  1.896E+02
+    33  1.896E+02
+    53  1.899E+02
+    81  1.907E+02
+    17  1.915E+02
+    45  1.918E+02
+    15  1.930E+02
+    26  1.931E+02
+    64  1.931E+02
+    86  1.932E+02
+    41  1.949E+02
+    54  1.950E+02
+    51  1.958E+02
+    22  1.974E+02
+    96  1.983E+02
+    13  1.988E+02
+    95  1.990E+02
+     4  1.997E+02
+    16  1.999E+02
+    78  2.003E+02
+    90  2.014E+02
+    25  2.022E+02
+     8  2.040E+02
+    10  2.041E+02
+    80  2.041E+02
+    99  2.049E+02
+    31  2.050E+02
+    60  2.082E+02
+    32  2.086E+02
+    74  2.098E+02
+    11  2.110E+02
+   100  2.118E+02
+    75  2.121E+02
+    66  2.129E+02
+    46  2.130E+02
+    77  2.135E+02
+    27  2.140E+02
+    88  2.145E+02
+    67  2.146E+02
+     7  2.151E+02
+    79  2.161E+02
+    49  2.162E+02
+    61  2.162E+02
+    82  2.168E+02
+     2  2.171E+02
+    42  2.175E+02
+    48  2.178E+02
+    28  2.185E+02
+    35  2.202E+02
+    19  2.208E+02
+    59  2.209E+02
+    57  2.209E+02
+    39  2.231E+02
+    84  2.232E+02
+    97  2.238E+02
+     6  2.270E+02
+    43  2.282E+02
+    37  2.287E+02
+    89  2.292E+02
+    68  2.302E+02
+    34  2.318E+02
+    76  2.346E+02
+    91  2.351E+02
+    72  2.356E+02
+    52  2.363E+02
+    40  2.383E+02
+    47  2.388E+02
+    62  2.424E+02
+    20  2.432E+02
+    50  2.444E+02
+     9  2.450E+02
+    14  2.453E+02
+    71  2.483E+02
+    44  2.492E+02
+    92  2.499E+02
+    85  2.528E+02
+     3  2.539E+02
+    65  2.554E+02
+    24  2.592E+02
+    12  2.897E+02
+ 
+  arithmetic mean =   2.105E+02
+  geometric mean =   2.092E+02
+ 
+ 
+ Time Stop: 14:39:41.017
+ Elapsed time (sec):   8.489E+00

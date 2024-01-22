@@ -9,7 +9,6 @@ from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
 
-
 class MultiDOF:
     """
     Establishing the multi-dof model using the mechanical properties of the structural dynamical system.
@@ -58,7 +57,11 @@ class MultiDOF:
         if resp_dof == "full":
             self.resp_dof = [i for i in range(self.DOF)]
         else:
-            assert type(resp_dof) == list and len(resp_dof) > 0 and len(resp_dof) <= self.DOF
+            assert (
+                type(resp_dof) == list
+                and len(resp_dof) > 0
+                and len(resp_dof) <= self.DOF
+            )
             self.resp_dof = resp_dof
         self.t_eval = t_eval
         self.f_t = f_t if f_t is not None else [lambda t: 0 for i in range(len(f_dof))]
@@ -69,7 +72,6 @@ class MultiDOF:
         assert self.mass_mtx.shape == (self.DOF, self.DOF)
         assert self.stiff_mtx.shape == (self.DOF, self.DOF)
         assert len(self.f_t) == self.n_f
-
 
     def __str__(self):
         if self.DOF <= 10:
@@ -105,11 +107,7 @@ class MultiDOF:
                 * omega[upper_index]
                 / (omega[lower_index] + omega[upper_index])
             )
-            beta = (
-                2
-                * damping_ratio
-                / (omega[lower_index] + omega[upper_index])
-            )
+            beta = 2 * damping_ratio / (omega[lower_index] + omega[upper_index])
             self.damp_mtx = alpha * self.mass_mtx + beta * self.stiff_mtx
         elif self.damp_type == "d_mtx":
             self.damp_mtx = args
@@ -128,9 +126,9 @@ class MultiDOF:
         w = np.real(w[idx])
         v = np.real(v[:, idx])
         if mode_normalize:
-            mo_mass = v.T@self.mass_mtx@v
+            mo_mass = v.T @ self.mass_mtx @ v
             for i in range(self.DOF):
-                v[:, i] = v[:, i] /np.sqrt(mo_mass[i, i])
+                v[:, i] = v[:, i] / np.sqrt(mo_mass[i, i])
         return np.sqrt(w) / (2 * np.pi), v
 
     def state_space_mtx(self, type="continuous"):
@@ -173,7 +171,7 @@ class MultiDOF:
             # C_d = C
             # D_d = D
             return A_d, B_d, C, D
-        
+
     def truncated_state_space_mtx(self, truncation=10, type="continuous"):
         """
         truncation: int type, number of truncation
@@ -213,8 +211,6 @@ class MultiDOF:
             # C_d = C
             # D_d = D
             return A_d, B_d, C_c, D_c
-
-
 
     def markov_params(self):
         """
@@ -313,7 +309,7 @@ class MultiDOF:
         for i in range(self.n_f):
             f_mtx[i, :] = self.f_t[i](self.t_eval)
         return f_mtx
-    
+
     def state_fun(self, t, y, pbar, state):
         last_t, dt = state
         # time.sleep(0.01)
