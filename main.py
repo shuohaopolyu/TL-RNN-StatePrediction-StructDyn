@@ -1,5 +1,5 @@
 from models import AutoEncoder
-from exps import continuous_beam
+from exps import continuous_beam, shear_type_structure, base_isolated_shear_type_structure
 import os
 import random
 # random.seed(0)
@@ -17,3 +17,9 @@ if __name__ == '__main__':
 
     # continuous_beam.ae_disp_velo()
     # continuous_beam.model_eval()
+
+    # shear_type_structure.compute_response()
+    shear_type_structure.plot_response()
+
+    # base_isolated_shear_type_structure.compute_response()
+    # base_isolated_shear_type_structure.plot_response()
