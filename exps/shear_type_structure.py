@@ -39,7 +39,7 @@ def compute_response(num=2):
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
             damp_type="Rayleigh",
-            damp_params=(0, 4, 0.03),
+            damp_params=(0, 3, 0.03),
             t = time,
             acc_g = acc,
         )

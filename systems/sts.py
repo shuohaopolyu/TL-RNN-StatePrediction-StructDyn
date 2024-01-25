@@ -45,8 +45,8 @@ class ShearTypeStructure(MultiDOF):
         mass_mtx = np.diag(mass_vec)
         stiff_mtx = (
             np.diag(stiff_vec)
-            + np.diag(-stiff_vec[:-1], 1)
-            + np.diag(-stiff_vec[:-1], -1)
+            + np.diag(-stiff_vec[1:], 1)
+            + np.diag(-stiff_vec[1:], -1)
             + np.diag(np.append(stiff_vec[1:], 0))
         )
         super().__init__(
@@ -62,8 +62,9 @@ class ShearTypeStructure(MultiDOF):
             ],
             init_cond=None,
         )
+        print(stiff_mtx)
 
-    def run(self, method="RK45"):
+    def run(self, method="Radau"):
         full_resp = self.response(method=method, type="full")
         return full_resp["acceleration"], full_resp["velocity"], full_resp["displacement"]
 

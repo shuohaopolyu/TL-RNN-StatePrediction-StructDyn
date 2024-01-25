@@ -59,8 +59,8 @@ class BaseIsolatedStructure:
         self.mass_super_mtx = np.diag(mass_super_vec)
         self.stiff_super_mtx = (
             np.diag(stiff_super_vec)
-            + np.diag(-stiff_super_vec[:-1], 1)
-            + np.diag(-stiff_super_vec[:-1], -1)
+            + np.diag(-stiff_super_vec[1:], 1)
+            + np.diag(-stiff_super_vec[1:], -1)
             + np.diag(np.append(stiff_super_vec[1:], 0))
         )
         self.damp_super_mtx = self.update_damp_super_mtx(damp_type, damp_params)

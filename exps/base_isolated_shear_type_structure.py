@@ -45,7 +45,7 @@ def compute_response(num=2):
             mass_base=1e6,
             isolator_params={
                 # 5e5
-                "c_b": 0.0,
+                "c_b": 5e5,
                 "k_b": 1.2e8,
                 "q": 4e-2,
                 "A": 1,
