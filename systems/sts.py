@@ -57,7 +57,7 @@ class ShearTypeStructure(MultiDOF):
             f_dof=[i for i in range(len(mass_vec))],
             t_eval=t,
             f_t=[
-                lambda t: self.acc_func(t) * self.mass_vec[i]
+                lambda t: -self.acc_func(t) * self.mass_vec[i]
                 for i in range(len(mass_vec))
             ],
             init_cond=None,

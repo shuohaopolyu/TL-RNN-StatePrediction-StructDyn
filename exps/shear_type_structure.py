@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 
-def read_smc_file(filename):
+def _read_smc_file(filename):
     with open(filename) as f:
         content = f.readlines()
     data = []
@@ -27,7 +27,7 @@ def compute_response(num=2):
     acc_file_list = [acc_file_root_name + format(i, '03') + '.smc' for i in range(1, num+1)]
 
     for acc_file_i in acc_file_list:
-        time, acc = read_smc_file(acc_file_i)
+        time, acc = _read_smc_file(acc_file_i)
         time = time[1000:6000]
         acc = acc[1000:6000]
         time = time - time[0]
@@ -39,7 +39,7 @@ def compute_response(num=2):
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
             damp_type="Rayleigh",
-            damp_params=(0, 3, 0.03),
+            damp_params=(0, 4, 0.03),
             t = time,
             acc_g = acc,
         )

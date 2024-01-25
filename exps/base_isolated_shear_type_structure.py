@@ -4,7 +4,7 @@ import pickle
 import matplotlib.pyplot as plt
 
 
-def read_smc_file(filename):
+def _read_smc_file(filename):
     with open(filename) as f:
         content = f.readlines()
     data = []
@@ -31,7 +31,7 @@ def compute_response(num=2):
     ]
 
     for acc_file_i in acc_file_list:
-        time, acc = read_smc_file(acc_file_i)
+        time, acc = _read_smc_file(acc_file_i)
         time = time[1000:6000]
         acc = acc[1000:6000]
         time = time - time[0]
