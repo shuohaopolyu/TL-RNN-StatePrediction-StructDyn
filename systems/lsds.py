@@ -130,6 +130,19 @@ class MultiDOF:
             for i in range(self.DOF):
                 v[:, i] = v[:, i] / np.sqrt(mo_mass[i, i])
         return np.sqrt(w) / (2 * np.pi), v
+    
+    def damping_ratio(self):
+        """
+        Return the damping ratio of the system
+        """
+        _, v = self.freqs_modes()
+        mo_mass = v.T @ self.mass_mtx @ v
+        mo_stiff = v.T @ self.stiff_mtx @ v
+        mo_damp = v.T @ self.damp_mtx @ v
+        damping_ratio = np.zeros(self.DOF)
+        for i in range(self.DOF):
+            damping_ratio[i] = mo_damp[i, i] / (2 * np.sqrt(mo_mass[i, i] * mo_stiff[i, i]))
+        return damping_ratio
 
     def state_space_mtx(self, type="continuous"):
         """

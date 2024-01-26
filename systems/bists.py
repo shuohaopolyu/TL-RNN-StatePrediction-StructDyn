@@ -47,8 +47,7 @@ class BaseIsolatedStructure:
         self,
         mass_super_vec=None,
         stiff_super_vec=None,
-        damp_type="Rayleigh",
-        damp_params=(0, 4, 0.03),
+        damp_super_vec=None,
         mass_base=1,
         isolator_params=None,
         x_0=None,
@@ -63,7 +62,12 @@ class BaseIsolatedStructure:
             + np.diag(-stiff_super_vec[1:], -1)
             + np.diag(np.append(stiff_super_vec[1:], 0))
         )
-        self.damp_super_mtx = self.update_damp_super_mtx(damp_type, damp_params)
+        self.damp_super_mtx = (
+                np.diag(damp_super_vec)
+                + np.diag(-damp_super_vec[1:], 1)
+                + np.diag(-damp_super_vec[1:], -1)
+                + np.diag(np.append(damp_super_vec[1:], 0))
+            )
         self.mass_base = mass_base
         self.t = t
         self.acc_g = acc_g
@@ -76,27 +80,8 @@ class BaseIsolatedStructure:
         self.resp_acc = np.zeros((self.dof, self.nt))
         self.resp_disp[:, 0] = x_0
         self.resp_vel[:, 0] = x_dot_0
-        self.c_1 = isolator_params["c_b"]*0.2
-        self.k_1 = self.stiff_super_mtx[0, 0] + self.stiff_super_mtx[0, 1]
-
-    def update_damp_super_mtx(self, damp_type, damp_params):
-        if damp_type == "Rayleigh":
-            omega_sq, _ = LA.eig(LA.inv(self.mass_super_mtx) @ self.stiff_super_mtx)
-            idx = omega_sq.argsort()
-            omega_sq = np.real(omega_sq[idx])
-            omega = np.sqrt(omega_sq)
-            lower_index, upper_index, damping_ratio = damp_params
-            alpha = (
-                2
-                * damping_ratio
-                * omega[lower_index]
-                * omega[upper_index]
-                / (omega[lower_index] + omega[upper_index])
-            )
-            beta = 2 * damping_ratio / (omega[lower_index] + omega[upper_index])
-            return alpha * self.mass_super_mtx + beta * self.stiff_super_mtx
-        else:
-            raise NotImplementedError
+        self.c_1 = damp_super_vec[0]
+        self.k_1 = stiff_super_vec[0]
 
     def _intg_mtx(self):
         c_1 = self.c_1  # you need more consideration on this coefficient!!!
@@ -123,6 +108,7 @@ class BaseIsolatedStructure:
                 [np.zeros((self.dof - 1, 1)), self.stiff_super_mtx],
             ]
         )
+
         inv_intg_M = LA.inv(intg__M)
         C = inv_intg_M @ intg__C
         K = inv_intg_M @ intg__K
@@ -212,7 +198,12 @@ class BaseIsolatedStructure:
                 + varp * dt * (self.resp_acc[:, i + 1] - self.resp_acc[:, i])
             )
         self.z = z.reshape(1, -1)
-        self.solution = {"acceleration": self.resp_acc, "displacement": self.resp_disp, "velocity": self.resp_vel, "z": self.z}
+        self.solution = {
+            "acceleration": self.resp_acc,
+            "displacement": self.resp_disp,
+            "velocity": self.resp_vel,
+            "z": self.z,
+        }
 
     def run(self, delta=0.25, varp=0.5):
         self.newmark_beta_int(delta, varp)

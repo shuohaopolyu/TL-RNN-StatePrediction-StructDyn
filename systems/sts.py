@@ -34,8 +34,8 @@ class ShearTypeStructure(MultiDOF):
         self,
         mass_vec,
         stiff_vec,
-        damp_type="Rayleigh",
-        damp_params=(0, 4, 0.03),
+        damp_vec=None,
+        damp_type="d_mtx",
         t=None,
         acc_g=None,
     ):
@@ -48,6 +48,12 @@ class ShearTypeStructure(MultiDOF):
             + np.diag(-stiff_vec[1:], 1)
             + np.diag(-stiff_vec[1:], -1)
             + np.diag(np.append(stiff_vec[1:], 0))
+        )
+        damp_params = (
+            np.diag(damp_vec)
+            + np.diag(-damp_vec[1:], 1)
+            + np.diag(-damp_vec[1:], -1)
+            + np.diag(np.append(damp_vec[1:], 0))
         )
         super().__init__(
             mass_mtx,
@@ -62,9 +68,38 @@ class ShearTypeStructure(MultiDOF):
             ],
             init_cond=None,
         )
-        print(stiff_mtx)
 
     def run(self, method="Radau"):
         full_resp = self.response(method=method, type="full")
-        return full_resp["acceleration"], full_resp["velocity"], full_resp["displacement"]
+        return (
+            full_resp["acceleration"],
+            full_resp["velocity"],
+            full_resp["displacement"],
+        )
 
+    # def newmark_beta_int(self, delta, varp):
+    #     """
+    #     Newmark-beta integration method
+    #     """
+    #     # Newmark-beta parameters
+    #     gamma = 1 / 2
+    #     beta = 1 / 4
+    #     # Newmark-beta coefficients
+    #     a0 = 1 / (beta * delta ** 2)
+    #     a1 = gamma / (beta * delta)
+    #     a2 = 1 / (beta * delta)
+    #     a3 = 1 / (2 * beta) - 1
+    #     a4 = gamma / beta - 1
+    #     a5 = delta / 2 * (gamma / beta - 2)
+    #     a6 = delta * (1 - gamma)
+    #     a7 = gamma * delta
+    #     # Newmark-beta integration
+    #     acc = (
+    #         a0 * self.f_t[-1](varp)
+    #         + a2 * self.f_t[-2](varp)
+    #         + a3 * self.f_t[-3](varp)
+    #         + a5 * self.f_t[-4](varp)
+    #     ) / (a0 * self.m_mtx[-1, -1] + a1 * self.c_mtx[-1, -1] + a2 * self.k_mtx[-1, -1])
+    #     velo = self.x_dot[-1] + a6 * self.x_ddot[-2] + a7 * self.x_ddot[-1]
+    #     disp = self.x[-1] + delta * self.x_dot[-1] + a3 * delta ** 2 * self.x_ddot[-2] + a4 * delta ** 2 * self.x_ddot[-1]
+    #     return acc, velo, disp

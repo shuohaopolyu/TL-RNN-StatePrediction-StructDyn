@@ -27,7 +27,7 @@ def compute_response(num=2):
     acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
 
     acc_file_list = [
-        acc_file_root_name + format(i, "03") + ".smc" for i in range(1, num+1)
+        acc_file_root_name + format(i, "03") + ".smc" for i in range(1, num + 1)
     ]
 
     for acc_file_i in acc_file_list:
@@ -37,15 +37,14 @@ def compute_response(num=2):
         time = time - time[0]
         mass_vec = 5e5 * np.ones(12)
         stiff_vec = 1e9 * np.ones(12)
+        damp_vec = 5e5 * np.ones(12)
         bis = BaseIsolatedStructure(
             mass_super_vec=mass_vec,
             stiff_super_vec=stiff_vec,
-            damp_type="Rayleigh",
-            damp_params=(0, 3, 0.03),
+            damp_params=damp_vec,
             mass_base=1e6,
             isolator_params={
-                # 5e5
-                "c_b": 5e5,
+                "c_b": 2e6,
                 "k_b": 1.2e8,
                 "q": 4e-2,
                 "A": 1,
@@ -53,7 +52,7 @@ def compute_response(num=2):
                 "gamma": 0.5,
                 "n": 2,
                 "z_0": 0,
-                "F_y": 3.5e6,
+                "F_y": 1.5e6,
                 "alpha": 1.0,
             },
             x_0=np.zeros(13),
@@ -82,34 +81,78 @@ def compute_response(num=2):
             pickle.dump(solution, f)
         print("File " + file_name + " saved.")
 
+
+def analytical_validation():
+    time = np.linspace(0, 10, 1000)
+    acc = np.sin(2 * np.pi * 2 * time)
+    mass_vec = 5e5 * np.ones(12)
+    stiff_vec = 1e9 * np.ones(12)
+    damp_vec = 5e5 * np.ones(12)
+    bis = BaseIsolatedStructure(
+        mass_super_vec=mass_vec,
+        stiff_super_vec=stiff_vec,
+        damp_super_vec=damp_vec,
+        mass_base=1e6,
+        isolator_params={
+            "c_b": 2e6,
+            "k_b": 1.2e8,
+            "q": 4e-3,
+            "A": 1,
+            "beta": 0.5,
+            "gamma": 0.5,
+            "n": 2,
+            "z_0": 0,
+            "F_y": 1.5e6,
+            "alpha": 1.0,
+        },
+        x_0=np.zeros(13),
+        x_dot_0=np.zeros(13),
+        t=time,
+        acc_g=acc,
+    )
+    print(bis.damp_super_mtx)
+
+    disp, velo, acc, z = bis.run()
+
+    solution = {
+        "acc_g": bis.acc_g,
+        "time": time,
+        "disp": disp,
+        "velo": velo,
+        "acc": acc,
+        "z": z,
+    }
+    return solution
+
+
 def plot_response():
     # free to modify
-    with open('./dataset/base_isolated_structure/solution002.pkl', 'rb') as f:
+    with open("./dataset/base_isolated_structure/solution002.pkl", "rb") as f:
         solution = pickle.load(f)
-    time = solution['time']
-    acc_g = solution['acc_g']
-    disp = solution['disp']
-    velo = solution['velo']
-    acc = solution['acc']
-    z = solution['z']
+    time = solution["time"]
+    acc_g = solution["acc_g"]
+    disp = solution["disp"]
+    velo = solution["velo"]
+    acc = solution["acc"]
+    z = solution["z"]
     plt.figure()
     plt.plot(time, acc_g)
-    plt.xlabel('Time (s)')
-    plt.ylabel('Ground acceleration (m/s^2)')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Ground acceleration (m/s^2)")
     plt.figure()
     plt.plot(time, disp[0, :])
-    plt.xlabel('Time (s)')
-    plt.ylabel('Base displacement (m)')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Base displacement (m)")
     plt.figure()
     plt.plot(time, velo[0, :])
-    plt.xlabel('Time (s)')
-    plt.ylabel('Base velocity (m/s)')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Base velocity (m/s)")
     plt.figure()
     plt.plot(time, z[0, :])
-    plt.xlabel('Time (s)')
-    plt.ylabel('Isolator displacement (m)')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Isolator displacement (m)")
     plt.figure()
     plt.plot(time, acc[0, :])
-    plt.xlabel('Time (s)')
-    plt.ylabel('Base acceleration (m/s^2)')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Base acceleration (m/s^2)")
     plt.show()

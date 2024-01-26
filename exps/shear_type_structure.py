@@ -34,12 +34,13 @@ def compute_response(num=2):
         mass_vec=5e5 * np.ones(13)
         mass_vec[0] = 1e6
         stiff_vec=1e9 * np.ones(13)
-        stiff_vec[0] = 1.2e8 * 1.0 
+        stiff_vec[0] = 1.2e8
+        damp_vec=5e5 * np.ones(13)
+        damp_vec[0] = 2e6
         sts = ShearTypeStructure(
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
-            damp_type="Rayleigh",
-            damp_params=(0, 3, 0.03),
+            damp_vec=damp_vec,
             t = time,
             acc_g = acc,
         )
@@ -58,6 +59,34 @@ def compute_response(num=2):
         with open(file_name, 'wb') as f:
             pickle.dump(solution, f)
         print('File ' + file_name + ' saved.')
+
+def analytical_validation():
+    time = np.linspace(0, 10, 1000)
+    acc = np.sin(2*np.pi*2*time)
+    mass_vec=5e5 * np.ones(13)
+    mass_vec[0] = 1e6
+    stiff_vec=1e9 * np.ones(13)
+    stiff_vec[0] = 1.2e8
+    damp_vec=5e5 * np.ones(13)
+    damp_vec[0] = 2e6
+    sts = ShearTypeStructure(
+        mass_vec=mass_vec,
+        stiff_vec=stiff_vec,
+        damp_vec=damp_vec,
+        t = time,
+        acc_g = acc,
+    )
+
+    acc, velo, disp = sts.run()
+
+    solution = {
+        'acc_g': sts.acc_g,
+        'time': time,
+        'disp': disp,
+        'velo': velo,
+        'acc': acc,
+    }
+    return solution    
 
 def plot_response():
     # free to modify
