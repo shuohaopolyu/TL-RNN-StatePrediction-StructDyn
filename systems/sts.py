@@ -49,7 +49,7 @@ class ShearTypeStructure(MultiDOF):
             + np.diag(-stiff_vec[1:], -1)
             + np.diag(np.append(stiff_vec[1:], 0))
         )
-        damp_params = (
+        damp_mtx = (
             np.diag(damp_vec)
             + np.diag(-damp_vec[1:], 1)
             + np.diag(-damp_vec[1:], -1)
@@ -59,7 +59,7 @@ class ShearTypeStructure(MultiDOF):
             mass_mtx,
             stiff_mtx,
             damp_type=damp_type,
-            damp_params=damp_params,
+            damp_params=damp_mtx,
             f_dof=[i for i in range(len(mass_vec))],
             t_eval=t,
             f_t=[

@@ -48,7 +48,7 @@ class BaseIsolatedStructure:
         mass_super_vec=None,
         stiff_super_vec=None,
         damp_super_vec=None,
-        mass_base=1,
+        mass_base=None,
         isolator_params=None,
         x_0=None,
         x_dot_0=None,
@@ -63,11 +63,11 @@ class BaseIsolatedStructure:
             + np.diag(np.append(stiff_super_vec[1:], 0))
         )
         self.damp_super_mtx = (
-                np.diag(damp_super_vec)
-                + np.diag(-damp_super_vec[1:], 1)
-                + np.diag(-damp_super_vec[1:], -1)
-                + np.diag(np.append(damp_super_vec[1:], 0))
-            )
+            np.diag(damp_super_vec)
+            + np.diag(-damp_super_vec[1:], 1)
+            + np.diag(-damp_super_vec[1:], -1)
+            + np.diag(np.append(damp_super_vec[1:], 0))
+        )
         self.mass_base = mass_base
         self.t = t
         self.acc_g = acc_g
@@ -108,7 +108,6 @@ class BaseIsolatedStructure:
                 [np.zeros((self.dof - 1, 1)), self.stiff_super_mtx],
             ]
         )
-
         inv_intg_M = LA.inv(intg__M)
         C = inv_intg_M @ intg__C
         K = inv_intg_M @ intg__K
@@ -136,7 +135,8 @@ class BaseIsolatedStructure:
         inv_intg_M, C, K = self._intg_mtx()
         inv_mass_mtx = LA.inv(self.mass_super_mtx)
         dt = self.dt
-        inv_ICK_mtx = LA.inv(np.eye(self.dof) + varp * dt * C + delta * dt**2 * K)
+        dt2 = dt**2
+        inv_ICK_mtx = LA.inv(np.eye(self.dof) + varp * dt * C + delta * dt2 * K)
         r = np.ones(self.dof - 1)
         z = np.zeros(self.nt)
         z[0] = z_0
@@ -178,8 +178,7 @@ class BaseIsolatedStructure:
             self.resp_acc[:, i + 1] = inv_ICK_mtx @ (
                 -K @ self.resp_disp[:, i]
                 - (C + dt * K) @ self.resp_vel[:, i]
-                + ((varp - 1) * dt * C + (delta - 0.5) * dt**2 * K)
-                @ self.resp_acc[:, i]
+                + ((varp - 1) * dt * C + (delta - 0.5) * dt2 * K) @ self.resp_acc[:, i]
                 + f
             )
 
@@ -187,8 +186,8 @@ class BaseIsolatedStructure:
             self.resp_disp[:, i + 1] = (
                 self.resp_disp[:, i]
                 + dt * self.resp_vel[:, i]
-                + 0.5 * dt**2 * self.resp_acc[:, i]
-                + delta * dt**2 * (self.resp_acc[:, i + 1] - self.resp_acc[:, i])
+                + 0.5 * dt2 * self.resp_acc[:, i]
+                + delta * dt2 * (self.resp_acc[:, i + 1] - self.resp_acc[:, i])
             )
 
             # Step 5: compute velocity at step i+1 from acceleration at step i and i+1, plus velocity at step i
@@ -205,6 +204,6 @@ class BaseIsolatedStructure:
             "z": self.z,
         }
 
-    def run(self, delta=0.25, varp=0.5):
+    def run(self, delta=0, varp=0.5):
         self.newmark_beta_int(delta, varp)
         return self.resp_disp, self.resp_vel, self.resp_acc, self.z

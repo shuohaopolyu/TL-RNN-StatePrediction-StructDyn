@@ -1,17 +1,21 @@
 from models import AutoEncoder
-from exps import continuous_beam, shear_type_structure, base_isolated_shear_type_structure
+from exps import (
+    continuous_beam,
+    shear_type_structure,
+    base_isolated_shear_type_structure,
+)
 import os
 import random
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+
 # random.seed(0)
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
-if __name__ == '__main__':
-    
+if __name__ == "__main__":
     # continuous_beam.compute_response(excitation_pattern=1)
     # continuous_beam.compute_response(excitation_pattern=2)
 
@@ -25,10 +29,13 @@ if __name__ == '__main__':
     # base_isolated_shear_type_structure.compute_response(1)
     sol1 = shear_type_structure.analytical_validation()
     sol2 = base_isolated_shear_type_structure.analytical_validation()
-    plt.plot(sol1['time'], sol1['disp'][1, :])
-    plt.plot(sol2['time'], sol2['disp'][1, :] + sol2['disp'][0, :])
+    # plt.plot(sol1["time"], sol1["velo"][0, :])
+    # plt.plot(sol2["time"], sol2["velo"][0, :])
+    plt.plot(sol1["time"], sol1["disp"][0, :])
+    plt.plot(sol2["time"], sol2["disp"][0, :])
     plt.show()
-
+    # plt.plot(sol1["acc"][0, :] - sol2["acc"][0, :])
+    # plt.show()
 
     # with open('./dataset/shear_type_structure/solution001.pkl', 'rb') as f:
     #     solution = pickle.load(f)
@@ -50,7 +57,6 @@ if __name__ == '__main__':
     # plt.xlabel('Time (s)')
     # plt.ylabel('Base displacement (m)')
     # plt.show()
-
 
     # plt.plot(time, acc_g_sts)
     # plt.plot(time, acc_g, '--')

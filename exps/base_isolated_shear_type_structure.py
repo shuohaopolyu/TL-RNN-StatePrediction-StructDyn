@@ -85,32 +85,31 @@ def compute_response(num=2):
 def analytical_validation():
     time = np.linspace(0, 10, 1000)
     acc = np.sin(2 * np.pi * 2 * time)
-    mass_vec = 5e5 * np.ones(12)
-    stiff_vec = 1e9 * np.ones(12)
-    damp_vec = 5e5 * np.ones(12)
+    mass_vec = 1 * np.ones(2)
+    stiff_vec = 1 * np.ones(2)
+    damp_vec = 1 * np.ones(2)
     bis = BaseIsolatedStructure(
         mass_super_vec=mass_vec,
         stiff_super_vec=stiff_vec,
         damp_super_vec=damp_vec,
-        mass_base=1e6,
+        mass_base=1,
         isolator_params={
-            "c_b": 2e6,
-            "k_b": 1.2e8,
+            "c_b": 1,
+            "k_b": 1,
             "q": 4e-3,
-            "A": 1,
-            "beta": 0.5,
-            "gamma": 0.5,
-            "n": 2,
+            "A": 0,
+            "beta": 0,
+            "gamma": 0,
+            "n": 1,
             "z_0": 0,
-            "F_y": 1.5e6,
-            "alpha": 1.0,
+            "F_y": 0,
+            "alpha": 1,
         },
-        x_0=np.zeros(13),
-        x_dot_0=np.zeros(13),
+        x_0=np.zeros(3),
+        x_dot_0=np.zeros(3),
         t=time,
         acc_g=acc,
     )
-    print(bis.damp_super_mtx)
 
     disp, velo, acc, z = bis.run()
 
