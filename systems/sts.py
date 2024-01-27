@@ -69,7 +69,7 @@ class ShearTypeStructure(MultiDOF):
             init_cond=None,
         )
 
-    def run(self, method="Radau"):
+    def run(self, method="DOP853"):
         full_resp = self.response(method=method, type="full")
         return (
             full_resp["acceleration"],

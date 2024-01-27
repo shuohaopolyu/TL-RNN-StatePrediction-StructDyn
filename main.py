@@ -25,37 +25,32 @@ if __name__ == "__main__":
     # continuous_beam.ae_disp_velo()
     # continuous_beam.model_eval()
 
-    # shear_type_structure.compute_response(1)
-    # base_isolated_shear_type_structure.compute_response(1)
     sol1 = shear_type_structure.analytical_validation()
     sol2 = base_isolated_shear_type_structure.analytical_validation()
-    # plt.plot(sol1["time"], sol1["velo"][0, :])
-    # plt.plot(sol2["time"], sol2["velo"][0, :])
+    sol3 = shear_type_structure.analytical_validation(method="RK45")
+    plt.plot(sol1["time"], sol1["acc"][0, :])
+    plt.plot(sol2["time"], sol2["acc"][0, :])
+    plt.plot(sol3["time"], sol3["acc"][0, :])
+    plt.show()
+    plt.plot(sol1["time"], sol1["acc"][0, :] - sol2["acc"][0, :])
+    plt.plot(sol1["time"], sol1["acc"][0, :] - sol3["acc"][0, :])
+    plt.show()
+
+    sol1 = shear_type_structure.compute_response(1)
+    base_isolated_shear_type_structure.compute_response(1)
+    with open("./dataset/base_isolated_structure/solution001.pkl", "rb") as f:
+        sol2 = pickle.load(f)
+    sol3 = shear_type_structure.compute_response(1, method="RK45")
+    sol4 = shear_type_structure.compute_response(1, method="RK23")
+    # with open("./dataset/shear_type_structure/solution001.pkl", "rb") as f:
+    #     sol1 = pickle.load(f)
     plt.plot(sol1["time"], sol1["disp"][0, :])
     plt.plot(sol2["time"], sol2["disp"][0, :])
+    plt.plot(sol3["time"], sol3["disp"][0, :])
+    plt.plot(sol4["time"], sol4["disp"][0, :])
     plt.show()
-    # plt.plot(sol1["acc"][0, :] - sol2["acc"][0, :])
-    # plt.show()
 
-    # with open('./dataset/shear_type_structure/solution001.pkl', 'rb') as f:
-    #     solution = pickle.load(f)
-    # time = solution['time']
-    # disp_sts = solution['disp']
-    # acc_sts = solution['acc']
-    # acc_g_sts = solution['acc_g']
-    # plt.plot(time, disp_sts[0, :])
-
-    # with open('./dataset/base_isolated_structure/solution001.pkl', 'rb') as f:
-    #     solution = pickle.load(f)
-    # time = solution['time']
-    # disp = solution['disp']
-    # acc = solution['acc']
-    # acc_g = solution['acc_g']
-    # z = solution['z']
-    # plt.plot(time, disp[0, :], '--')
-
-    # plt.xlabel('Time (s)')
-    # plt.ylabel('Base displacement (m)')
+    # plt.plot(sol1["time"], sol1["acc"][0, :] - sol2["acc"][0, :])
     # plt.show()
 
     # plt.plot(time, acc_g_sts)

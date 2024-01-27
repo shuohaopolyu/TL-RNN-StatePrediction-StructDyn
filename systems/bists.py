@@ -204,6 +204,6 @@ class BaseIsolatedStructure:
             "z": self.z,
         }
 
-    def run(self, delta=0, varp=0.5):
+    def run(self, delta=1 / 6, varp=0.5):
         self.newmark_beta_int(delta, varp)
         return self.resp_disp, self.resp_vel, self.resp_acc, self.z

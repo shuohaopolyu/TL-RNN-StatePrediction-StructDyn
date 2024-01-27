@@ -23,7 +23,7 @@ def _read_smc_file(filename):
     return time, acc[:, 0] * 1e-2
 
 
-def compute_response(num=2):
+def compute_response(num=2, method="DOP853"):
     acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
 
     acc_file_list = [
@@ -35,12 +35,12 @@ def compute_response(num=2):
         time = time[1000:6000]
         acc = acc[1000:6000]
         time = time - time[0]
-        mass_vec = 1 * np.ones(13)
-        mass_vec[0] = 1
-        stiff_vec = 1 * np.ones(13)
-        stiff_vec[0] = 1
-        damp_vec = 1 * np.ones(13)
-        damp_vec[0] = 1
+        mass_vec = 5e5 * np.ones(13)
+        # mass_vec[0] = 1e6
+        stiff_vec = 1e7 * np.ones(13)
+        # stiff_vec[0] = 1.2e8
+        damp_vec = 5e5 * np.ones(13)
+        # damp_vec[0] = 2e6
         sts = ShearTypeStructure(
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
@@ -49,7 +49,7 @@ def compute_response(num=2):
             acc_g=acc,
         )
 
-        acc, velo, disp = sts.run()
+        acc, velo, disp = sts.run(method)
 
         solution = {
             "acc_g": sts.acc_g,
@@ -59,19 +59,21 @@ def compute_response(num=2):
             "acc": acc,
         }
 
-        file_name = (
-            "./dataset/shear_type_structure/solution"
-            + format(acc_file_list.index(acc_file_i) + 1, "03")
-            + ".pkl"
-        )
-        with open(file_name, "wb") as f:
-            pickle.dump(solution, f)
-        print("File " + file_name + " saved.")
+        return solution
+
+        # file_name = (
+        #     "./dataset/shear_type_structure/solution"
+        #     + format(acc_file_list.index(acc_file_i) + 1, "03")
+        #     + ".pkl"
+        # )
+        # with open(file_name, "wb") as f:
+        #     pickle.dump(solution, f)
+        # print("File " + file_name + " saved.")
 
 
-def analytical_validation():
-    time = np.linspace(0, 10, 1000)
-    acc = np.sin(2 * np.pi * 2 * time)
+def analytical_validation(method="DOP853"):
+    time = np.linspace(0, 10, 10000)
+    acc = np.sin(2 * np.pi * 4 * time)
     mass_vec = 1 * np.ones(3)
     mass_vec[0] = 1
     stiff_vec = 1 * np.ones(3)
@@ -86,7 +88,7 @@ def analytical_validation():
         acc_g=acc,
     )
 
-    acc, velo, disp = sts.run()
+    acc, velo, disp = sts.run(method)
 
     solution = {
         "acc_g": sts.acc_g,
