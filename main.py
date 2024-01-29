@@ -35,15 +35,3 @@ if __name__ == "__main__":
     plt.plot(sol4["time"], sol4["acc"][0, :])
     plt.show()
 
-    # plt.plot(sol1["time"], sol1["acc"][0, :] - sol2["acc"][0, :])
-    # plt.show()
-
-    # plt.plot(time, acc_g_sts)
-    # plt.plot(time, acc_g, '--')
-    # plt.xlabel('Time (s)')
-    # plt.ylabel('Base acceleration (m/s^2)')
-    # plt.show()
-
-# print(np.sum(abs(disp_sts[0, :]-disp[0, :])))
-# plt.plot(time, disp_sts[0, :]-disp[0, :])
-# plt.show()
