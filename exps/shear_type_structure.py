@@ -23,7 +23,7 @@ def _read_smc_file(filename):
     return time, acc[:, 0] * 1e-2
 
 
-def compute_response(num=2, method="DOP853"):
+def compute_response(num=1, method="DOP853"):
     acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
 
     acc_file_list = [
@@ -35,13 +35,14 @@ def compute_response(num=2, method="DOP853"):
         time = time[1000:6000]
         acc = acc[1000:6000]
         time = time - time[0]
-        mass_vec = 5e5 * np.ones(13)
-        # mass_vec[0] = 1e6
-        stiff_vec = 1e7 * np.ones(13)
-        # stiff_vec[0] = 1.2e8
-        damp_vec = 5e5 * np.ones(13)
-        # damp_vec[0] = 2e6
-        sts = ShearTypeStructure(
+        mass_vec = 3e5 * np.ones(13)
+        stiff_vec = 9e6 * np.ones(13)
+        damp_vec = 3e5 * np.ones(13)
+        mass_vec[0] = 6e5
+        damp_vec[0] = 5e5
+        stiff_vec[0] = 3e6
+
+        parametric_sts = ShearTypeStructure(
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
             damp_vec=damp_vec,
@@ -49,37 +50,36 @@ def compute_response(num=2, method="DOP853"):
             acc_g=acc,
         )
 
-        acc, velo, disp = sts.run(method)
+        acc, velo, disp = parametric_sts.run(method)
 
         solution = {
-            "acc_g": sts.acc_g,
+            "acc_g": parametric_sts.acc_g,
             "time": time,
             "disp": disp,
             "velo": velo,
             "acc": acc,
         }
 
+        file_name = (
+            "./dataset/shear_type_structure/solution"
+            + format(acc_file_list.index(acc_file_i) + 1, "03")
+            + ".pkl"
+        )
+        with open(file_name, "wb") as f:
+            pickle.dump(solution, f)
+        print("File " + file_name + " saved.")
+        _ = parametric_sts.print_damping_ratio(10)
+        _ = parametric_sts.print_natural_frequency(10)
         return solution
-
-        # file_name = (
-        #     "./dataset/shear_type_structure/solution"
-        #     + format(acc_file_list.index(acc_file_i) + 1, "03")
-        #     + ".pkl"
-        # )
-        # with open(file_name, "wb") as f:
-        #     pickle.dump(solution, f)
-        # print("File " + file_name + " saved.")
 
 
 def analytical_validation(method="DOP853"):
     time = np.linspace(0, 10, 10000)
-    acc = np.sin(2 * np.pi * 4 * time)
-    mass_vec = 1 * np.ones(3)
+    acc = np.sin(2 * np.pi * 1 * time)
+    mass_vec = 2 * np.ones(3)
+    stiff_vec = 10 * np.ones(3)
+    damp_vec = 0.1 * np.ones(3)
     mass_vec[0] = 1
-    stiff_vec = 1 * np.ones(3)
-    stiff_vec[0] = 1
-    damp_vec = 1 * np.ones(3)
-    damp_vec[0] = 1
     sts = ShearTypeStructure(
         mass_vec=mass_vec,
         stiff_vec=stiff_vec,
@@ -87,6 +87,7 @@ def analytical_validation(method="DOP853"):
         t=time,
         acc_g=acc,
     )
+    print(sts.mass_mtx)
 
     acc, velo, disp = sts.run(method)
 
@@ -97,6 +98,7 @@ def analytical_validation(method="DOP853"):
         "velo": velo,
         "acc": acc,
     }
+    _ = sts.print_damping_ratio(3)
     return solution
 
 

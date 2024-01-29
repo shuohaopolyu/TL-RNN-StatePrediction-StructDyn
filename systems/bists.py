@@ -8,8 +8,7 @@ Inputs:
                     stiffness of the superstructure from bottom to top
     damp_type: currently only support Rayleigh
     damp_params: tuple, (lower_mode_index, upper_mode_index, damping_ratio)
-    mass_base: float, mass of the base
-    isolator_params: dict, parameters of the nonlinear damper, keys are "c_b", "k_b", "F_y", "q", "A", "alpha", "beta", "gamma", "n", "z_0"
+    isolator_params: dict, parameters of the nonlinear damper, keys are "m_b", "c_b", "k_b", "F_y", "q", "A", "alpha", "beta", "gamma", "n", "z_0"
     init_disp: array like, with shape (1+n, )
                 initial displacement of the structure, first element is the base displacement, the rest are superstructure displacement
     init_vel: array like, with shape (1+n, )
@@ -48,7 +47,6 @@ class BaseIsolatedStructure:
         mass_super_vec=None,
         stiff_super_vec=None,
         damp_super_vec=None,
-        mass_base=None,
         isolator_params=None,
         x_0=None,
         x_dot_0=None,
@@ -68,7 +66,6 @@ class BaseIsolatedStructure:
             + np.diag(-damp_super_vec[1:], -1)
             + np.diag(np.append(damp_super_vec[1:], 0))
         )
-        self.mass_base = mass_base
         self.t = t
         self.acc_g = acc_g
         self.isolator_params = isolator_params
@@ -83,36 +80,82 @@ class BaseIsolatedStructure:
         self.c_1 = damp_super_vec[0]
         self.k_1 = stiff_super_vec[0]
 
-    def _intg_mtx(self):
+    def _intg_MCK(self):
         c_1 = self.c_1  # you need more consideration on this coefficient!!!
         k_1 = self.k_1
         alpha = self.isolator_params["alpha"]
         k_b = self.isolator_params["k_b"]
         c_b = self.isolator_params["c_b"]
+        m_b = self.isolator_params["m_b"]
         r = np.ones((self.dof - 1, 1))
-        intg__M = np.block(
+        intg_M = np.block(
             [
-                [self.mass_base, np.zeros((1, self.dof - 1))],
+                [m_b, np.zeros((1, self.dof - 1))],
                 [self.mass_super_mtx @ r, self.mass_super_mtx],
             ]
         )
-        intg__C = np.block(
+        intg_C = np.block(
             [
                 [c_b, -c_1, np.zeros((1, self.dof - 2))],
                 [np.zeros((self.dof - 1, 1)), self.damp_super_mtx],
             ]
         )
-        intg__K = np.block(
+        intg_K = np.block(
             [
                 [alpha * k_b, -k_1, np.zeros((1, self.dof - 2))],
                 [np.zeros((self.dof - 1, 1)), self.stiff_super_mtx],
             ]
         )
-        inv_intg_M = LA.inv(intg__M)
-        C = inv_intg_M @ intg__C
-        K = inv_intg_M @ intg__K
+        return intg_M, intg_C, intg_K
+
+    def _intg_mtx(self):
+        intg_M, intg_C, intg_K = self._intg_MCK()
+        inv_intg_M = LA.inv(intg_M)
+        C = inv_intg_M @ intg_C
+        K = inv_intg_M @ intg_K
         return inv_intg_M, C, K
 
+    # def damping_ratio(self):
+    #     "Without considering the nonlinearity of the isolator"
+    #     intg_M, intg_C, intg_K = self._intg_MCK()
+    #     w, v = LA.eig(LA.inv(intg_M) @ intg_K)
+    #     idx = w.argsort()
+    #     w = w[idx]
+    #     v = v[:, idx]
+    #     mo_mass = np.diag(v.T @ intg_M @ v)
+    #     mo_stiff = np.diag(v.T @ intg_K @ v)
+    #     mo_damp = np.diag(v.T @ intg_C @ v)
+    #     zeta = mo_damp / 2 / np.sqrt(mo_mass * mo_stiff)
+    #     return zeta
+
+    def natural_frequency(self):
+        "Without considering the nonlinearity of the isolator"
+        intg_M, _, intg_K = self._intg_MCK()
+        w, _ = LA.eig(LA.inv(intg_M) @ intg_K)
+        idx = w.argsort()
+        w = w[idx]
+        return w
+
+    def print_damping_ratio(self, num):
+        assert (
+            num <= self.dof
+        ), "The number of modes should be less or equal to the DOF."
+        dr = self.damping_ratio()
+        print("Damping ratio: ")
+        for i in range(num):
+            print("Mode {}: {}".format(i + 1, dr[i]))
+        return dr
+    
+    def print_natural_frequency(self, num):
+        assert (
+            num <= self.dof
+        ), "The number of modes should be less or equal to the DOF."
+        wn = np.sqrt(self.natural_frequency())
+        print("Natural frequency (/rad^2): ")
+        for i in range(num):
+            print("Mode {}: {}".format(i + 1, wn[i]))
+        return wn
+    
     def newmark_beta_int(self, delta, varp):
         # delta = 0, varp = 1/2: Explicit central difference scheme
         # delta = 1/4, varp = 1/2: Average acceleration method
@@ -121,7 +164,7 @@ class BaseIsolatedStructure:
 
         k_1 = self.k_1
         c_1 = self.c_1
-        m_b = self.mass_base
+        m_b = self.isolator_params["m_b"]
         c_b = self.isolator_params["c_b"]
         k_b = self.isolator_params["k_b"]
         F_y = self.isolator_params["F_y"]

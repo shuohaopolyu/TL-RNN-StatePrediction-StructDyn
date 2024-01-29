@@ -27,6 +27,7 @@ Output:
 import numpy as np
 from systems.lsds import MultiDOF
 from scipy import interpolate
+import matplotlib.pyplot as plt
 
 
 class ShearTypeStructure(MultiDOF):
@@ -41,7 +42,9 @@ class ShearTypeStructure(MultiDOF):
     ):
         self.mass_vec = mass_vec
         self.acc_g = acc_g
-        self.acc_func = interpolate.interp1d(t, acc_g)
+        self.acc_func = interpolate.interp1d(
+            t, acc_g, kind="quadratic", fill_value="extrapolate"
+        )
         mass_mtx = np.diag(mass_vec)
         stiff_mtx = (
             np.diag(stiff_vec)
@@ -63,9 +66,14 @@ class ShearTypeStructure(MultiDOF):
             f_dof=[i for i in range(len(mass_vec))],
             t_eval=t,
             f_t=[
-                lambda t: -self.acc_func(t) * self.mass_vec[i]
+                lambda x, i=i: self.mass_vec[i] * (-self.acc_func(x))
                 for i in range(len(mass_vec))
-            ],
+            ],  # takes me three days to debug this line
+            # The i=i in the lambda function is important
+            # because it creates a new scope for i within
+            # each lambda function. If you don't do this,
+            # all lambda functions will use the latest
+            # value of i from the loop due to late binding of the loop variable.
             init_cond=None,
         )
 
@@ -77,29 +85,22 @@ class ShearTypeStructure(MultiDOF):
             full_resp["displacement"],
         )
 
-    # def newmark_beta_int(self, delta, varp):
-    #     """
-    #     Newmark-beta integration method
-    #     """
-    #     # Newmark-beta parameters
-    #     gamma = 1 / 2
-    #     beta = 1 / 4
-    #     # Newmark-beta coefficients
-    #     a0 = 1 / (beta * delta ** 2)
-    #     a1 = gamma / (beta * delta)
-    #     a2 = 1 / (beta * delta)
-    #     a3 = 1 / (2 * beta) - 1
-    #     a4 = gamma / beta - 1
-    #     a5 = delta / 2 * (gamma / beta - 2)
-    #     a6 = delta * (1 - gamma)
-    #     a7 = gamma * delta
-    #     # Newmark-beta integration
-    #     acc = (
-    #         a0 * self.f_t[-1](varp)
-    #         + a2 * self.f_t[-2](varp)
-    #         + a3 * self.f_t[-3](varp)
-    #         + a5 * self.f_t[-4](varp)
-    #     ) / (a0 * self.m_mtx[-1, -1] + a1 * self.c_mtx[-1, -1] + a2 * self.k_mtx[-1, -1])
-    #     velo = self.x_dot[-1] + a6 * self.x_ddot[-2] + a7 * self.x_ddot[-1]
-    #     disp = self.x[-1] + delta * self.x_dot[-1] + a3 * delta ** 2 * self.x_ddot[-2] + a4 * delta ** 2 * self.x_ddot[-1]
-    #     return acc, velo, disp
+    def print_damping_ratio(self, num):
+        assert (
+            num <= self.DOF
+        ), "The number of modes should be less or equal to the DOF."
+        dr = self.damping_ratio()
+        print("Damping ratio: ")
+        for i in range(num):
+            print("Mode {}: {}".format(i + 1, dr[i]))
+        return dr
+
+    def print_natural_frequency(self, num):
+        assert (
+            num <= self.DOF
+        ), "The number of modes should be less or equal to the DOF."
+        wn = self.freqs_modes()[0] * 2 * np.pi
+        print("Natural frequency (/rad^2): ")
+        for i in range(num):
+            print("Mode {}: {}".format(i + 1, wn[i]))
+        return wn

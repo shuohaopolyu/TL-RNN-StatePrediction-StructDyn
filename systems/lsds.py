@@ -325,7 +325,6 @@ class MultiDOF:
 
     def state_fun(self, t, y, pbar, state):
         last_t, dt = state
-        # time.sleep(0.01)
         n = int((t - last_t) / dt)
         pbar.update(n)
         state[0] = last_t + dt * n

@@ -23,7 +23,7 @@ def _read_smc_file(filename):
     return time, acc[:, 0] * 1e-2
 
 
-def compute_response(num=2):
+def compute_response(num=1):
     acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
 
     acc_file_list = [
@@ -35,18 +35,18 @@ def compute_response(num=2):
         time = time[1000:6000]
         acc = acc[1000:6000]
         time = time - time[0]
-        mass_vec = 5e5 * np.ones(12)
-        stiff_vec = 1e7 * np.ones(12)
-        damp_vec = 5e5 * np.ones(12)
-        bis = BaseIsolatedStructure(
+        mass_vec = 3e5 * np.ones(12)
+        stiff_vec = 9e6 * np.ones(12)
+        damp_vec = 3e5 * np.ones(12)
+        parametric_bists = BaseIsolatedStructure(
             mass_super_vec=mass_vec,
             stiff_super_vec=stiff_vec,
             damp_super_vec=damp_vec,
-            mass_base=5e5,
             isolator_params={
+                "m_b": 6e5,
                 "c_b": 5e5,
-                "k_b": 1e7,
-                "q": 4e-3,
+                "k_b": 3e6,
+                "q": 4e-1,
                 "A": 0,
                 "beta": 0,
                 "gamma": 0,
@@ -61,10 +61,10 @@ def compute_response(num=2):
             acc_g=acc,
         )
 
-        disp, velo, acc, z = bis.run()
+        disp, velo, acc, z = parametric_bists.run()
 
         solution = {
-            "acc_g": bis.acc_g,
+            "acc_g": parametric_bists.acc_g,
             "time": time,
             "disp": disp,
             "velo": velo,
@@ -80,22 +80,25 @@ def compute_response(num=2):
         with open(file_name, "wb") as f:
             pickle.dump(solution, f)
         print("File " + file_name + " saved.")
+        # _ = bis.print_damping_ratio(10)
+        _ = parametric_bists.print_natural_frequency(10)
+    return solution
 
 
 def analytical_validation():
     time = np.linspace(0, 10, 10000)
-    acc = np.sin(2 * np.pi * 4 * time)
-    mass_vec = 1 * np.ones(2)
-    stiff_vec = 1 * np.ones(2)
-    damp_vec = 1 * np.ones(2)
-    bis = BaseIsolatedStructure(
+    acc = np.sin(2 * np.pi * 1 * time)
+    mass_vec = 2 * np.ones(2)
+    stiff_vec = 10 * np.ones(2)
+    damp_vec = 0.1 * np.ones(2)
+    parametric_bists = BaseIsolatedStructure(
         mass_super_vec=mass_vec,
         stiff_super_vec=stiff_vec,
         damp_super_vec=damp_vec,
-        mass_base=1,
         isolator_params={
-            "c_b": 1,
-            "k_b": 1,
+            "m_b": 1,
+            "c_b": 0.1,
+            "k_b": 10,
             "q": 4e-3,
             "A": 0,
             "beta": 0,
@@ -111,10 +114,11 @@ def analytical_validation():
         acc_g=acc,
     )
 
-    disp, velo, acc, z = bis.run()
+    disp, velo, acc, z = parametric_bists.run()
+    _ = parametric_bists.print_natural_frequency(3)
 
     solution = {
-        "acc_g": bis.acc_g,
+        "acc_g": parametric_bists.acc_g,
         "time": time,
         "disp": disp,
         "velo": velo,
@@ -155,3 +159,4 @@ def plot_response():
     plt.xlabel("Time (s)")
     plt.ylabel("Base acceleration (m/s^2)")
     plt.show()
+
