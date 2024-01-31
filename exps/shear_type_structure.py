@@ -1,6 +1,9 @@
 from systems import ShearTypeStructure
 import numpy as np
 import pickle
+from utils import compute_metrics
+from models import Rnn, Lstm
+import torch
 import matplotlib.pyplot as plt
 
 
@@ -23,7 +26,7 @@ def _read_smc_file(filename):
     return time, acc[:, 0] * 1e-2
 
 
-def compute_response(num=1, method="DOP853"):
+def compute_response(num=1, method="Radau"):
     acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
 
     acc_file_list = [
@@ -70,10 +73,10 @@ def compute_response(num=1, method="DOP853"):
         print("File " + file_name + " saved.")
         _ = parametric_sts.print_damping_ratio(10)
         _ = parametric_sts.print_natural_frequency(10)
-        return solution
+    return solution
 
 
-def analytical_validation(method="DOP853"):
+def analytical_validation(method="Radau"):
     time = np.linspace(0, 10, 10000)
     acc = np.sin(2 * np.pi * 1 * time)
     mass_vec = 2 * np.ones(3)
@@ -102,29 +105,134 @@ def analytical_validation(method="DOP853"):
     return solution
 
 
-def plot_response():
-    # free to modify
-    with open("./dataset/shear_type_structure/solution002.pkl", "rb") as f:
-        solution = pickle.load(f)
-    time = solution["time"]
-    acc_g = solution["acc_g"]
-    disp = solution["disp"]
-    velo = solution["velo"]
-    acc = solution["acc"]
-    plt.figure()
-    plt.plot(time, acc_g)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Ground acceleration (m/s^2)")
-    plt.figure()
-    plt.plot(time, disp[12, :])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Base displacement (m)")
-    plt.figure()
-    plt.plot(time, velo[12, :])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Base velocity (m/s)")
-    plt.figure()
-    plt.plot(time, acc[12, :])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Base acceleration (m/s^2)")
+def _rnn(
+    acc_sensor,
+    data_compression_ratio=10,
+    num_training_files=10,
+    epochs=10000,
+    lr=0.0001,
+    weight_decay=0.0,
+):
+    """
+    :param acc_sensor: (list) list of accelerometer locations
+    :param data_compression_ratio: (int) data compression ratio
+    """
+    num_test_files = 50 - num_training_files
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    disp = []
+    acc = []
+    disp_test = []
+    acc_test = []
+
+    for i in range(num_training_files):
+        filename = (
+            "./dataset/shear_type_structure/solution" + format(i + 1, "03") + ".pkl"
+        )
+        with open(filename, "rb") as f:
+            solution = pickle.load(f)
+        disp.append(solution["disp"][:, ::data_compression_ratio].T)
+        acc.append(solution["acc"][acc_sensor, ::data_compression_ratio].T)
+
+    for i in range(num_training_files, 50):
+        filename = (
+            "./dataset/shear_type_structure/solution" + format(i + 1, "03") + ".pkl"
+        )
+        with open(filename, "rb") as f:
+            solution = pickle.load(f)
+        disp_test.append(solution["disp"][:, ::data_compression_ratio].T)
+        acc_test.append(solution["acc"][acc_sensor, ::data_compression_ratio].T)
+
+    disp = np.array(disp)
+    disp = torch.tensor(disp, dtype=torch.float32).to(device)
+    # disp = disp.view(-1, 13)
+    disp_test = np.array(disp_test)
+    disp_test = torch.tensor(disp_test, dtype=torch.float32).to(device)
+    # disp_test = disp_test.view(-1, 13)
+    acc = np.array(acc)
+    acc = torch.tensor(acc, dtype=torch.float32).to(device)
+    acc_test = np.array(acc_test)
+    acc_test = torch.tensor(acc_test, dtype=torch.float32).to(device)
+    train_set = {"X": acc, "Y": disp}
+    test_set = {"X": acc_test, "Y": disp_test}
+
+    RNN_model_disp = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=10,
+        output_size=13,
+        num_layers=1,
+        bidirectional=True,
+    )
+    train_h0 = torch.zeros(2, num_training_files, 10).to(device)
+    test_h0 = torch.zeros(2, num_test_files, 10).to(device)
+    model_save_path = "./dataset/shear_type_structure/rnn_disp.pth"
+    loss_save_path = "./dataset/shear_type_structure/rnn_disp_loss.pkl"
+    train_loss_list, test_loss_list = RNN_model_disp.train_RNN(
+        train_set,
+        test_set,
+        train_h0,
+        test_h0,
+        epochs=epochs,
+        learning_rate=lr,
+        model_save_path=model_save_path,
+        loss_save_path=loss_save_path,
+        train_msg=True,
+        weight_decay=weight_decay,
+    )
+
+    return train_loss_list, test_loss_list
+
+
+def build_rnn():
+    dr = 10
+    ntf = 40
+    acc_sensor = [0, 4, 7, 11]
+    train_loss_list, test_loss_list = _rnn(
+        acc_sensor,
+        data_compression_ratio=dr,
+        num_training_files=ntf,
+        epochs=30000,
+        lr=0.0001,
+        weight_decay=0.0,
+    )
+    RNN_model_disp = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=10,
+        output_size=13,
+        num_layers=1,
+        bidirectional=True,
+    )
+    with open("./dataset/shear_type_structure/rnn_disp.pth", "rb") as f:
+        RNN_model_disp.load_state_dict(torch.load(f))
+
+    RNN_model_disp.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    num_test_files = 50 - ntf
+    test_h0 = torch.zeros(2, num_test_files, 10).to(device)
+    disp_test = []
+    acc_test = []
+    for i in range(ntf, 50):
+        filename = (
+            "./dataset/shear_type_structure/solution" + format(i + 1, "03") + ".pkl"
+        )
+        with open(filename, "rb") as f:
+            solution = pickle.load(f)
+        disp_test.append(solution["disp"][:, ::dr].T)
+        acc_test.append(solution["acc"][acc_sensor, ::dr].T)
+    disp_test = np.array(disp_test)
+    acc_test = np.array(acc_test)
+    acc_test = torch.tensor(acc_test, dtype=torch.float32).to(device)
+    with torch.no_grad():
+        disp_pred,_ = RNN_model_disp(acc_test, test_h0)
+    disp_pred = disp_pred.cpu().numpy()
+    disp_test = disp_test[:, :, 0]
+    disp_pred = disp_pred[:, :, 0]
+    plt.plot(disp_test[0, :], label="Ground truth")
+    plt.plot(disp_pred[0, :], label="Prediction")
+    plt.legend()
     plt.show()
+
+    # plt.plot(train_loss_list, label="train loss")
+    # plt.plot(test_loss_list, label="test loss")
+    # plt.legend()
+    # plt.show()
