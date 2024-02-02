@@ -5,7 +5,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 # Define RNN
-# class Rnn(nn.Module):
+# class Rnn_(nn.Module):
 #     def __init__(
 #         self,
 #         input_size=2,
@@ -128,23 +128,23 @@ class Rnn(nn.Module):
             num_layers,
             bidirectional=bidirectional,
             batch_first=True,
-            # bias = False,
+            bias = False,
         ).to(device)
         if bidirectional:
-            self.linear = nn.Linear(2 * hidden_size, output_size).to(device)
+            self.linear = nn.Linear(2 * hidden_size, output_size, bias=False).to(device)
         else:
-            self.linear = nn.Linear(hidden_size, output_size).to(device)
-        # the dropout layer is not used in the paper, because the input data and hidden state are not too large.
-        # the weight decay (L2 regularization) is used in the paper to avoid overfitting.
-        # but one can try to use the dropout layer to see if it can improve the performance.
-        # self.dropout_1 = nn.Dropout(p=0.1)
-        # self.dropout_2 = nn.Dropout(p=0.1)
+            self.linear = nn.Linear(hidden_size, output_size, bias=False).to(device)
+        self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
+        self.linear2 = nn.Linear(output_size, output_size, bias=False).to(device)
 
     def forward(self, u, h0):
-        # u = self.dropout_1(u)
         y, hn = self.rnn(u, h0)
-        # y = self.dropout_2(y)
         y = self.linear(y)
+        y = self.tanh(y)
+        y = self.linear2(y)
+        y = self.tanh(y)
+        y = self.linear2(y)
         return y, hn
 
     def train_RNN(

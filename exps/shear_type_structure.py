@@ -75,6 +75,21 @@ def compute_response(num=1, method="Radau"):
         _ = parametric_sts.print_natural_frequency(10)
     return solution
 
+def plot_response(which=1):
+    filename = (
+            "./dataset/shear_type_structure/solution" + format(which, "03") + ".pkl"
+        )
+    with open(filename, "rb") as f:
+        solution = pickle.load(f)
+    
+    time = solution["time"]
+    acc = solution["acc"]
+    disp = solution["disp"]
+    velo = solution["velo"]
+    acc_g = solution["acc_g"]
+    plt.plot(time, disp[0, :].T, label="Ground truth")
+    # plt.show()
+
 
 def analytical_validation(method="Radau"):
     time = np.linspace(0, 10, 10000)
@@ -145,10 +160,8 @@ def _rnn(
 
     disp = np.array(disp)
     disp = torch.tensor(disp, dtype=torch.float32).to(device)
-    # disp = disp.view(-1, 13)
     disp_test = np.array(disp_test)
     disp_test = torch.tensor(disp_test, dtype=torch.float32).to(device)
-    # disp_test = disp_test.view(-1, 13)
     acc = np.array(acc)
     acc = torch.tensor(acc, dtype=torch.float32).to(device)
     acc_test = np.array(acc_test)
@@ -187,11 +200,11 @@ def build_rnn():
     dr = 10
     ntf = 40
     acc_sensor = [0, 4, 7, 11]
-    train_loss_list, test_loss_list = _rnn(
+    _, _ = _rnn(
         acc_sensor,
         data_compression_ratio=dr,
         num_training_files=ntf,
-        epochs=30000,
+        epochs=200000,
         lr=0.0001,
         weight_decay=0.0,
     )
@@ -225,14 +238,9 @@ def build_rnn():
     with torch.no_grad():
         disp_pred,_ = RNN_model_disp(acc_test, test_h0)
     disp_pred = disp_pred.cpu().numpy()
-    disp_test = disp_test[:, :, 0]
-    disp_pred = disp_pred[:, :, 0]
+    disp_test = disp_test[:, :, 11]
+    disp_pred = disp_pred[:, :, 11]
     plt.plot(disp_test[0, :], label="Ground truth")
     plt.plot(disp_pred[0, :], label="Prediction")
     plt.legend()
     plt.show()
-
-    # plt.plot(train_loss_list, label="train loss")
-    # plt.plot(test_loss_list, label="test loss")
-    # plt.legend()
-    # plt.show()

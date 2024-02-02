@@ -2,6 +2,8 @@ from systems import BaseIsolatedStructure
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
+import torch
+from models import Rnn
 
 
 def _read_smc_file(filename):
@@ -53,7 +55,7 @@ def compute_response(num=1):
                 "n": 2,
                 "z_0": 0,
                 "F_y": 2e6,
-                "alpha": 0.9,
+                "alpha": 0.7,
             },
             x_0=np.zeros(13),
             x_dot_0=np.zeros(13),
@@ -80,7 +82,6 @@ def compute_response(num=1):
         with open(file_name, "wb") as f:
             pickle.dump(solution, f)
         print("File " + file_name + " saved.")
-        # _ = bis.print_damping_ratio(10)
         _ = parametric_bists.print_natural_frequency(10)
     return solution
 
@@ -128,35 +129,240 @@ def analytical_validation():
     return solution
 
 
-def plot_response():
-    # free to modify
-    with open("./dataset/base_isolated_structure/solution002.pkl", "rb") as f:
-        solution = pickle.load(f)
-    time = solution["time"]
-    acc_g = solution["acc_g"]
-    disp = solution["disp"]
-    velo = solution["velo"]
-    acc = solution["acc"]
-    z = solution["z"]
-    plt.figure()
-    plt.plot(time, acc_g)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Ground acceleration (m/s^2)")
-    plt.figure()
-    plt.plot(time, disp[0, :])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Base displacement (m)")
-    plt.figure()
-    plt.plot(time, velo[0, :])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Base velocity (m/s)")
-    plt.figure()
-    plt.plot(time, z[0, :])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Isolator displacement (m)")
-    plt.figure()
-    plt.plot(time, acc[0, :])
-    plt.xlabel("Time (s)")
-    plt.ylabel("Base acceleration (m/s^2)")
+def compute_floor_drift_bists(disp_bists, drift_sensor):
+    # disp_bists is a 3D array with shape (num_files, num_time_steps, num_dofs)
+    # drift_sensor is a list of integers with ascending order
+    num_files, num_time_steps, _ = disp_bists.shape
+    drift_bists = np.zeros((num_files, num_time_steps, len(drift_sensor)))
+    if drift_sensor[0] == 0:
+        drift_bists[:, :, 0] = disp_bists[:, :, 0]
+        disp_bists[:, :, 0] = 0
+        for i in range(1, len(drift_sensor)):
+            drift_bists[:, :, i] = (
+                disp_bists[:, :, drift_sensor[i]]
+                - disp_bists[:, :, drift_sensor[i - 1]]
+            )
+    else:
+        disp_bists[:, :, 0] = 0
+        for i in range(len(drift_sensor)):
+            drift_bists[:, :, i] = (
+                disp_bists[:, :, drift_sensor[i]]
+                - disp_bists[:, :, drift_sensor[i - 1]]
+            )
+    return drift_bists
+
+
+def compute_floor_acceleration_bists(acc_bists, acc_sensor):
+    # acc_bists is a 3D array with shape (num_files, num_time_steps, num_dofs)
+    # acc_sensor is a list of integers with ascending order
+    num_files, num_time_steps, _ = acc_bists.shape
+    acc_bists_new = np.zeros((num_files, num_time_steps, len(acc_sensor)))
+    if acc_sensor[0] == 0:
+        acc_bists_new[:, :, 0] = acc_bists[:, :, 0]
+        for i in range(1, len(acc_sensor)):
+            acc_bists_new[:, :, i] = acc_bists[:, :, acc_sensor[i]] + acc_bists[:, :, 0]
+    else:
+        for i in range(len(acc_sensor)):
+            acc_bists_new[:, :, i] = acc_bists[:, :, acc_sensor[i]] + acc_bists[:, :, 0]
+    return acc_bists_new
+
+def compute_floor_disp_bists(disp_bists):
+    # disp_bists is a 3D array with shape (num_files, num_time_steps, num_dofs)
+    # disp_sensor is a list of integers with ascending order
+    disp_bists[:, :, 1:] = disp_bists[:, :, 1:] + disp_bists[:, :, 0:1]
+    return disp_bists
+
+def compute_floor_drift_sts(disp_sts, drift_sensor):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # disp_sts is a 3D tensor with shape (num_files, num_time_steps, num_dofs)
+    # drift_sensor is a list of integers with ascending order
+    num_files, num_time_steps, _ = disp_sts.shape
+    drift_sts = torch.zeros(num_files, num_time_steps, len(drift_sensor)).to(device)
+    if drift_sensor[0] == 0:
+        drift_sts[:, :, 0] = disp_sts[:, :, 0]
+        for i in range(1, len(drift_sensor)):
+            drift_sts[:, :, i] = (
+                disp_sts[:, :, drift_sensor[i]] - disp_sts[:, :, drift_sensor[i - 1]]
+            )
+    else:
+        for i in range(len(drift_sensor)):
+            drift_sts[:, :, i] = (
+                disp_sts[:, :, drift_sensor[i]] - disp_sts[:, :, drift_sensor[i - 1]]
+            )
+    return drift_sts
+
+
+def lf_rnn_prediction(which=1, dof=0):
+    # low fidelity recurrent neural network prediction
+    # i.e., we use the pre-trained model to predict the displacement
+    # which: int, is the order of the file
+    # dof: int, is the degree of freedom to be ploted
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dr = 10
+    acc_sensor = [0, 4, 7, 11]
+    RNN_model_disp = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=10,
+        output_size=13,
+        num_layers=1,
+        bidirectional=True,
+    )
+    with open("./dataset/shear_type_structure/rnn_disp.pth", "rb") as f:
+        RNN_model_disp.load_state_dict(torch.load(f))
+    h0 = torch.zeros(2, 50, 10).to(device)
+    acc_test = []
+    disp_test = []
+    # for param in RNN_model_disp.parameters():
+    #     print(type(param))
+    RNN_model_disp.eval()
+    for i in range(50):
+        filename = (
+            "./dataset/base_isolated_structure/solution" + format(i + 1, "03") + ".pkl"
+        )
+        with open(filename, "rb") as f:
+            solution = pickle.load(f)
+        acc1 = solution["acc"][acc_sensor, ::dr].T
+        acc1[:, 1:] += acc1[:, 0:1]
+        disp1 = solution["disp"][:, ::dr].T
+        disp1[:, 1:] += disp1[:, 0:1]
+        acc_test.append(acc1)
+        disp_test.append(disp1)
+    time = solution["time"][::dr]
+    acc_test = np.array(acc_test)
+    disp_test = np.array(disp_test)
+    acc_test = torch.tensor(acc_test, dtype=torch.float32).to(device)
+    with torch.no_grad():
+        disp_pred, _ = RNN_model_disp(acc_test, h0)
+    disp_pred = disp_pred.cpu().numpy()
+    # plot the prediction and ground truth
+    plt.plot(time, disp_test[which - 1, :, dof], label="Ground truth")
+    plt.plot(time, disp_pred[which - 1, :, dof], label="Prediction")
+    plt.legend()
     plt.show()
 
+
+def _tr_rnn(
+    acc_sensor, drift_sensor, data_compression_ratio, num_training_files, epochs, lr
+):
+    # transfer learning of recurrent neural networks
+    # acc_sensor: list of integers, is the indices of the acceleration sensors
+    # drift_sensor: list of integers, is the indices of the drift sensors
+    # data_compression_ratio: int, is the ratio of the data compression
+    # num_training_files: int, is the number of training files
+    # epochs: int, is the number of epochs
+    # lr: float, is the learning rate
+
+    # load the pre-trained model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    RNN_model_disp = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=10,
+        output_size=13,
+        num_layers=1,
+        bidirectional=True,
+    )
+    with open("./dataset/shear_type_structure/rnn_disp.pth", "rb") as f:
+        RNN_model_disp.load_state_dict(torch.load(f))
+    h0 = torch.zeros(2, num_training_files, 10).to(device)
+    acc_train = []
+    disp_train = []
+    for i in range(num_training_files):
+        filename = (
+            "./dataset/base_isolated_structure/solution" + format(i + 1, "03") + ".pkl"
+        )
+        with open(filename, "rb") as f:
+            solution = pickle.load(f)
+        acc_train.append(solution["acc"][:, ::data_compression_ratio].T)
+        disp_train.append(solution["disp"][:, ::data_compression_ratio].T)
+    acc_train = compute_floor_acceleration_bists(np.array(acc_train), acc_sensor)
+    drift_train = compute_floor_drift_bists(np.array(disp_train), drift_sensor)
+    disp_train = compute_floor_disp_bists(np.array(disp_train))
+    acc_train = torch.tensor(acc_train, dtype=torch.float32).to(device)
+    disp_train = torch.tensor(disp_train, dtype=torch.float32).to(device)
+    drift_train = torch.tensor(drift_train, dtype=torch.float32).to(device)
+    # transfer learning, freeze the pre-trained layers
+    for i, param in enumerate(RNN_model_disp.parameters()):
+        param.requires_grad = False
+        if i == 3 or i ==4 or i ==5:
+            param.requires_grad = True
+
+    criterion = torch.nn.MSELoss(reduction="mean")
+    optimizer = torch.optim.Adam(
+        filter(lambda p: p.requires_grad, RNN_model_disp.parameters()), lr=lr
+    )
+
+    for epoch in range(epochs):
+        RNN_model_disp.train()
+        optimizer.zero_grad()
+        disp_pred, _ = RNN_model_disp(acc_train, h0)
+        drift_pred = compute_floor_drift_sts(disp_pred, drift_sensor)
+        loss = criterion(drift_pred, drift_train)
+        loss.backward()
+        optimizer.step()
+        if epoch % 100 == 0:
+            RNN_model_disp.eval()
+            disp_pred, _ = RNN_model_disp(acc_train, h0)
+            disp_loss = criterion(disp_pred, disp_train)
+            print("Epoch: ", epoch, "Drift Loss: ", loss.item())
+            print("Epoch: ", epoch, "Disp Loss: ", disp_loss.item())
+    return RNN_model_disp
+
+
+def build_tr_rnn():
+    "Transfer learning of Recurrent neural networks"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dr = 10
+    ntf = 1
+    acc_sensor = [0, 4, 7, 11]
+    drift_sensor = [0, 2, 6, 11]
+    hf_rnn = _tr_rnn(
+        acc_sensor=acc_sensor,
+        drift_sensor=drift_sensor,
+        data_compression_ratio=dr,
+        num_training_files=ntf,
+        epochs=4000,
+        lr=0.00001,
+    )
+    model_save_path = "./dataset/base_isolated_structure/hf_rnn.pth"
+    torch.save(hf_rnn.state_dict(), model_save_path)
+    # model_save_path = "./dataset/base_isolated_structure/hf_rnn.pth"
+    # hf_rnn = Rnn(
+    #     input_size=len(acc_sensor),
+    #     hidden_size=10,
+    #     output_size=13,
+    #     num_layers=1,
+    #     bidirectional=True,
+    # )
+    with open(model_save_path, "rb") as f:
+        hf_rnn.load_state_dict(torch.load(f))
+    acc_test = []
+    disp_test = []
+    for i in range(50):
+        filename = (
+            "./dataset/base_isolated_structure/solution" + format(i + 1, "03") + ".pkl"
+        )
+        with open(filename, "rb") as f:
+            solution = pickle.load(f)
+        acc1 = solution["acc"][acc_sensor, ::dr].T
+        acc1[:, 1:] += acc1[:, 0:1]
+        disp1 = solution["disp"][:, ::dr].T
+        disp1[:, 1:] += disp1[:, 0:1]
+        acc_test.append(acc1)
+        disp_test.append(disp1)
+    time = solution["time"][::dr]
+    acc_test = np.array(acc_test)
+    disp_test = np.array(disp_test)
+    acc_test = torch.tensor(acc_test, dtype=torch.float32).to(device)
+    h0 = torch.zeros(2, 50, 10).to(device)
+    with torch.no_grad():
+        disp_pred, _ = hf_rnn(acc_test, h0)
+    disp_pred = disp_pred.cpu().numpy()
+    # plot the prediction and ground truth
+    plt.plot(time, disp_test[0, :, 0], label="Ground truth")
+    plt.plot(time, disp_pred[0, :, 0], label="Prediction")
+    plt.legend()
+    plt.show()
+    plt.plot(time, disp_test[0, :, 7], label="Ground truth")
+    plt.plot(time, disp_pred[0, :, 7], label="Prediction")
+    plt.legend()
+    plt.show()

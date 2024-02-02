@@ -19,20 +19,16 @@ if __name__ == "__main__":
     pass
     # continuous_beam.compute_response(excitation_pattern=1)
     # continuous_beam.compute_response(excitation_pattern=2)
-
     # continuous_beam.ae_num_hid_neuron()
     # continuous_beam.ae_train_data_size()
-
     # continuous_beam.ae_disp_velo()
     # continuous_beam.model_eval()
 
     # _ = shear_type_structure.compute_response(50)
     # _ = base_isolated_shear_type_structure.compute_response(50)
+    # shear_type_structure.build_rnn()
+    # shear_type_structure.plot_response(1)
+    base_isolated_shear_type_structure.lf_rnn_prediction(dof=7)
+    base_isolated_shear_type_structure.build_tr_rnn()
 
-    shear_type_structure.build_rnn()
 
-    # plt.plot(sol1["time"], sol1["disp"][10, :], label="Shear type structure")
-    # plt.plot(
-    #     sol2["time"], sol2["disp"][0, :] + sol1["disp"][10, :], label="Base isolated shear type structure"
-    # )
-    # plt.show()
