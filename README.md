@@ -1,2 +1,2 @@
-# RNN-Autoencoder-StatePrediction
-State prediction of linear and nonlinear structural dynamical systems via output-only acceleration measurements: A novel strategy based on recurrent neural networks and autoencoders
+# Transfer learning of recurrent neural networks for state estimation in structural dynamical systems
+The project is under developing by Shuo HAO and Hong-Wei LI.
