@@ -285,12 +285,15 @@ def _tr_rnn(
         param.requires_grad = False
         if i == 3 or i ==4 or i ==5:
             param.requires_grad = True
+        # if i ==5:
+        #     param.requires_grad = True
 
     criterion = torch.nn.MSELoss(reduction="mean")
+    # criterion = torch.nn.L1Loss(reduction="mean")
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, RNN_model_disp.parameters()), lr=lr
     )
-
+    loss_list = []
     for epoch in range(epochs):
         RNN_model_disp.train()
         optimizer.zero_grad()
@@ -299,12 +302,15 @@ def _tr_rnn(
         loss = criterion(drift_pred, drift_train)
         loss.backward()
         optimizer.step()
+        loss_list.append(loss.item())
         if epoch % 100 == 0:
             RNN_model_disp.eval()
             disp_pred, _ = RNN_model_disp(acc_train, h0)
             disp_loss = criterion(disp_pred, disp_train)
             print("Epoch: ", epoch, "Drift Loss: ", loss.item())
             print("Epoch: ", epoch, "Disp Loss: ", disp_loss.item())
+    plt.plot(loss_list)
+    plt.show()
     return RNN_model_disp
 
 
@@ -314,13 +320,13 @@ def build_tr_rnn():
     dr = 10
     ntf = 1
     acc_sensor = [0, 4, 7, 11]
-    drift_sensor = [0, 2, 6, 11]
+    drift_sensor = [0, 2, 4, 6]
     hf_rnn = _tr_rnn(
         acc_sensor=acc_sensor,
         drift_sensor=drift_sensor,
         data_compression_ratio=dr,
         num_training_files=ntf,
-        epochs=4000,
+        epochs=10000,
         lr=0.00001,
     )
     model_save_path = "./dataset/base_isolated_structure/hf_rnn.pth"
@@ -366,3 +372,4 @@ def build_tr_rnn():
     plt.plot(time, disp_pred[0, :, 7], label="Prediction")
     plt.legend()
     plt.show()
+    plt.plot()

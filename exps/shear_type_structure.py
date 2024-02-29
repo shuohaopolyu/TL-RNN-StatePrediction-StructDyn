@@ -88,7 +88,7 @@ def plot_response(which=1):
     velo = solution["velo"]
     acc_g = solution["acc_g"]
     plt.plot(time, disp[0, :].T, label="Ground truth")
-    # plt.show()
+    plt.show()
 
 
 def analytical_validation(method="Radau"):
@@ -242,5 +242,13 @@ def build_rnn():
     disp_pred = disp_pred[:, :, 11]
     plt.plot(disp_test[0, :], label="Ground truth")
     plt.plot(disp_pred[0, :], label="Prediction")
+    plt.legend()
+    plt.show()
+    filename = "./dataset/shear_type_structure/rnn_disp_loss.pkl"
+    with open(filename, "rb") as f:
+        loss = torch.load(f)
+    plt.plot(loss["train_loss_list"], label="Train loss")
+    plt.plot(loss["test_loss_list"], label="Test loss")
+    plt.yscale("log")
     plt.legend()
     plt.show()
