@@ -17,6 +17,8 @@ Inputs:
             time vector
     acc_g: array like, with shape (n_t, )
                 ground acceleration
+    ambient_excitation: array like, with shape (1+n, n_t)
+                mbient excitation
 
 Output:
     resp_disp: array like, with shape (1+n, n_t)
@@ -52,6 +54,7 @@ class BaseIsolatedStructure:
         x_dot_0=None,
         t=None,
         acc_g=None,
+        ambient_excitation=None,
     ):
         self.mass_super_mtx = np.diag(mass_super_vec)
         self.stiff_super_mtx = (
@@ -79,6 +82,7 @@ class BaseIsolatedStructure:
         self.resp_vel[:, 0] = x_dot_0
         self.c_1 = damp_super_vec[0]
         self.k_1 = stiff_super_vec[0]
+        self.ambient_excitation = ambient_excitation
 
     def _intg_MCK(self):
         c_1 = self.c_1  # you need more consideration on this coefficient!!!
@@ -115,18 +119,18 @@ class BaseIsolatedStructure:
         K = inv_intg_M @ intg_K
         return inv_intg_M, C, K
 
-    # def damping_ratio(self):
-    #     "Without considering the nonlinearity of the isolator"
-    #     intg_M, intg_C, intg_K = self._intg_MCK()
-    #     w, v = LA.eig(LA.inv(intg_M) @ intg_K)
-    #     idx = w.argsort()
-    #     w = w[idx]
-    #     v = v[:, idx]
-    #     mo_mass = np.diag(v.T @ intg_M @ v)
-    #     mo_stiff = np.diag(v.T @ intg_K @ v)
-    #     mo_damp = np.diag(v.T @ intg_C @ v)
-    #     zeta = mo_damp / 2 / np.sqrt(mo_mass * mo_stiff)
-    #     return zeta
+    def damping_ratio(self):
+        "Without considering the nonlinearity of the isolator"
+        intg_M, intg_C, intg_K = self._intg_MCK()
+        w, v = LA.eig(LA.inv(intg_M) @ intg_K)
+        idx = w.argsort()
+        w = w[idx]
+        v = v[:, idx]
+        mo_mass = np.diag(v.T @ intg_M @ v)
+        mo_stiff = np.diag(v.T @ intg_K @ v)
+        mo_damp = np.diag(v.T @ intg_C @ v)
+        zeta = mo_damp / 2 / np.sqrt(mo_mass * mo_stiff)
+        return zeta
 
     def natural_frequency(self):
         "Without considering the nonlinearity of the isolator"
@@ -156,7 +160,7 @@ class BaseIsolatedStructure:
             print("Mode {}: {}".format(i + 1, wn[i]))
         return wn
     
-    def newmark_beta_int(self, delta, varp):
+    def newmark_beta_int(self, delta, varp, force_type="ground motion"):
         # delta = 0, varp = 1/2: Explicit central difference scheme
         # delta = 1/4, varp = 1/2: Average acceleration method
         # delta = 1/6, varp = 1/2: Linear acceleration method
@@ -186,20 +190,34 @@ class BaseIsolatedStructure:
         z_dot = np.zeros(self.nt)
 
         # Step 1: compute acceleration at step 0 from superstructure displacement and velocity at step 0, ground acceleration at step 0, and z at step 0
-        self.resp_acc[0, 0] = (
-            -m_b * self.acc_g[0]
-            - c_b * self.resp_vel[0, 0]
-            - alpha * k_b * self.resp_disp[0, 0]
-            - (1 - alpha) * F_y * z[0]
-            + k_1 * self.resp_disp[1, 0]
-            + c_1 * self.resp_vel[1, 0]
-        ) / m_b
-        self.resp_acc[1:, 0] = -r * (
-            self.acc_g[0] + self.resp_acc[0, 0]
-        ) - inv_mass_mtx @ (
-            self.damp_super_mtx @ self.resp_vel[1:, 0]
-            + self.stiff_super_mtx @ self.resp_disp[1:, 0]
-        )
+        if force_type == "ground motion":
+            self.resp_acc[0, 0] = (
+                -m_b * self.acc_g[0]
+                - c_b * self.resp_vel[0, 0]
+                - alpha * k_b * self.resp_disp[0, 0]
+                - (1 - alpha) * F_y * z[0]
+                + k_1 * self.resp_disp[1, 0]
+                + c_1 * self.resp_vel[1, 0]
+            ) / m_b
+            self.resp_acc[1:, 0] = -r * (
+                self.acc_g[0] + self.resp_acc[0, 0]
+            ) - inv_mass_mtx @ (
+                self.damp_super_mtx @ self.resp_vel[1:, 0]
+                + self.stiff_super_mtx @ self.resp_disp[1:, 0]
+            )
+        elif force_type == "ambient excitation":
+            self.resp_acc[0, 0] = (
+                -c_b * self.resp_vel[0, 0]
+                - alpha * k_b * self.resp_disp[0, 0]
+                - (1 - alpha) * F_y * z[0]
+                + self.ambient_excitation[0, 0]
+            ) / m_b
+            self.resp_acc[1:, 0] = -r * (
+                self.ambient_excitation[0, 0] + self.resp_acc[0, 0]
+            ) - inv_mass_mtx @ (
+                self.damp_super_mtx @ self.resp_vel[1:, 0]
+                + self.stiff_super_mtx @ self.resp_disp[1:, 0]
+            )
 
         for i in range(self.nt - 1):
             # Step 2: compute z at step i+1 from base displacement and velocity at step i, and z at step i
@@ -211,12 +229,20 @@ class BaseIsolatedStructure:
             z[i + 1] = z[i] + dt * z_dot[i]
 
             # Step 3: compute acceleration at step i+1 from displacement, velocity and acceleration of structure at step i, plus ground acceleration at step i+1 and z at step i+1
-            intg_f = np.block(
-                [
-                    -m_b * self.acc_g[i + 1] - (1 - alpha) * F_y * z[i + 1],
-                    -self.mass_super_mtx @ r * self.acc_g[i + 1],
-                ]
-            )
+            if force_type == "ground motion":
+                intg_f = np.block(
+                    [
+                        -m_b * self.acc_g[i + 1] - (1 - alpha) * F_y * z[i + 1],
+                        -self.mass_super_mtx @ r * self.acc_g[i + 1],
+                    ]
+                )
+            elif force_type == "ambient excitation":
+                intg_f = np.block(
+                    [
+                        self.ambient_excitation[0, i+1] - (1 - alpha) * F_y * z[i + 1],
+                        self.ambient_excitation[1:, i+1],
+                    ]
+                )
             f = inv_intg_M @ intg_f
             self.resp_acc[:, i + 1] = inv_ICK_mtx @ (
                 -K @ self.resp_disp[:, i]
@@ -247,6 +273,6 @@ class BaseIsolatedStructure:
             "z": self.z,
         }
 
-    def run(self, delta=1 / 6, varp=0.5):
-        self.newmark_beta_int(delta, varp)
+    def run(self, delta=1 / 6, varp=0.5, force_type="ground motion"):
+        self.newmark_beta_int(delta, varp, force_type=force_type)
         return self.resp_disp, self.resp_vel, self.resp_acc, self.z

@@ -23,11 +23,12 @@ if __name__ == "__main__":
     # continuous_beam.ae_disp_velo()
     # continuous_beam.model_eval()
 
+    base_isolated_shear_type_structure.ambient_response()
     # _ = shear_type_structure.compute_response(50)
     # _ = base_isolated_shear_type_structure.compute_response(50)
     # shear_type_structure.plot_response(1)
     # shear_type_structure.build_rnn()
     # base_isolated_shear_type_structure.lf_rnn_prediction(dof=0)
-    base_isolated_shear_type_structure.build_tr_rnn()
+    # base_isolated_shear_type_structure.build_tr_rnn()
 
 

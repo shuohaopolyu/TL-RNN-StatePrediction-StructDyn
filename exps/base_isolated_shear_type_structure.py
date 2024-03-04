@@ -4,6 +4,7 @@ import pickle
 import matplotlib.pyplot as plt
 import torch
 from models import Rnn
+from excitations import FlatNoisePSD, PSDExcitationGenerator
 
 
 def _read_smc_file(filename):
@@ -87,6 +88,7 @@ def compute_response(num=1):
 
 
 def analytical_validation():
+    # using the analytical solution to validate the numerical solution
     time = np.linspace(0, 10, 10000)
     acc = np.sin(2 * np.pi * 1 * time)
     mass_vec = 2 * np.ones(2)
@@ -127,6 +129,71 @@ def analytical_validation():
         "z": z,
     }
     return solution
+
+def ambient_response():
+    # compute the ambient vibration response
+    psd_func = FlatNoisePSD(a_v=5e-5)
+    excitation = PSDExcitationGenerator(psd_func, 1000, 40)
+    for i in range(13):
+        time, ext = excitation.generate()
+        if i == 0:
+            ext_all = ext
+        else:
+            ext_all = np.vstack((ext_all, ext))
+    stiff_factor = 1e3
+    damp_factor = 2
+    mass_vec = 1 * np.ones(12)
+    stiff_vec = np.array([12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1])*stiff_factor
+    damp_vec = np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50]) * damp_factor
+    parametric_bists = BaseIsolatedStructure(
+        mass_super_vec=mass_vec,
+        stiff_super_vec=stiff_vec,
+        damp_super_vec=damp_vec,
+        isolator_params={
+            "m_b": 1,
+            "c_b": 1.0 * damp_factor,
+            "k_b": 13*stiff_factor,
+            "q": 5e-2,
+            "A": 1,
+            "beta": 0.5,
+            "gamma": 0.5,
+            "n": 2,
+            "z_0": 0,
+            "F_y": 10,
+            "alpha": 0.7,
+        },
+        x_0=np.zeros(13),
+        x_dot_0=np.zeros(13),
+        t=time,
+        ambient_excitation=ext_all,
+    )
+    print(parametric_bists.print_natural_frequency(10))
+    disp, _, acc, _ = parametric_bists.run(force_type = "ambient excitation")
+    acc_8 = acc[8, :] + acc[0, :]
+    acc_3 = acc[3, :] + acc[0, :]
+    acc_11 = acc[11, :] + acc[0, :]
+    disp_8 = disp[8, :] + disp[0, :]
+    # FFT
+    N = len(acc_8)
+    T = time[-1] / N
+    yf8 = np.fft.fft(acc_8)
+    yf3 = np.fft.fft(acc_3)
+    yf11 = np.fft.fft(acc_11)
+    xf = np.linspace(0.0, 1.0 / (2.0 * T), N // 2)
+    plt.plot(xf, 2.0 / N * np.abs(yf8[: N // 2]))
+    plt.plot(xf, 2.0 / N * np.abs(yf3[: N // 2]))
+    plt.plot(xf, 2.0 / N * np.abs(yf11[: N // 2]))
+    plt.yscale("log")
+    plt.show()
+    plt.loglog(xf, 2.0 / N * np.abs(yf8[: N // 2]))
+    plt.loglog(xf, 2.0 / N * np.abs(yf3[: N // 2]))
+    plt.loglog(xf, 2.0 / N * np.abs(yf11[: N // 2]))
+    plt.show()
+    plt.plot(time, disp_8)
+    plt.show()
+    plt.plot(time, acc_8)
+    plt.show()
+    pass
 
 
 def compute_floor_drift_bists(disp_bists, drift_sensor):
