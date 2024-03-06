@@ -8,24 +8,6 @@ import matplotlib.pyplot as plt
 from excitations import FlatNoisePSD, PSDExcitationGenerator
 
 
-def _read_smc_file(filename):
-    with open(filename) as f:
-        content = f.readlines()
-    data = []
-    counter = 0
-    for x in content:
-        if counter > 39:
-            s = x
-            numbers = [s[i : i + 10] for i in range(0, len(s), 10)]
-            number = []
-            for i in range(len(numbers) - 1):
-                number.append(float(numbers[i]))
-            data.append(number)
-        counter += 1
-    acc = np.array(data)
-    time = np.linspace(0, 0.02 * (len(acc[:, 0]) - 1), len(acc[:, 0]))
-    return time, acc[:, 0] * 1e-2
-
 
 def seismic_response(num=1, method="Radau", save_path="./dataset/shear_type_structure/"):
     # compute the seismic vibration response
@@ -34,14 +16,13 @@ def seismic_response(num=1, method="Radau", save_path="./dataset/shear_type_stru
     for i_th in range(num):
         time, acc_g = excitation.generate()
         stiff_factor = 1e2
-        damp_factor = 5
+        damp_factor = 3
         mass_vec = 1 * np.ones(13)
-        stiff_vec = np.array([13, 12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1]) * stiff_factor
+        stiff_vec = np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
         damp_vec = (
             np.array([1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
             * damp_factor
         )
-
         parametric_sts = ShearTypeStructure(
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
@@ -88,7 +69,10 @@ def plot_response():
     plt.plot(time, disp[7, :], label="7th floor displacement")
     plt.show()
 
-def analytical_validation(method="Radau"):
+def training_test_dataset():
+    _ = seismic_response(num=50, method="Radau", save_path="./dataset/shear_type_structure/")
+
+def validation(method="Radau"):
     time = np.linspace(0, 10, 10000)
     acc = np.sin(2 * np.pi * 1 * time)
     mass_vec = 2 * np.ones(3)
@@ -102,10 +86,7 @@ def analytical_validation(method="Radau"):
         t=time,
         acc_g=acc,
     )
-    print(sts.mass_mtx)
-
     acc, velo, disp = sts.run(method)
-
     solution = {
         "acc_g": sts.acc_g,
         "time": time,

@@ -95,7 +95,7 @@ def seismic_response(num=1):
     return solution
 
 
-def seismic_response_sample():
+def plot_response():
     solution = seismic_response(1)
     time = solution["time"]
     acc = solution["acc"]
@@ -120,7 +120,7 @@ def seismic_response_sample():
     plt.show()
 
 
-def analytical_validation():
+def validation():
     # compare the results with shear type structure when the nonlinearity is turned off
     # results from shear type structure is computed based on DOP853 method
     # the results from base isolated structure is computed based on Newmark-beta method
@@ -165,7 +165,7 @@ def analytical_validation():
     return solution
 
 
-def ambient_response():
+def ambient_response(save_path=None):
     # compute the ambient vibration response
     psd_func = FlatNoisePSD(a_v=1e-3)
     excitation = PSDExcitationGenerator(psd_func, 1000, 10)
@@ -176,9 +176,9 @@ def ambient_response():
         else:
             ext_all = np.vstack((ext_all, ext))
     stiff_factor = 1e2
-    damp_factor = 5
+    damp_factor = 3
     mass_vec = 1 * np.ones(12)
-    stiff_vec = np.array([12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1]) * stiff_factor
+    stiff_vec = np.array([12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
     damp_vec = (
         np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
         * damp_factor
@@ -205,38 +205,20 @@ def ambient_response():
         t=time,
         ambient_excitation=ext_all,
     )
-    parametric_bists.print_natural_frequency(10)
-    disp, _, acc, z = parametric_bists.run(force_type="ambient excitation")
-    acc_8 = acc[8, :] + acc[0, :]
-    acc_3 = acc[3, :] + acc[0, :]
-    acc_11 = acc[11, :] + acc[0, :]
-    disp_8 = disp[8, :] + disp[0, :]
-    # FFT
-    N = len(acc_8)
-    T = time[-1] / N
-    yf8 = np.fft.fft(acc_8)
-    yf3 = np.fft.fft(acc_3)
-    yf11 = np.fft.fft(acc_11)
-    xf = np.linspace(0.0, 1.0 / (2.0 * T), N // 2)
-    plt.plot(ext_all[0, :].T)
-    plt.title("Ambient excitation at ground floor")
-    plt.show()
-    plt.plot(xf, 2.0 / N * np.abs(yf8[: N // 2]))
-    plt.plot(xf, 2.0 / N * np.abs(yf3[: N // 2]))
-    plt.plot(xf, 2.0 / N * np.abs(yf11[: N // 2]))
-    plt.yscale("log")
-    plt.legend(["Floor 8", "Floor 3", "Floor 11"])
-    plt.show()
-    plt.plot(time, disp_8)
-    plt.title("Floor 8 displacement")
-    plt.show()
-    plt.plot(time, acc_8)
-    plt.title("Floor 8 acceleration")
-    plt.show()
-    plt.plot(time, np.squeeze(z))
-    plt.title("z displacement")
-    plt.show()
-    pass
+    # parametric_bists.print_natural_frequency(10)
+    _, _, acc, _ = parametric_bists.run(force_type="ambient excitation")
+    for i in range(1,13):
+        acc[i, :] = acc[i, :] + acc[0, :]
+    if save_path is not None:
+        solution = {
+            "time": time,
+            "acc": acc,
+        }
+        file_name = save_path + "ambient_response.pkl"
+        with open(file_name, "wb") as f:
+            pickle.dump(solution, f)
+        print("File " + file_name + " saved.")
+        return solution
 
 
 def compute_floor_drift_bists(disp_bists, drift_sensor):
