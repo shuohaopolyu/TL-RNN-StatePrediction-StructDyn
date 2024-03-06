@@ -23,7 +23,10 @@ if __name__ == "__main__":
     # continuous_beam.ae_disp_velo()
     # continuous_beam.model_eval()
 
-    base_isolated_shear_type_structure.ambient_response()
+    # base_isolated_shear_type_structure.ambient_response()
+    # system identification and model updating
+    shear_type_structure.plot_response()
+    # base_isolated_shear_type_structure.seismic_response_sample()
     # _ = shear_type_structure.compute_response(50)
     # _ = base_isolated_shear_type_structure.compute_response(50)
     # shear_type_structure.plot_response(1)

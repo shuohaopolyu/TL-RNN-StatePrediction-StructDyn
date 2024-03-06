@@ -205,16 +205,17 @@ class BaseIsolatedStructure:
                 self.damp_super_mtx @ self.resp_vel[1:, 0]
                 + self.stiff_super_mtx @ self.resp_disp[1:, 0]
             )
+            
         elif force_type == "ambient excitation":
             self.resp_acc[0, 0] = (
+                self.ambient_excitation[0, 0]
                 -c_b * self.resp_vel[0, 0]
                 - alpha * k_b * self.resp_disp[0, 0]
                 - (1 - alpha) * F_y * z[0]
-                + self.ambient_excitation[0, 0]
+                + k_1 * self.resp_disp[1, 0]
+                + c_1 * self.resp_vel[1, 0]
             ) / m_b
-            self.resp_acc[1:, 0] = -r * (
-                self.ambient_excitation[0, 0] + self.resp_acc[0, 0]
-            ) - inv_mass_mtx @ (
+            self.resp_acc[1:, 0] = self.ambient_excitation[1:, 0] - inv_mass_mtx @ (
                 self.damp_super_mtx @ self.resp_vel[1:, 0]
                 + self.stiff_super_mtx @ self.resp_disp[1:, 0]
             )

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import torch
 from models import Rnn
 from excitations import FlatNoisePSD, PSDExcitationGenerator
+from scipy import interpolate
 
 
 def _read_smc_file(filename):
@@ -26,49 +27,56 @@ def _read_smc_file(filename):
     return time, acc[:, 0] * 1e-2
 
 
-def compute_response(num=1):
+def seismic_response(num=1):
     acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
-
     acc_file_list = [
         acc_file_root_name + format(i, "03") + ".smc" for i in range(1, num + 1)
     ]
 
     for acc_file_i in acc_file_list:
-        time, acc = _read_smc_file(acc_file_i)
+        time, acc_g = _read_smc_file(acc_file_i)
         time = time[1000:6000]
-        acc = acc[1000:6000]
         time = time - time[0]
-        mass_vec = 3e5 * np.ones(12)
-        stiff_vec = 9e6 * np.ones(12)
-        damp_vec = 3e5 * np.ones(12)
+        acc_g = acc_g[1000:6000] * 10
+        interp_time = np.linspace(0, time[-1], 20000)
+        interp_acc_g = interpolate.interp1d(
+            time, acc_g, kind="quadratic", fill_value="extrapolate"
+        )(interp_time)
+        stiff_factor = 1e3
+        damp_factor = 2
+        mass_vec = 1 * np.ones(12)
+        stiff_vec = np.array([12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1]) * stiff_factor
+        damp_vec = (
+            np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
+            * damp_factor
+        )
         parametric_bists = BaseIsolatedStructure(
             mass_super_vec=mass_vec,
             stiff_super_vec=stiff_vec,
             damp_super_vec=damp_vec,
             isolator_params={
-                "m_b": 6e5,
-                "c_b": 5e5,
-                "k_b": 3e6,
-                "q": 2e-1,
-                "A": 1,
+                "m_b": 1,
+                "c_b": 1.0 * damp_factor,
+                "k_b": 13 * stiff_factor,
+                "q": 5e-2,
+                "A": 1.0,
                 "beta": 0.5,
                 "gamma": 0.5,
-                "n": 2,
-                "z_0": 0,
-                "F_y": 2e6,
+                "n": 2.5,
+                "z_0": 0.0,
+                "F_y": 10.0,
                 "alpha": 0.7,
             },
             x_0=np.zeros(13),
             x_dot_0=np.zeros(13),
-            t=time,
-            acc_g=acc,
+            t=interp_time,
+            acc_g=interp_acc_g,
         )
-
-        disp, velo, acc, z = parametric_bists.run()
+        disp, velo, acc, z = parametric_bists.run(force_type="ground motion")
 
         solution = {
-            "acc_g": parametric_bists.acc_g,
-            "time": time,
+            "acc_g": interp_acc_g,
+            "time": interp_time,
             "disp": disp,
             "velo": velo,
             "acc": acc,
@@ -87,8 +95,35 @@ def compute_response(num=1):
     return solution
 
 
+def seismic_response_sample():
+    solution = seismic_response(1)
+    time = solution["time"]
+    acc = solution["acc"]
+    disp = solution["disp"]
+    acc_g = solution["acc_g"]
+    z = solution["z"]
+    plt.plot(time, acc_g.T, label="Ground motion")
+    plt.legend()
+    plt.show()
+    plt.plot(time, disp[0, :].T, label="Ground floor displacement")
+    plt.plot(time, disp[8, :].T + disp[0, :].T, label="8th floor displacement")
+    plt.plot(time, disp[12, :].T + disp[0, :].T, label="12th floor displacement")
+    plt.legend()
+    plt.show()
+    plt.plot(time, np.squeeze(z))
+    plt.title("Base isolation system displacement")
+    plt.show()
+    plt.plot(time, acc[0, :].T, label="Ground floor acceleration")
+    plt.plot(time, acc[8, :].T + acc[0, :].T, label="8th floor acceleration")
+    plt.plot(time, acc[12, :].T + acc[0, :].T, label="12th floor acceleration")
+    plt.legend()
+    plt.show()
+
+
 def analytical_validation():
-    # using the analytical solution to validate the numerical solution
+    # compare the results with shear type structure when the nonlinearity is turned off
+    # results from shear type structure is computed based on DOP853 method
+    # the results from base isolated structure is computed based on Newmark-beta method
     time = np.linspace(0, 10, 10000)
     acc = np.sin(2 * np.pi * 1 * time)
     mass_vec = 2 * np.ones(2)
@@ -119,7 +154,6 @@ def analytical_validation():
 
     disp, velo, acc, z = parametric_bists.run()
     _ = parametric_bists.print_natural_frequency(3)
-
     solution = {
         "acc_g": parametric_bists.acc_g,
         "time": time,
@@ -130,21 +164,25 @@ def analytical_validation():
     }
     return solution
 
+
 def ambient_response():
     # compute the ambient vibration response
-    psd_func = FlatNoisePSD(a_v=5e-5)
-    excitation = PSDExcitationGenerator(psd_func, 1000, 40)
+    psd_func = FlatNoisePSD(a_v=1e-3)
+    excitation = PSDExcitationGenerator(psd_func, 1000, 10)
     for i in range(13):
         time, ext = excitation.generate()
         if i == 0:
             ext_all = ext
         else:
             ext_all = np.vstack((ext_all, ext))
-    stiff_factor = 1e3
-    damp_factor = 2
+    stiff_factor = 1e2
+    damp_factor = 5
     mass_vec = 1 * np.ones(12)
-    stiff_vec = np.array([12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1])*stiff_factor
-    damp_vec = np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50]) * damp_factor
+    stiff_vec = np.array([12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1]) * stiff_factor
+    damp_vec = (
+        np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
+        * damp_factor
+    )
     parametric_bists = BaseIsolatedStructure(
         mass_super_vec=mass_vec,
         stiff_super_vec=stiff_vec,
@@ -152,8 +190,8 @@ def ambient_response():
         isolator_params={
             "m_b": 1,
             "c_b": 1.0 * damp_factor,
-            "k_b": 13*stiff_factor,
-            "q": 5e-2,
+            "k_b": 13 * stiff_factor,
+            "q": 1e-2,
             "A": 1,
             "beta": 0.5,
             "gamma": 0.5,
@@ -167,8 +205,8 @@ def ambient_response():
         t=time,
         ambient_excitation=ext_all,
     )
-    print(parametric_bists.print_natural_frequency(10))
-    disp, _, acc, _ = parametric_bists.run(force_type = "ambient excitation")
+    parametric_bists.print_natural_frequency(10)
+    disp, _, acc, z = parametric_bists.run(force_type="ambient excitation")
     acc_8 = acc[8, :] + acc[0, :]
     acc_3 = acc[3, :] + acc[0, :]
     acc_11 = acc[11, :] + acc[0, :]
@@ -180,18 +218,23 @@ def ambient_response():
     yf3 = np.fft.fft(acc_3)
     yf11 = np.fft.fft(acc_11)
     xf = np.linspace(0.0, 1.0 / (2.0 * T), N // 2)
+    plt.plot(ext_all[0, :].T)
+    plt.title("Ambient excitation at ground floor")
+    plt.show()
     plt.plot(xf, 2.0 / N * np.abs(yf8[: N // 2]))
     plt.plot(xf, 2.0 / N * np.abs(yf3[: N // 2]))
     plt.plot(xf, 2.0 / N * np.abs(yf11[: N // 2]))
     plt.yscale("log")
-    plt.show()
-    plt.loglog(xf, 2.0 / N * np.abs(yf8[: N // 2]))
-    plt.loglog(xf, 2.0 / N * np.abs(yf3[: N // 2]))
-    plt.loglog(xf, 2.0 / N * np.abs(yf11[: N // 2]))
+    plt.legend(["Floor 8", "Floor 3", "Floor 11"])
     plt.show()
     plt.plot(time, disp_8)
+    plt.title("Floor 8 displacement")
     plt.show()
     plt.plot(time, acc_8)
+    plt.title("Floor 8 acceleration")
+    plt.show()
+    plt.plot(time, np.squeeze(z))
+    plt.title("z displacement")
     plt.show()
     pass
 
@@ -233,11 +276,13 @@ def compute_floor_acceleration_bists(acc_bists, acc_sensor):
             acc_bists_new[:, :, i] = acc_bists[:, :, acc_sensor[i]] + acc_bists[:, :, 0]
     return acc_bists_new
 
+
 def compute_floor_disp_bists(disp_bists):
     # disp_bists is a 3D array with shape (num_files, num_time_steps, num_dofs)
     # disp_sensor is a list of integers with ascending order
     disp_bists[:, :, 1:] = disp_bists[:, :, 1:] + disp_bists[:, :, 0:1]
     return disp_bists
+
 
 def compute_floor_drift_sts(disp_sts, drift_sensor):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -350,7 +395,7 @@ def _tr_rnn(
     # transfer learning, freeze the pre-trained layers
     for i, param in enumerate(RNN_model_disp.parameters()):
         param.requires_grad = False
-        if i == 3 or i ==4 or i ==5:
+        if i == 3 or i == 4 or i == 5:
             param.requires_grad = True
         # if i ==5:
         #     param.requires_grad = True

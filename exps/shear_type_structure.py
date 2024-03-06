@@ -5,6 +5,7 @@ from utils import compute_metrics
 from models import Rnn, Lstm
 import torch
 import matplotlib.pyplot as plt
+from excitations import FlatNoisePSD, PSDExcitationGenerator
 
 
 def _read_smc_file(filename):
@@ -26,70 +27,66 @@ def _read_smc_file(filename):
     return time, acc[:, 0] * 1e-2
 
 
-def compute_response(num=1, method="Radau"):
-    acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
-
-    acc_file_list = [
-        acc_file_root_name + format(i, "03") + ".smc" for i in range(1, num + 1)
-    ]
-
-    for acc_file_i in acc_file_list:
-        time, acc = _read_smc_file(acc_file_i)
-        time = time[1000:6000]
-        acc = acc[1000:6000]
-        time = time - time[0]
-        mass_vec = 3e5 * np.ones(13)
-        stiff_vec = 9e6 * np.ones(13)
-        damp_vec = 3e5 * np.ones(13)
-        mass_vec[0] = 6e5
-        damp_vec[0] = 5e5
-        stiff_vec[0] = 3e6
+def seismic_response(num=1, method="Radau", save_path="./dataset/shear_type_structure/"):
+    # compute the seismic vibration response
+    psd_func = FlatNoisePSD(a_v=0.8)
+    excitation = PSDExcitationGenerator(psd_func, 30, 10)
+    for i_th in range(num):
+        time, acc_g = excitation.generate()
+        stiff_factor = 1e2
+        damp_factor = 5
+        mass_vec = 1 * np.ones(13)
+        stiff_vec = np.array([13, 12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1]) * stiff_factor
+        damp_vec = (
+            np.array([1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
+            * damp_factor
+        )
 
         parametric_sts = ShearTypeStructure(
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
             damp_vec=damp_vec,
             t=time,
-            acc_g=acc,
+            acc_g=acc_g,
         )
+        _ = parametric_sts.print_damping_ratio(10)
+        _ = parametric_sts.print_natural_frequency(10)
 
         acc, velo, disp = parametric_sts.run(method)
 
         solution = {
-            "acc_g": parametric_sts.acc_g,
+            "acc_g": acc_g,
             "time": time,
             "disp": disp,
             "velo": velo,
             "acc": acc,
         }
+        if save_path is not None:
+            file_name = (
+                save_path + "solution" + format(i_th, "03") + ".pkl"
+            )
+            with open(file_name, "wb") as f:
+                pickle.dump(solution, f)
+            print("File " + file_name + " saved.")
+            return solution
+        else:
+            return solution
 
-        file_name = (
-            "./dataset/shear_type_structure/solution"
-            + format(acc_file_list.index(acc_file_i) + 1, "03")
-            + ".pkl"
-        )
-        with open(file_name, "wb") as f:
-            pickle.dump(solution, f)
-        print("File " + file_name + " saved.")
-        _ = parametric_sts.print_damping_ratio(10)
-        _ = parametric_sts.print_natural_frequency(10)
-    return solution
-
-def plot_response(which=1):
-    filename = (
-            "./dataset/shear_type_structure/solution" + format(which, "03") + ".pkl"
-        )
-    with open(filename, "rb") as f:
-        solution = pickle.load(f)
-    
+def plot_response():
+    solution = seismic_response(num=1, save_path=None)
     time = solution["time"]
-    acc = solution["acc"]
-    disp = solution["disp"]
-    velo = solution["velo"]
     acc_g = solution["acc_g"]
-    plt.plot(time, disp[0, :].T, label="Ground truth")
+    disp = solution["disp"]
+    acc = solution["acc"]
+    plt.plot(time, acc_g, label="Ground acceleration")
+    plt.legend()
     plt.show()
-
+    plt.plot(time, acc[0, :], label="Ground floor acceleration")
+    plt.plot(time, acc[7, :], label="7th floor velocity")
+    plt.show()
+    plt.plot(time, disp[0, :], label="Ground floor displacement")
+    plt.plot(time, disp[7, :], label="7th floor displacement")
+    plt.show()
 
 def analytical_validation(method="Radau"):
     time = np.linspace(0, 10, 10000)
