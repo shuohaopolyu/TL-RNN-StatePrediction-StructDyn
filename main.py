@@ -23,8 +23,9 @@ if __name__ == "__main__":
     # continuous_beam.ae_disp_velo()
     # continuous_beam.model_eval()
 
-    # base_isolated_shear_type_structure.ambient_response(save_path="./dataset/bists/")
-    # system identification and model updating
+    # base_isolated_shear_type_structure.ambient_response()
+    # shear_type_structure.modal_analysis()
+    shear_type_structure.model_updating(num_modes=5)
     # shear_type_structure.plot_response()
     # base_isolated_shear_type_structure.seismic_response_sample()
     # _ = shear_type_structure.compute_response(50)
@@ -38,13 +39,7 @@ if __name__ == "__main__":
     # system_identification.acceleration_measurement()
     # system_identification.psd_acc()
     system_identification.mode_shape()
-    # system_identification.ms_acc(0.3, 0.8)
-    # system_identification.ms_acc(1.3, 1.8)
-    # system_identification.ms_acc(2.2, 2.7)
-    # system_identification.ms_acc(3.0, 3.6)
-    # # system_identification.ms_acc(3.5, 4.1)
-    # # system_identification.ms_acc(4.2, 4.7)
-    # plt.show()
+
 
 
 

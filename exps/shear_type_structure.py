@@ -1,15 +1,16 @@
 from systems import ShearTypeStructure
 import numpy as np
 import pickle
-from utils import compute_metrics
+from utils import compute_metrics, fdd, mac
 from models import Rnn, Lstm
 import torch
 import matplotlib.pyplot as plt
 from excitations import FlatNoisePSD, PSDExcitationGenerator
 
 
-
-def seismic_response(num=1, method="Radau", save_path="./dataset/shear_type_structure/"):
+def seismic_response(
+    num=1, method="Radau", save_path="./dataset/shear_type_structure/"
+):
     # compute the seismic vibration response
     psd_func = FlatNoisePSD(a_v=0.8)
     excitation = PSDExcitationGenerator(psd_func, 30, 10)
@@ -20,7 +21,9 @@ def seismic_response(num=1, method="Radau", save_path="./dataset/shear_type_stru
         mass_vec = 1 * np.ones(13)
         stiff_vec = np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
         damp_vec = (
-            np.array([1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
+            np.array(
+                [1.0, 1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50]
+            )
             * damp_factor
         )
         parametric_sts = ShearTypeStructure(
@@ -43,15 +46,14 @@ def seismic_response(num=1, method="Radau", save_path="./dataset/shear_type_stru
             "acc": acc,
         }
         if save_path is not None:
-            file_name = (
-                save_path + "solution" + format(i_th, "03") + ".pkl"
-            )
+            file_name = save_path + "solution" + format(i_th, "03") + ".pkl"
             with open(file_name, "wb") as f:
                 pickle.dump(solution, f)
             print("File " + file_name + " saved.")
             return solution
         else:
             return solution
+
 
 def plot_response():
     solution = seismic_response(num=1, save_path=None)
@@ -69,8 +71,128 @@ def plot_response():
     plt.plot(time, disp[7, :], label="7th floor displacement")
     plt.show()
 
+
+def modal_analysis():
+    data_path = "./dataset/bists/ambient_response.pkl"
+    save_path = "./dataset/sts/"
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    acc_mtx = solution["acc"]
+    f_lb_list = [0.3, 1.3, 2.2, 3.0, 3.8, 4.5, 5.1, 5.5, 6.4, 6.9, 7.4, 8.5]
+    f_ub_list = [0.8, 1.8, 2.7, 3.6, 4.4, 5.1, 5.5, 6.2, 6.8, 7.4, 7.8, 9.2]
+
+    for i in range(len(f_lb_list)):
+        _, nf = fdd(
+            acc_mtx, f_lb=f_lb_list[i], f_ub=f_ub_list[i], nperseg_num=2000, fs=20
+        )
+        ms, _ = fdd(
+            acc_mtx, f_lb=f_lb_list[i], f_ub=f_ub_list[i], nperseg_num=400, fs=20
+        )
+        if i == 0:
+            ms_array = ms.reshape(-1, 1)
+            nf_array = np.array([nf])
+        else:
+            ms_array = np.hstack((ms_array, ms.reshape(-1, 1)))
+            nf_array = np.hstack((nf_array, np.array([nf])))
+    if save_path is not None:
+        file_name = save_path + "modal_analysis.pkl"
+        with open(file_name, "wb") as f:
+            pickle.dump({"ms": ms_array, "nf": nf_array}, f)
+        print("File " + file_name + " saved.")
+
+
+def model_modal_properties(params):
+    stiff_factor = 1e2
+    mass_vec = 1 * np.ones(13)
+    stiff_vec = (
+        np.array(
+            [
+                13 * params[0],
+                12 * params[1],
+                12 * params[1],
+                12 * params[1],
+                8 * params[2],
+                8 * params[2],
+                8 * params[2],
+                8 * params[2],
+                8 * params[2],
+                5 * params[3],
+                5 * params[3],
+                5 * params[3],
+                5 * params[3],
+            ]
+        )
+        * stiff_factor
+    )
+    # damping ratio is 0, it has nothing to do with the natural frequencies and mode shapes
+    damp_vec = np.zeros_like(mass_vec)
+    time = np.array([0, 1, 2, 3, 4])
+    acc_g = np.array([0, 0, 0, 0, 0])
+    parametric_sts = ShearTypeStructure(
+        mass_vec=mass_vec,
+        stiff_vec=stiff_vec,
+        damp_vec=damp_vec,
+        t=time,
+        acc_g=acc_g,
+    )
+    model_nf, model_ms = parametric_sts.freqs_modes()
+    return model_nf, model_ms
+
+
+def loss_function(params, number_of_modes):
+    data_path = "./dataset/sts/modal_analysis.pkl"
+    model_nf, model_ms = model_modal_properties(params)
+    model_nf = model_nf[0:number_of_modes]
+    model_ms = model_ms[:, 0:number_of_modes]
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    nf = solution["nf"][0:number_of_modes]
+    ms = solution["ms"][:, 0:number_of_modes]
+    loss = 0
+    for i in range(number_of_modes):
+        loss += ( (1 - model_nf[i] / nf[i]) ** 2
+            + (1 - mac(model_ms[:, i], ms[:, i]))
+        ) 
+    return loss
+
+
+def model_updating(num_modes=5, method="L-BFGS-B"):
+    save_path = "./dataset/sts/"
+    from scipy.optimize import minimize
+
+    x0 = np.array([0.7, 1.0, 1.0, 1.0])
+
+    obj_func = lambda x: loss_function(x, num_modes)
+    res = minimize(obj_func, x0, method=method, options={"disp": True})
+    print(res.x)
+    data_path = "./dataset/sts/modal_analysis.pkl"
+    model_nf, model_ms = model_modal_properties(res.x)
+    model_nf = model_nf[0:num_modes]
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    ms = solution["ms"]
+    nf = solution["nf"]
+    print((model_nf[0:num_modes] - nf[0:num_modes]) / nf[0:num_modes])
+    with open(save_path + "model_updating.pkl", "wb") as f:
+        pickle.dump(
+            {
+                "model_nf": model_nf,
+                "model_ms": model_ms,
+                "nf": nf,
+                "ms": ms,
+            },
+            f,
+        )
+    return res.x
+
+
+
 def training_test_dataset():
-    _ = seismic_response(num=50, method="Radau", save_path="./dataset/shear_type_structure/")
+    _ = seismic_response(
+        num=50, method="Radau", save_path="./dataset/shear_type_structure/"
+    )
+    pass
+
 
 def validation(method="Radau"):
     time = np.linspace(0, 10, 10000)
@@ -214,7 +336,7 @@ def build_rnn():
     acc_test = np.array(acc_test)
     acc_test = torch.tensor(acc_test, dtype=torch.float32).to(device)
     with torch.no_grad():
-        disp_pred,_ = RNN_model_disp(acc_test, test_h0)
+        disp_pred, _ = RNN_model_disp(acc_test, test_h0)
     disp_pred = disp_pred.cpu().numpy()
     disp_test = disp_test[:, :, 11]
     disp_pred = disp_pred[:, :, 11]

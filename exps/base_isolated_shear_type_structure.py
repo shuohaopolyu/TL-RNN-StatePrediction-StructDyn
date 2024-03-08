@@ -43,7 +43,7 @@ def seismic_response(num=1):
             time, acc_g, kind="quadratic", fill_value="extrapolate"
         )(interp_time)
         stiff_factor = 1e3
-        damp_factor = 2
+        damp_factor = 3
         mass_vec = 1 * np.ones(12)
         stiff_vec = np.array([12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1]) * stiff_factor
         damp_vec = (
@@ -165,9 +165,9 @@ def validation():
     return solution
 
 
-def ambient_response(save_path=None):
+def ambient_response(save_path="./dataset/bists/"):
     # compute the ambient vibration response
-    psd_func = FlatNoisePSD(a_v=1e-3)
+    psd_func = FlatNoisePSD(a_v=1e-6)
     excitation = PSDExcitationGenerator(psd_func, 1000, 10)
     for i in range(13):
         time, ext = excitation.generate()

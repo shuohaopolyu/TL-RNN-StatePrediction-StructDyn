@@ -3,6 +3,8 @@ import pickle
 import matplotlib.pyplot as plt
 from scipy import signal
 import  numpy.linalg as LA
+from matplotlib.legend import _get_legend_handles_labels
+
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Arial"
 # set the font size's default value
@@ -48,7 +50,7 @@ def psd_acc():
     yf_test = np.fft.fft(acc_test)
     xf = np.linspace(0.0, 10, N // 2)
     # plot the PSD of the acceleration
-    f, Pxx = signal.welch(acc, fs=20,  window="hann", nperseg=1000, noverlap=500, axis=1)
+    f, Pxx = signal.welch(acc, fs=20,  window="hann", nperseg=2000, noverlap=500, axis=1)
     # plt.plot(xf, 2.0 * time[-1] * (np.abs(yf_test[: N // 2])**2)/N**2)
     plt.plot(f, Pxx.T)
     plt.yscale("log")
@@ -102,25 +104,36 @@ def ms_acc(f_lb=1.1, f_ub=1.5):
 
 def mode_shape():
     # load the seismic response
-    data_path = "./dataset/bists/ambient_response.pkl"
+    data_path = "./dataset/sts/model_updating.pkl"
+    idx_list = ["(a) ", "(b) ", "(c) ", "(d) ", "(e) "]
+    x_label = ["1st", "2nd", "3rd", "4th", "5th"]
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
-    acc_mtx = solution["acc"]
-    f_lb_list = [0.3, 1.3, 2.2, 3.0, 3.8, 4.5]
-    f_ub_list = [0.8, 1.8, 2.7, 3.6, 4.4, 5.1]
-    fig, axs = plt.subplots(1, 6, figsize=(12, 6))
-    for i in range(6):
-        ms, nf = fdd(acc_mtx, f_lb=f_lb_list[i], f_ub=f_ub_list[i], nperseg_num=1000, type='peak')
-        ms = ms / np.max(np.abs(ms))
-        axs[i].plot(ms, range(13), '-s', label='f_lb='+str(f_lb_list[i])+'f_ub='+str(f_ub_list[i]), color='blue', markersize=4, linewidth=1.5)
+    model_ms = solution["model_ms"]
+    ms = solution["ms"]
+    fig, axs = plt.subplots(1, 5, figsize=(12, 6))
+    for i in range(5):
+        ms_i = ms[:, i] / np.max(np.abs(ms[:, i]))
+        model_ms_i = model_ms[:, i] / np.max(np.abs(model_ms[:, i]))
+        if ms_i[0]*model_ms_i[0] < 0:
+            model_ms_i = -model_ms_i
+        axs[i].plot(ms_i, range(13), '-s', color='blue', markersize=4, linewidth=1.5, label='Measurements')
+        axs[i].plot(model_ms_i, range(13), '-o', color='red', markersize=4, linewidth=1.5, label='Model results')
         axs[i].tick_params(axis='both', direction='in', labelsize=8)
         axs[i].set_ylim(-0.5, 12.5)
         axs[i].set_xlim(-1.1, 1.1)
         axs[i].grid(True)
-        axs[i].set_yticks(range(13), [str(i+1) for i in range(13)])
+        axs[i].set_yticks(range(13), [str(i+1) for i in range(13)], fontsize=10)
+        axs[i].set_xticks([-1, 0, 1], ["-1", "0", "1"], fontsize=10)
+        axs[i].set_xlabel(idx_list[i])
         if i == 0:
-            axs[i].set_ylabel('DOF')
-
+            axs[i].set_ylabel('Degree of freedom')
+            axs[-1].legend(*_get_legend_handles_labels(fig.axes), bbox_to_anchor=(1, 0.5), loc="center left", fontsize=10, facecolor="white",edgecolor="black")
+    fig.tight_layout()
+    plt.savefig("./figures/mode_shape.pdf", bbox_inches='tight')
     plt.show()
+
+def cross_spectrum():
+    pass
 
 
