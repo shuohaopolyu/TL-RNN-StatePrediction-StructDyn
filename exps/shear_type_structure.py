@@ -101,6 +101,7 @@ def modal_analysis():
     #     print("File " + file_name + " saved.")
     from pyoma2.algorithm import FSDD_algo
     from pyoma2.OMA import SingleSetup
+
     data_path = "./dataset/bists/ambient_response.pkl"
     save_path = "./dataset/sts/"
     with open(data_path, "rb") as f:
@@ -119,6 +120,7 @@ def modal_analysis():
             pickle.dump({"ms": ms_array, "nf": nf_array}, f)
         print("File " + file_name + " saved.")
 
+
 def model_modal_properties(params):
     stiff_factor = 1e2
     mass_vec = 1 * np.ones(13)
@@ -127,17 +129,17 @@ def model_modal_properties(params):
             [
                 13 * params[0],
                 12 * params[1],
-                12 * params[1],
-                12 * params[1],
-                8 * params[2],
-                8 * params[2],
-                8 * params[2],
-                8 * params[2],
-                8 * params[2],
-                5 * params[3],
-                5 * params[3],
-                5 * params[3],
-                5 * params[3],
+                12 * params[2],
+                12 * params[3],
+                8 * params[4],
+                8 * params[5],
+                8 * params[6],
+                8 * params[7],
+                8 * params[8],
+                5 * params[9],
+                5 * params[10],
+                5 * params[11],
+                5 * params[12],
             ]
         )
         * stiff_factor
@@ -176,7 +178,7 @@ def model_updating(num_modes=5, method="L-BFGS-B"):
     save_path = "./dataset/sts/"
     from scipy.optimize import minimize
 
-    x0 = np.array([0.7, 1.0, 1.0, 1.0])
+    x0 = np.ones(13)
     obj_func = lambda x: loss_function(x, num_modes)
     res = minimize(obj_func, x0, method=method, options={"disp": True})
     print(res.x)
@@ -195,6 +197,7 @@ def model_updating(num_modes=5, method="L-BFGS-B"):
                 "model_ms": model_ms,
                 "nf": nf,
                 "ms": ms,
+                "params": res.x,
             },
             f,
         )
@@ -203,6 +206,7 @@ def model_updating(num_modes=5, method="L-BFGS-B"):
 
 def damping_ratio():
     from scipy import interpolate
+
     data_path = "./dataset/bists/ambient_response.pkl"
     save_path = "./dataset/sts/"
     with open(data_path, "rb") as f:

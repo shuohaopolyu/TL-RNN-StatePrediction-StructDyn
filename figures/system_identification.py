@@ -2,13 +2,14 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 from scipy import signal
-import  numpy.linalg as LA
+import numpy.linalg as LA
 from matplotlib.legend import _get_legend_handles_labels
 
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Arial"
 # set the font size's default value
-plt.rcParams.update({"font.size": 12})
+plt.rcParams.update({"font.size": 10})
+ts = {"fontname": "Times New Roman"}
 
 
 def acceleration_measurement():
@@ -37,6 +38,7 @@ def acceleration_measurement():
 
     plt.show()
 
+
 def psd_acc():
     # load the seismic response
     data_path = "./dataset/bists/ambient_response.pkl"
@@ -50,7 +52,7 @@ def psd_acc():
     yf_test = np.fft.fft(acc_test)
     xf = np.linspace(0.0, 10, N // 2)
     # plot the PSD of the acceleration
-    f, Pxx = signal.welch(acc, fs=20,  window="hann", nperseg=2000, noverlap=500, axis=1)
+    f, Pxx = signal.welch(acc, fs=20, window="hann", nperseg=2000, noverlap=500, axis=1)
     # plt.plot(xf, 2.0 * time[-1] * (np.abs(yf_test[: N // 2])**2)/N**2)
     plt.plot(f, Pxx.T)
     plt.yscale("log")
@@ -58,7 +60,8 @@ def psd_acc():
     plt.ylabel("PSD")
     plt.show()
 
-def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, type='peak'):
+
+def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, type="peak"):
     # implementation of frequency domain decomposition
     # signal should in matrix form, whose dimension is 5*n_t
     # will return the mode shapes and the natural frequency
@@ -68,7 +71,15 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, type='peak'):
     for i in range(signal_mtx.shape[0]):
         for j in range(signal_mtx.shape[0]):
             w_f_temp, w_acc_temp = signal.csd(
-                signal_mtx[i, :], signal_mtx[j, :], fs=20, window='hann', nperseg=nperseg_num, axis=0, scaling='density', average='mean')
+                signal_mtx[i, :],
+                signal_mtx[j, :],
+                fs=20,
+                window="hann",
+                nperseg=nperseg_num,
+                axis=0,
+                scaling="density",
+                average="mean",
+            )
             w_f.append(w_f_temp)
             w_acc.append(w_acc_temp)
     idx = [i for i, v in enumerate(w_f[0]) if v <= f_ub and v >= f_lb]
@@ -81,14 +92,15 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, type='peak'):
         nf_temp_idx.append(s[0])
         ms.append(np.real(u[:, 0]))
     nf_temp_idx = np.argmax(np.array(nf_temp_idx))
-    nf_idx = idx[0]+nf_temp_idx
+    nf_idx = idx[0] + nf_temp_idx
     nf = w_f[0][nf_idx]
-    if type == 'peak':
+    if type == "peak":
         ms_peak = np.array(ms)[nf_temp_idx, :]
         return ms_peak, nf
-    elif type == 'average':
+    elif type == "average":
         ms_avg = np.average(np.array(ms), axis=0)
         return ms_avg, nf
+
 
 def ms_acc(f_lb=1.1, f_ub=1.5):
     # load the seismic response
@@ -97,10 +109,11 @@ def ms_acc(f_lb=1.1, f_ub=1.5):
         solution = pickle.load(f)
     # plot the seismic response
     acc_mtx = solution["acc"]
-    ms, nf = fdd(acc_mtx, f_lb=f_lb, f_ub=f_ub, nperseg_num=1000, type='peak')
-    plt.plot(range(13), ms, '-o')
-    plt.xlabel('DOF')
-    plt.ylabel('Mode Shape')
+    ms, nf = fdd(acc_mtx, f_lb=f_lb, f_ub=f_ub, nperseg_num=1000, type="peak")
+    plt.plot(range(13), ms, "-o")
+    plt.xlabel("DOF")
+    plt.ylabel("Mode Shape")
+
 
 def mode_shape():
     # load the seismic response
@@ -111,29 +124,93 @@ def mode_shape():
         solution = pickle.load(f)
     model_ms = solution["model_ms"]
     ms = solution["ms"]
-    fig, axs = plt.subplots(1, 5, figsize=(12, 6))
+    fig, axs = plt.subplots(1, 5, figsize=(10, 6))
     for i in range(5):
         ms_i = ms[:, i] / np.max(np.abs(ms[:, i]))
         model_ms_i = model_ms[:, i] / np.max(np.abs(model_ms[:, i]))
-        if ms_i[0]*model_ms_i[0] < 0:
+        if ms_i[0] * model_ms_i[0] < 0:
             model_ms_i = -model_ms_i
-        axs[i].plot(ms_i, range(13), '-s', color='blue', markersize=4, linewidth=1.5, label='Measurements')
-        axs[i].plot(model_ms_i, range(13), '-o', color='red', markersize=4, linewidth=1.5, label='Model results')
-        axs[i].tick_params(axis='both', direction='in', labelsize=8)
+        axs[i].plot(
+            model_ms_i,
+            range(13),
+            "-s",
+            color="red",
+            markersize=8,
+            linewidth=1.5,
+            label="Model results",
+            markerfacecolor="None",
+        )
+        axs[i].plot(
+            ms_i,
+            range(13),
+            "--o",
+            color="blue",
+            markersize=8,
+            linewidth=1.5,
+            label="Measurements",
+            markerfacecolor="None",
+        )
+        axs[i].tick_params(axis="both", direction="in")
         axs[i].set_ylim(-0.5, 12.5)
         axs[i].set_xlim(-1.1, 1.1)
         axs[i].grid(True)
-        axs[i].set_yticks(range(13), [str(i+1) for i in range(13)], fontsize=10)
+        axs[i].set_yticks(range(13), [str(i + 1) for i in range(13)], fontsize=10)
         axs[i].set_xticks([-1, 0, 1], ["-1", "0", "1"], fontsize=10)
-        axs[i].set_xlabel(idx_list[i])
+        # axs[i].set_xlabel(idx_list[i])
+        axs[i].set_title(x_label[i] + " mode", fontsize=10)
         if i == 0:
-            axs[i].set_ylabel('Degree of freedom')
-            axs[-1].legend(*_get_legend_handles_labels(fig.axes), bbox_to_anchor=(1, 0.5), loc="center left", fontsize=10, facecolor="white",edgecolor="black")
+            axs[i].set_ylabel("Degree of freedom")
+            axs[-1].legend(
+                *_get_legend_handles_labels(fig.axes),
+                bbox_to_anchor=(1, 0.5),
+                loc="center left",
+                fontsize=10,
+                facecolor="white",
+                edgecolor="black",
+            )
+        else:
+            axs[i].set_yticklabels([])
     fig.tight_layout()
-    plt.savefig("./figures/mode_shape.pdf", bbox_inches='tight')
+    plt.savefig("./figures/mode_shape.pdf", bbox_inches="tight")
     plt.show()
 
-def cross_spectrum():
-    pass
+
+def natural_frequency():
+    data_path = "./dataset/sts/model_updating.pkl"
+
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    model_nf = solution["model_nf"]
+    nf = solution["nf"]
+    fig, ax = plt.subplots(1, 1, figsize=(5, 4))
+    x = np.arange(5)
+    plt.bar(
+        x - 0.125 + 1,
+        model_nf[:5],
+        0.25,
+        color="red",
+        label="Model results",
+    )
+    plt.bar(x + 0.125 + 1, nf[:5], 0.25, color="blue", label="Measurements")
+    plt.xlabel("Mode", fontsize=10)
+    plt.tick_params(axis="both", direction="in")
+    plt.ylabel("Natural frequency (Hz)")
+    plt.legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+    )
+    fig.tight_layout()
+    plt.show()
 
 
+def params():
+    data_path = "./dataset/sts/model_updating.pkl"
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    model_params = solution["params"]
+    x = np.arange(13) + 1
+    fig, ax = plt.subplots(1, 1, figsize=(5, 2))
+    ax.bar(x, model_params)
+    ax.set_lim(0.7, 1.2)
+    plt.show()

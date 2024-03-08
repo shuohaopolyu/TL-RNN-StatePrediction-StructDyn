@@ -10,6 +10,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from figures import system_identification
+
 random.seed(0)
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -17,8 +18,8 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 if __name__ == "__main__":
     # base_isolated_shear_type_structure.ambient_response()
-    shear_type_structure.modal_analysis()
-    shear_type_structure.model_updating(num_modes=5)
+    # shear_type_structure.modal_analysis()
+    # shear_type_structure.model_updating(num_modes=5)
     # shear_type_structure.damping_ratio()
     # shear_type_structure.plot_response()
     # base_isolated_shear_type_structure.seismic_response_sample()
@@ -32,8 +33,6 @@ if __name__ == "__main__":
     # figure plot
     # system_identification.acceleration_measurement()
     # system_identification.psd_acc()
-    system_identification.mode_shape()
-
-
-
-
+    # system_identification.mode_shape()
+    # system_identification.natural_frequency()
+    system_identification.params()
