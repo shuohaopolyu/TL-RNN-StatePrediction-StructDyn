@@ -206,7 +206,10 @@ def ambient_response(save_path="./dataset/bists/"):
         ambient_excitation=ext_all,
     )
     # parametric_bists.print_natural_frequency(10)
-    _, _, acc, _ = parametric_bists.run(force_type="ambient excitation")
+    resp_disp, _, acc, z = parametric_bists.run(force_type="ambient excitation")
+    plt.plot(time, resp_disp[0, :].T * 1300 * 0.7, label="elastic force")
+    plt.plot(time, z.T * 10 * 0.3, label="damping force")
+    plt.show()
     for i in range(1,13):
         acc[i, :] = acc[i, :] + acc[0, :]
     if save_path is not None:

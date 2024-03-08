@@ -73,33 +73,51 @@ def plot_response():
 
 
 def modal_analysis():
+    # data_path = "./dataset/bists/ambient_response.pkl"
+    # save_path = "./dataset/sts/"
+    # with open(data_path, "rb") as f:
+    #     solution = pickle.load(f)
+    # acc_mtx = solution["acc"]
+    # f_lb_list = [0.3, 1.3, 2.2, 3.0, 3.8, 4.5, 5.1, 5.5, 6.4, 6.9, 7.4, 8.5]
+    # f_ub_list = [0.8, 1.8, 2.7, 3.6, 4.4, 5.1, 5.5, 6.2, 6.8, 7.4, 7.8, 9.2]
+
+    # for i in range(len(f_lb_list)):
+    #     _, nf = fdd(
+    #         acc_mtx, f_lb=f_lb_list[i], f_ub=f_ub_list[i], nperseg_num=2000, fs=20
+    #     )
+    #     ms, _ = fdd(
+    #         acc_mtx, f_lb=f_lb_list[i], f_ub=f_ub_list[i], nperseg_num=400, fs=20
+    #     )
+    #     if i == 0:
+    #         ms_array = ms.reshape(-1, 1)
+    #         nf_array = np.array([nf])
+    #     else:
+    #         ms_array = np.hstack((ms_array, ms.reshape(-1, 1)))
+    #         nf_array = np.hstack((nf_array, np.array([nf])))
+    # if save_path is not None:
+    #     file_name = save_path + "modal_analysis.pkl"
+    #     with open(file_name, "wb") as f:
+    #         pickle.dump({"ms": ms_array, "nf": nf_array}, f)
+    #     print("File " + file_name + " saved.")
+    from pyoma2.algorithm import FSDD_algo
+    from pyoma2.OMA import SingleSetup
     data_path = "./dataset/bists/ambient_response.pkl"
     save_path = "./dataset/sts/"
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
-    acc_mtx = solution["acc"]
-    f_lb_list = [0.3, 1.3, 2.2, 3.0, 3.8, 4.5, 5.1, 5.5, 6.4, 6.9, 7.4, 8.5]
-    f_ub_list = [0.8, 1.8, 2.7, 3.6, 4.4, 5.1, 5.5, 6.2, 6.8, 7.4, 7.8, 9.2]
-
-    for i in range(len(f_lb_list)):
-        _, nf = fdd(
-            acc_mtx, f_lb=f_lb_list[i], f_ub=f_ub_list[i], nperseg_num=2000, fs=20
-        )
-        ms, _ = fdd(
-            acc_mtx, f_lb=f_lb_list[i], f_ub=f_ub_list[i], nperseg_num=400, fs=20
-        )
-        if i == 0:
-            ms_array = ms.reshape(-1, 1)
-            nf_array = np.array([nf])
-        else:
-            ms_array = np.hstack((ms_array, ms.reshape(-1, 1)))
-            nf_array = np.hstack((nf_array, np.array([nf])))
+    acc_mtx = solution["acc"].T
+    Pali_ss = SingleSetup(acc_mtx, fs=20)
+    fsdd = FSDD_algo(name="FSDD", nxseg=1200, method_SD="per", pov=0.5)
+    Pali_ss.add_algorithms(fsdd)
+    Pali_ss.run_by_name("FSDD")
+    Pali_ss.MPE("FSDD", sel_freq=[0.56, 1.49, 2.41, 3.28, 4.02, 4.78], MAClim=0.95)
+    ms_array = np.real(Pali_ss["FSDD"].result.Phi)
+    nf_array = Pali_ss["FSDD"].result.Fn
     if save_path is not None:
         file_name = save_path + "modal_analysis.pkl"
         with open(file_name, "wb") as f:
             pickle.dump({"ms": ms_array, "nf": nf_array}, f)
         print("File " + file_name + " saved.")
-
 
 def model_modal_properties(params):
     stiff_factor = 1e2
@@ -150,9 +168,7 @@ def loss_function(params, number_of_modes):
     ms = solution["ms"][:, 0:number_of_modes]
     loss = 0
     for i in range(number_of_modes):
-        loss += ( (1 - model_nf[i] / nf[i]) ** 2
-            + (1 - mac(model_ms[:, i], ms[:, i]))
-        ) 
+        loss += (1 - model_nf[i] / nf[i]) ** 2 + (1 - mac(model_ms[:, i], ms[:, i]))
     return loss
 
 
@@ -161,7 +177,6 @@ def model_updating(num_modes=5, method="L-BFGS-B"):
     from scipy.optimize import minimize
 
     x0 = np.array([0.7, 1.0, 1.0, 1.0])
-
     obj_func = lambda x: loss_function(x, num_modes)
     res = minimize(obj_func, x0, method=method, options={"disp": True})
     print(res.x)
@@ -185,6 +200,22 @@ def model_updating(num_modes=5, method="L-BFGS-B"):
         )
     return res.x
 
+
+def damping_ratio():
+    from scipy import interpolate
+    data_path = "./dataset/bists/ambient_response.pkl"
+    save_path = "./dataset/sts/"
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    acc_mtx = solution["acc"]
+    freq, psd = fdd(acc_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=2000, fs=20, psd=True)
+    psd_func = interpolate.interp1d(freq, psd, kind="cubic")
+    freq_interp = np.linspace(0.3, 0.8, 1000)
+    psd_interp = psd_func(freq_interp)
+    plt.plot(freq, psd, "o", label="Original PSD")
+    plt.plot(freq_interp, psd_interp, label="Interpolated PSD")
+    plt.yscale("log")
+    plt.show()
 
 
 def training_test_dataset():

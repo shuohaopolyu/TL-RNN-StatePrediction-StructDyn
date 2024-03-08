@@ -10,22 +10,16 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from figures import system_identification
-# random.seed(0)
+random.seed(0)
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
 if __name__ == "__main__":
-    # continuous_beam.compute_response(excitation_pattern=1)
-    # continuous_beam.compute_response(excitation_pattern=2)
-    # continuous_beam.ae_num_hid_neuron()
-    # continuous_beam.ae_train_data_size()
-    # continuous_beam.ae_disp_velo()
-    # continuous_beam.model_eval()
-
     # base_isolated_shear_type_structure.ambient_response()
-    # shear_type_structure.modal_analysis()
+    shear_type_structure.modal_analysis()
     shear_type_structure.model_updating(num_modes=5)
+    # shear_type_structure.damping_ratio()
     # shear_type_structure.plot_response()
     # base_isolated_shear_type_structure.seismic_response_sample()
     # _ = shear_type_structure.compute_response(50)

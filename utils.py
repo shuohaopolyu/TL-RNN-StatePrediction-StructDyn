@@ -20,11 +20,10 @@ def compute_metrics(pred, target):
     mse = mse_loss(pred, target)
     return np.array([rmse, mae, mse])
 
-def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20):
+def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20, psd=False):
     # implementation of frequency domain decomposition
     # signal should in matrix form, whose dimension is ns*n_t
     # will return the mode shapes and the natural frequency
-    # two ways to generate mode shapes, peak or average
     w_f = []
     w_acc = []
     for i in range(signal_mtx.shape[0]):
@@ -34,20 +33,29 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20):
             w_f.append(w_f_temp)
             w_acc.append(w_acc_temp)
     idx = [i for i, v in enumerate(w_f[0]) if v <= f_ub and v >= f_lb]
+    tru_w_f = np.array(w_f)[0, idx]
     tru_w_acc = np.array(w_acc)[:, idx]
-    nf_temp_idx = []
+    sv = []
     ms = []
     for i in range(tru_w_acc.shape[1]):
         G_yy = tru_w_acc[:, i].reshape(signal_mtx.shape[0], signal_mtx.shape[0])
         u, s, _ = LA.svd(G_yy, full_matrices=True)
-        nf_temp_idx.append(s[0])
+        sv.append(s[0])
         ms.append(np.real(u[:, 0]))
-    nf_temp_idx = np.argmax(np.array(nf_temp_idx))
+    nf_temp_idx = np.argmax(np.array(sv))
     nf_idx = idx[0]+nf_temp_idx
     nf = w_f[0][nf_idx]
     ms_peak = np.array(ms)[nf_temp_idx, :]
-    return ms_peak, nf
+    if not psd:
+        return ms_peak, nf
+    else:
+        return tru_w_f, np.array(sv)
+
 
 def mac(pred, target):
     # pred and target are both mode shapes
     return np.abs(np.dot(pred, target))**2 / (np.dot(pred, pred) * np.dot(target, target))
+
+def self_psd(f_n, zeta, q, f_test):
+    h = ((1-(f_test/f_n)**2)/((1-(f_test/f_n)**2)**2+(2*zeta*f_test/f_n)**2) - 1j*2*zeta*f_test/f_n/((1-(f_test/f_n)**2)**2+(2*zeta*f_test/f_n)**2)) * q
+    return np.abs(h)**2
