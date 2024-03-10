@@ -174,7 +174,7 @@ def validation(method="Radau"):
     return solution
 
 
-def _training_test_data(acc_sensor, data_compression_ratio=1, num_training_files=40):
+def training_test_data(acc_sensor, data_compression_ratio=1, num_training_files=40):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     disp = []
     velo = []
@@ -188,18 +188,14 @@ def _training_test_data(acc_sensor, data_compression_ratio=1, num_training_files
         filename = "./dataset/sts/solution" + format(i, "03") + ".pkl"
         with open(filename, "rb") as f:
             solution = pickle.load(f)
-        # disp.append(solution["disp"][:, :].T)
-        # velo.append(solution["velo"][:, :].T)
-        disp = solution["disp"][:, :].T
-        velo = solution["velo"][:, :].T
+        disp = solution["disp"][:, ::data_compression_ratio].T
+        velo = solution["velo"][:, ::data_compression_ratio].T
         state.append(np.hstack((disp, velo)))
-        acc.append(solution["acc"][acc_sensor].T)
+        acc.append(solution["acc"][acc_sensor, ::data_compression_ratio].T)
     for i in range(num_training_files, 50):
         filename = "./dataset/sts/solution" + format(i, "03") + ".pkl"
         with open(filename, "rb") as f:
             solution = pickle.load(f)
-        # disp_test.append(solution["disp"][:, ::data_compression_ratio].T)
-        # velo_test.append(solution["velo"][:, ::data_compression_ratio].T)
         disp_test = solution["disp"][:, ::data_compression_ratio].T
         velo_test = solution["velo"][:, ::data_compression_ratio].T
         state_test.append(np.hstack((disp_test, velo_test)))
@@ -228,7 +224,7 @@ def _birnn(
     :param data_compression_ratio: (int) data compression ratio
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    state, acc, state_test, acc_test = _training_test_data(
+    state, acc, state_test, acc_test = training_test_data(
         acc_sensor, data_compression_ratio, num_training_files
     )
     train_set = {"X": acc, "Y": state}
@@ -275,7 +271,7 @@ def _rnn(
     :param data_compression_ratio: (int) data compression ratio
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    state, acc, state_test, acc_test = _training_test_data(
+    state, acc, state_test, acc_test = training_test_data(
         acc_sensor, data_compression_ratio, num_training_files
     )
     train_set = {"X": acc, "Y": state}
@@ -318,7 +314,8 @@ def build_birnn():
         data_compression_ratio=dr,
         num_training_files=ntf,
         epochs=50000,
-        lr=1e-5,
+        lr=6e-5,
+        weight_decay=1e-7,
     )
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
@@ -334,13 +331,13 @@ def build_birnn():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     num_test_files = 50 - ntf
     test_h0 = torch.zeros(2, num_test_files, 30).to(device)
-    _, _, state_test, acc_test = _training_test_data(acc_sensor, dr, ntf)
+    _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf)
     with torch.no_grad():
         state_pred, _ = RNN4ststate(acc_test, test_h0)
     state_pred = state_pred.cpu().numpy()
-    state_pred = state_pred[:, :, 16]
+    state_pred = state_pred[:, :, 8]
     state_test = state_test.cpu().numpy()
-    state_test = state_test[:, :, 16]
+    state_test = state_test[:, :, 8]
     plt.plot(state_test[3, :], label="Ground truth")
     plt.plot(state_pred[3, :], label="Prediction", linestyle="--")
     plt.legend()
@@ -371,14 +368,14 @@ def build_rnn():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     num_test_files = 50 - ntf
     test_h0 = torch.zeros(1, num_test_files, 30).to(device)
-    _, _, state_test, acc_test = _training_test_data(acc_sensor, dr, ntf)
+    _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf)
     with torch.no_grad():
         state_pred, _ = RNN4ststate(acc_test, test_h0)
     state_pred = state_pred.cpu().numpy()
     state_pred = state_pred[:, :, 16]
     state_test = state_test.cpu().numpy()
     state_test = state_test[:, :, 16]
-    plt.plot(state_test[3, :], label="Ground truth")
-    plt.plot(state_pred[3, :], label="Prediction", linestyle="--")
+    plt.plot(state_test[4, :], label="Ground truth")
+    plt.plot(state_pred[4, :], label="Prediction", linestyle="--")
     plt.legend()
     plt.show()

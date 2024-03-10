@@ -21,10 +21,8 @@ if __name__ == "__main__":
     # shear_type_structure.modal_analysis()
     # shear_type_structure.model_updating(num_modes=5)
     # shear_type_structure.seismic_response(num=50)
-    # shear_type_structure.build_birnn()
-    # shear_type_structure.build_rnn()
-    # base_isolated_shear_type_structure.lf_rnn_prediction(dof=0)
-    # base_isolated_shear_type_structure.build_tr_rnn()
+    shear_type_structure.build_birnn()
+    shear_type_structure.build_rnn()
 
     # figure plot
     # system_identification.base_loads()
@@ -33,3 +31,4 @@ if __name__ == "__main__":
     # system_identification.natural_frequency()
     # system_identification.params()
     rnn_training.loss_curve()
+    # rnn_training.disp_pred()
