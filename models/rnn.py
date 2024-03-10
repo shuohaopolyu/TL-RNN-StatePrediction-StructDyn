@@ -4,114 +4,6 @@ import torch.nn as nn
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-# Define RNN
-# class Rnn_(nn.Module):
-#     def __init__(
-#         self,
-#         input_size=2,
-#         hidden_size=10,
-#         output_size=6,
-#         num_layers=1,
-#         bidirectional=False,
-#     ):
-#         super(Rnn, self).__init__()
-#         self.rnn = nn.RNN(
-#             input_size,
-#             hidden_size,
-#             num_layers,
-#             bidirectional=bidirectional,
-#             batch_first=True,
-#             # bias = False,
-#         ).to(device)
-#         if bidirectional:
-#             self.linear = nn.Linear(2 * hidden_size, output_size).to(device)
-#         else:
-#             self.linear = nn.Linear(hidden_size, output_size).to(device)
-#         # the dropout layer is not used in the paper, because the input data and hidden state are not too large.
-#         # the weight decay (L2 regularization) is used in the paper to avoid overfitting.
-#         # but one can try to use the dropout layer to see if it can improve the performance.
-#         # self.dropout_1 = nn.Dropout(p=0.1)
-#         # self.dropout_2 = nn.Dropout(p=0.1)
-
-#     def forward(self, u, h0):
-#         # u = self.dropout_1(u)
-#         y, hn = self.rnn(u, h0)
-#         # y = self.dropout_2(y)
-#         y = self.linear(y)
-#         return y, hn
-
-#     def train_RNN(
-#         self,
-#         train_set,
-#         test_set,
-#         train_h0,
-#         test_h0,
-#         epochs,
-#         learning_rate,
-#         model_save_path,
-#         loss_save_path,
-#         train_msg=True,
-#         weight_decay=1e-6,
-#     ):
-#         assert test_set["X"].shape[0] % train_set["X"].shape[0] == 0, "Wrong data size"
-#         length_ratio = test_set["X"].shape[0] // train_set["X"].shape[0]
-#         input_length = train_set["X"].shape[0]
-#         # Define the loss function
-#         loss_fn = nn.MSELoss(reduction="mean")
-#         # Define the optimizer
-#         optimizer = torch.optim.Adam(
-#             self.parameters(), lr=learning_rate, weight_decay=weight_decay
-#         )
-#         # Define the loss list
-#         train_loss_list = []
-#         test_loss_list = []
-#         # Start training
-#         for epoch in range(epochs):
-#             self.train()
-#             # Train the model
-#             output_train, _ = self.forward(train_set["X"], train_h0)
-#             loss_train = loss_fn(output_train, train_set["Y"])
-#             optimizer.zero_grad()
-#             loss_train.backward(retain_graph=True)
-#             optimizer.step()
-#             if (epoch + 1) % 2000 == 0:
-#                 train_loss_list.append(loss_train.item())
-#                 # Test the model
-#                 self.eval()
-#                 with torch.no_grad():
-#                     hn = test_h0
-#                     for i in range(length_ratio):
-#                         input_test_X = test_set["X"][
-#                             i * input_length : (i + 1) * input_length, :
-#                         ]
-#                         pred, hn = self.forward(input_test_X, hn)
-#                         if i == 0:
-#                             output_test = pred
-#                         else:
-#                             output_test = torch.cat((output_test, pred), dim=0)
-#                 loss_test = loss_fn(output_test, test_set["Y"])
-#                 test_loss_list.append(loss_test.item())
-#                 if train_msg:
-#                     print(
-#                         "Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e"
-#                         % (epoch + 1, epochs, loss_train.item(), loss_test.item())
-#                     )
-#                 # Save the model
-#                 if model_save_path is not None:
-#                     torch.save(self.state_dict(), model_save_path)
-#                     # print(f"Model saved to {model_save_path}")
-
-#                 if loss_save_path is not None:
-#                     torch.save(
-#                         {
-#                             "train_loss_list": train_loss_list,
-#                             "test_loss_list": test_loss_list,
-#                         },
-#                         loss_save_path,
-#                     )
-#                     # print(f"Loss saved to {loss_save_path}")
-#         return train_loss_list, test_loss_list
-
 class Rnn(nn.Module):
     def __init__(
         self,
@@ -128,8 +20,9 @@ class Rnn(nn.Module):
             num_layers,
             bidirectional=bidirectional,
             batch_first=True,
-            bias = False,
+            bias=False,
         ).to(device)
+        self.hidden_size = hidden_size
         if bidirectional:
             self.linear = nn.Linear(2 * hidden_size, output_size, bias=False).to(device)
         else:
@@ -158,7 +51,7 @@ class Rnn(nn.Module):
         model_save_path,
         loss_save_path,
         train_msg=True,
-        weight_decay=1e-6,
+        weight_decay=0.0,
     ):
         # Define the loss function
         loss_fn = nn.MSELoss(reduction="mean")
@@ -178,13 +71,13 @@ class Rnn(nn.Module):
             optimizer.zero_grad()
             loss_train.backward(retain_graph=True)
             optimizer.step()
-            if (epoch + 1) % 2000 == 0:
+            if (epoch + 1) % 200 == 0:
                 train_loss_list.append(loss_train.item())
                 # Test the model
                 self.eval()
                 with torch.no_grad():
                     hn = test_h0
-                    output_test,_ = self.forward(test_set["X"], hn)
+                    output_test, _ = self.forward(test_set["X"], hn)
                 loss_test = loss_fn(output_test, test_set["Y"])
                 test_loss_list.append(loss_test.item())
                 if train_msg:
@@ -314,15 +207,17 @@ class Lstm(nn.Module):
                     )
                     # print(f"Loss saved to {loss_save_path}")
         return train_loss_list, test_loss_list
-    
 
 
 class LRnn(nn.Module):
     """
-    We find that LRNN is not as good as RNN and LSTM in terms of 
+    We find that LRNN is not as good as RNN and LSTM in terms of
     accuracy and training speed for the state estimation problem.
     """
-    def __init__(self, input_size=2, hidden_size=10, output_size=6, bidirectional=False):
+
+    def __init__(
+        self, input_size=2, hidden_size=10, output_size=6, bidirectional=False
+    ):
         super(LRnn, self).__init__()
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
@@ -330,7 +225,7 @@ class LRnn(nn.Module):
         # Define layers
         self.linear_0 = nn.Linear(input_size, hidden_size)
         self.linear_1 = nn.Linear(hidden_size, hidden_size)
-        
+
         if bidirectional:
             self.linear_00 = nn.Linear(input_size, hidden_size)
             self.linear_11 = nn.Linear(hidden_size, hidden_size)
@@ -341,7 +236,9 @@ class LRnn(nn.Module):
         # Send to device in a separate method to keep the constructor clean
         self.to_device()
 
-    def to_device(self, device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
+    def to_device(
+        self, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ):
         # Send all the modules to the specified device
         self.linear_0.to(device)
         self.linear_1.to(device)
@@ -378,16 +275,30 @@ class LRnn(nn.Module):
         y = self.lru(u, h0)
         y = self.linear_2(y)
         return y
-    
-    def train_LRNN(self, train_set, test_set, train_h0, test_h0, epochs, learning_rate, model_save_path, loss_save_path, train_msg=True, weight_decay=1e-6):
+
+    def train_LRNN(
+        self,
+        train_set,
+        test_set,
+        train_h0,
+        test_h0,
+        epochs,
+        learning_rate,
+        model_save_path,
+        loss_save_path,
+        train_msg=True,
+        weight_decay=1e-6,
+    ):
         # torch.autograd.set_detect_anomaly(True)
-        assert test_set['X'].shape[0] % train_set['X'].shape[0] == 0, 'Wrong data size'
-        length_ratio = test_set['X'].shape[0] // train_set['X'].shape[0]
-        input_length = train_set['X'].shape[0]
+        assert test_set["X"].shape[0] % train_set["X"].shape[0] == 0, "Wrong data size"
+        length_ratio = test_set["X"].shape[0] // train_set["X"].shape[0]
+        input_length = train_set["X"].shape[0]
         # Define the loss function
-        loss_fn = nn.MSELoss(reduction='mean')
+        loss_fn = nn.MSELoss(reduction="mean")
         # Define the optimizer
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=weight_decay)
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
         # Define the loss list
         train_loss_list = []
         test_loss_list = []
@@ -395,37 +306,45 @@ class LRnn(nn.Module):
         for epoch in range(epochs):
             self.train()
             # Train the model
-            output_train = self.forward(train_set['X'], train_h0)
-            loss_train = loss_fn(output_train, train_set['Y'])
+            output_train = self.forward(train_set["X"], train_h0)
+            loss_train = loss_fn(output_train, train_set["Y"])
             # print(loss_train)
             optimizer.zero_grad()
             loss_train.backward(retain_graph=True)
             optimizer.step()
-            if (epoch+1) % 2000 == 0:
+            if (epoch + 1) % 2000 == 0:
                 train_loss_list.append(loss_train.item())
                 # Test the model
                 self.eval()
                 with torch.no_grad():
                     hn = test_h0
                     for i in range(length_ratio):
-                        input_test_X = test_set['X'][i*input_length:(i+1)*input_length,:]
+                        input_test_X = test_set["X"][
+                            i * input_length : (i + 1) * input_length, :
+                        ]
                         pred = self.forward(input_test_X, hn)
                         if i == 0:
                             output_test = pred
                         else:
                             output_test = torch.cat((output_test, pred), dim=0)
-                loss_test = loss_fn(output_test, test_set['Y'])
+                loss_test = loss_fn(output_test, test_set["Y"])
                 test_loss_list.append(loss_test.item())
                 if train_msg:
-                    print('Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e' % (epoch+1, epochs, loss_train.item(), loss_test.item()))
+                    print(
+                        "Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e"
+                        % (epoch + 1, epochs, loss_train.item(), loss_test.item())
+                    )
                 # Save the model
                 if model_save_path is not None:
                     torch.save(self.state_dict(), model_save_path)
                     # print(f"Model saved to {model_save_path}")
                 if loss_save_path is not None:
-                    torch.save({'train_loss_list': train_loss_list, 'test_loss_list': test_loss_list}, loss_save_path)
+                    torch.save(
+                        {
+                            "train_loss_list": train_loss_list,
+                            "test_loss_list": test_loss_list,
+                        },
+                        loss_save_path,
+                    )
                     # print(f"Loss saved to {loss_save_path}")
-        return train_loss_list,
-
-
-
+        return (train_loss_list,)

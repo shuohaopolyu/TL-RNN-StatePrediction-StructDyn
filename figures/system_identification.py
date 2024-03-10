@@ -10,6 +10,7 @@ plt.rcParams["font.family"] = "Arial"
 # set the font size's default value
 plt.rcParams.update({"font.size": 10})
 ts = {"fontname": "Times New Roman"}
+cm = 1 / 2.54  # centimeters in inches
 
 
 def acceleration_measurement():
@@ -115,16 +116,100 @@ def ms_acc(f_lb=1.1, f_ub=1.5):
     plt.ylabel("Mode Shape")
 
 
+def vib_hist():
+    data_path = "./dataset/bists/ambient_response.pkl"
+    with open(data_path, "rb") as f:
+        data = pickle.load(f)
+    data = data["acc"].T
+    time = np.arange(0, data.shape[0] / 20, 1 / 20)
+    fig, ax = plt.subplots(3, 1, figsize=(8 * cm, 8 * cm))
+    plt.subplot(3, 1, 1)
+    plt.plot(time[:200], data[:200, 0], label="1st floor")
+    plt.subplot(3, 1, 2)
+    plt.plot(time[:200], data[:200, 6], label="7th floor")
+    plt.ylabel("Acceleration (m/s^2)")
+    plt.subplot(3, 1, 3)
+    plt.plot(time[:200], data[:200, 12], label="13th floor")
+    plt.xlabel("Time (s)")
+    plt.show()
+
+
+def base_loads():
+    data_path = "./dataset/bists/ambient_response.pkl"
+    with open(data_path, "rb") as f:
+        data = pickle.load(f)
+    disp = data["disp"].T
+    z = data["z"].T
+    time = np.arange(0, disp.shape[0] / 20, 1 / 20)
+    alpha = 0.7
+    base_elastic_force = alpha * 1300 * disp[:, 0]
+    base_hysteretic_force = (1 - alpha) * 10 * z
+    plt.figure(figsize=(11 * cm, 8 * cm))
+    plt.plot(
+        time[:2000],
+        base_elastic_force[:2000],
+        label="Elastic force",
+        color="red",
+        linewidth=0.8,
+    )
+    plt.plot(
+        time[:2000],
+        base_hysteretic_force[:2000],
+        label="Hysteretic force",
+        color="blue",
+        linewidth=0.8,
+    )
+    plt.xlim(0, 100)
+    plt.ylim(-0.09, 0.09)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Base shear force")
+    plt.legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+    )
+    plt.grid(True)
+    plt.tick_params(axis="both", direction="in")
+    # set scientific notation to y-axis
+    plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+    plt.savefig("./figures/base_loads.svg", bbox_inches="tight")
+    plt.show()
+
+
+def singular_values():
+    from pyoma2.algorithm import FDD_algo, FSDD_algo, SSIcov_algo
+    from pyoma2.OMA import SingleSetup
+
+    data_path = "./dataset/bists/ambient_response.pkl"
+    with open(data_path, "rb") as f:
+        data = pickle.load(f)
+    data = data["acc"].T
+    Pali_ss = SingleSetup(data, fs=20)
+    fsdd = FSDD_algo(name="FSDD", nxseg=2000, method_SD="per", pov=0.5)
+    Pali_ss.add_algorithms(fsdd)
+    Pali_ss.run_by_name("FSDD")
+    fig, ax = fsdd.plot_CMIF(freqlim=(0.2, 8))
+    # plt.figure(figsize=(10 * cm, 6 * cm))
+    fig.set_size_inches(11 * cm, 8 * cm)
+    plt.tick_params(axis="both", direction="in")
+    plt.ylim([-80, 10])
+    plt.ylabel("Singular values of cross-spectral matrix (dB)")
+    plt.xlabel("Frequency (Hz)")
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.title("")
+    plt.savefig("./figures/singular_values.svg", bbox_inches="tight")
+    plt.show()
+
+
 def mode_shape():
     # load the seismic response
     data_path = "./dataset/sts/model_updating.pkl"
-    idx_list = ["(a) ", "(b) ", "(c) ", "(d) ", "(e) "]
-    x_label = ["1st", "2nd", "3rd", "4th", "5th"]
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
     model_ms = solution["model_ms"]
     ms = solution["ms"]
-    fig, axs = plt.subplots(1, 5, figsize=(10, 6))
+    fig, axs = plt.subplots(1, 5, figsize=(12 * cm, 14 * cm))
     for i in range(5):
         ms_i = ms[:, i] / np.max(np.abs(ms[:, i]))
         model_ms_i = model_ms[:, i] / np.max(np.abs(model_ms[:, i]))
@@ -135,8 +220,8 @@ def mode_shape():
             range(13),
             "-s",
             color="red",
-            markersize=8,
-            linewidth=1.5,
+            markersize=6,
+            linewidth=1,
             label="Model results",
             markerfacecolor="None",
         )
@@ -145,8 +230,8 @@ def mode_shape():
             range(13),
             "--o",
             color="blue",
-            markersize=8,
-            linewidth=1.5,
+            markersize=6,
+            linewidth=1,
             label="Measurements",
             markerfacecolor="None",
         )
@@ -155,34 +240,32 @@ def mode_shape():
         axs[i].set_xlim(-1.1, 1.1)
         axs[i].grid(True)
         axs[i].set_yticks(range(13), [str(i + 1) for i in range(13)], fontsize=10)
-        axs[i].set_xticks([-1, 0, 1], ["-1", "0", "1"], fontsize=10)
+        axs[i].set_xticks([0], [str(i + 1)], fontsize=10)
         # axs[i].set_xlabel(idx_list[i])
-        axs[i].set_title(x_label[i] + " mode", fontsize=10)
         if i == 0:
             axs[i].set_ylabel("Degree of freedom")
-            axs[-1].legend(
-                *_get_legend_handles_labels(fig.axes),
-                bbox_to_anchor=(1, 0.5),
-                loc="center left",
+            axs[0].legend(
+                loc="upper center",
+                bbox_to_anchor=(3, 1.1),
                 fontsize=10,
                 facecolor="white",
                 edgecolor="black",
+                ncol=2,
             )
         else:
             axs[i].set_yticklabels([])
-    fig.tight_layout()
-    plt.savefig("./figures/mode_shape.pdf", bbox_inches="tight")
+    axs[2].set_xlabel("Mode")
+    plt.savefig("./figures/mode_shape.svg", bbox_inches="tight")
     plt.show()
 
 
 def natural_frequency():
     data_path = "./dataset/sts/model_updating.pkl"
-
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
     model_nf = solution["model_nf"]
     nf = solution["nf"]
-    fig, ax = plt.subplots(1, 1, figsize=(5, 4))
+    fig, ax = plt.subplots(1, 1, figsize=(10 * cm, 6 * cm))
     x = np.arange(5)
     plt.bar(
         x - 0.125 + 1,
@@ -200,17 +283,58 @@ def natural_frequency():
         facecolor="white",
         edgecolor="black",
     )
-    fig.tight_layout()
+    plt.savefig("./figures/natural_frequency.svg", bbox_inches="tight")
     plt.show()
 
 
 def params():
+
+    # Set the LaTeX preamble to use specific packages or font settings
+    # plt.rcParams["text.latex.preamble"] = [
+    #     r"\usepackage{amsmath}",  # for mathematical expressions
+    #     r"\usepackage{amssymb}",  # for mathematical symbols
+    #     r"\usepackage{mathpazo}",  # use the Palatino font
+    # ]
+    k_sub = [
+        r"$k_1$",
+        r"$k_2$",
+        r"$k_3$",
+        r"$k_4$",
+        r"$k_5$",
+        r"$k_6$",
+        r"$k_7$",
+        r"$k_8$",
+        r"$k_9$",
+        r"$k_{10}$",
+        r"$k_{11}$",
+        r"$k_{12}$",
+        r"$k_{13}$",
+    ]
     data_path = "./dataset/sts/model_updating.pkl"
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
-    model_params = solution["params"]
-    x = np.arange(13) + 1
-    fig, ax = plt.subplots(1, 1, figsize=(5, 2))
-    ax.bar(x, model_params)
-    ax.set_lim(0.7, 1.2)
+    measured_params = solution["params"]
+    model_params = np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5])
+    measured_params = model_params * measured_params
+    model_params[0] = 0
+    x = np.arange(13, dtype=float)
+    x[0] = 0.15
+
+    fig, ax = plt.subplots(1, 1, figsize=(10 * cm, 8 * cm))
+    ax.barh(
+        x - 0.15 + 1, measured_params, 0.3, label="Updated parameters", color="blue"
+    )
+    ax.barh(x + 0.15 + 1, model_params, 0.3, label="True parameters", color="red")
+    ax.set_yticks(range(1, 14, 1))
+    ax.tick_params(axis="both", direction="in")
+    ax.legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+    )
+    ax.set_xlim(0, 13)
+    ax.set_xlabel(r"Stiffness parameter values ($\times10^2$)")
+    plt.yticks(x + 1, k_sub, fontsize=10)
+
+    plt.savefig("./figures/params.svg", bbox_inches="tight")
     plt.show()

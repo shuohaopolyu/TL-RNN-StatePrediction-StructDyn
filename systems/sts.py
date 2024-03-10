@@ -52,16 +52,25 @@ class ShearTypeStructure(MultiDOF):
             + np.diag(-stiff_vec[1:], -1)
             + np.diag(np.append(stiff_vec[1:], 0))
         )
-        damp_mtx = (
-            np.diag(damp_vec)
-            + np.diag(-damp_vec[1:], 1)
-            + np.diag(-damp_vec[1:], -1)
-            + np.diag(np.append(damp_vec[1:], 0))
-        )
+        if damp_type == "d_mtx":
+            damp_mtx = (
+                np.diag(damp_vec)
+                + np.diag(-damp_vec[1:], 1)
+                + np.diag(-damp_vec[1:], -1)
+                + np.diag(np.append(damp_vec[1:], 0))
+            )
+        elif damp_type == "Rayleigh":
+            omega1, omega2 = damp_vec[2] * np.pi * 2, damp_vec[3] * np.pi * 2
+            mtx = np.array(
+                [[1 / (2 * omega1), omega1 / 2], [1 / (2 * omega2), omega2 / 2]]
+            )
+            alpha, beta = np.linalg.solve(mtx, [damp_vec[0], damp_vec[1]])
+            damp_mtx = alpha * mass_mtx + beta * stiff_mtx
+
         super().__init__(
             mass_mtx,
             stiff_mtx,
-            damp_type=damp_type,
+            damp_type="d_mtx",
             damp_params=damp_mtx,
             f_dof=[i for i in range(len(mass_vec))],
             t_eval=t,
