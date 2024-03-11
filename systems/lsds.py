@@ -195,9 +195,10 @@ class MultiDOF:
         modes_reduced = modes[:, 0:truncation]
         Omega_sq = modes_reduced.T @ self.stiff_mtx @ modes_reduced
         Ka = modes_reduced.T @ self.damp_mtx @ modes_reduced
-        L = np.zeros((self.DOF, len(self.f_dof)))
-        for i in range(self.n_f):
-            L[self.f_dof[i], i] = 1
+        # L = np.zeros((self.DOF, len(self.f_dof)))
+        # for i in range(self.n_f):
+        #     L[self.f_dof[i], i] = 1
+        L = L = np.ones((self.DOF, 1)) # Note: this is a temporary solution dedicated for seismic response analysis
         J = np.zeros((self.n_s, self.DOF))
         for i in range(self.n_s):
             J[i, self.resp_dof[i]] = 1
@@ -207,9 +208,15 @@ class MultiDOF:
                 np.hstack((-Omega_sq, -Ka)),
             )
         )
+        # B_c = np.vstack(
+        #     (
+        #         np.zeros((truncation, len(self.f_dof))),
+        #         modes_reduced.T @ L,
+        #     )
+        # ) # Note: this is a temporary solution dedicated for seismic response analysis
         B_c = np.vstack(
             (
-                np.zeros((truncation, len(self.f_dof))),
+                np.zeros_like(modes_reduced.T @ L),
                 modes_reduced.T @ L,
             )
         )

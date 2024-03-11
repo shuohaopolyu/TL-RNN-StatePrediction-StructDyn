@@ -6,6 +6,7 @@ from models import Rnn, Lstm
 import torch
 import matplotlib.pyplot as plt
 from excitations import FlatNoisePSD, PSDExcitationGenerator
+from numpy import linalg as LA
 
 
 def modal_analysis():
@@ -99,6 +100,21 @@ def model_updating(num_modes=5, method="L-BFGS-B"):
     return res.x
 
 
+def compound_envelope(b1, b2, gamma, t_array):
+    tmax = t_array[-1]
+    # Assuming t_array is a numpy array
+    envelope = np.zeros_like(t_array)
+    for i, t in enumerate(t_array):
+        normalized_time = t / tmax
+        if normalized_time < b1:
+            envelope[i] = t / (b1 * tmax)
+        elif normalized_time > b2:
+            envelope[i] = np.exp(-gamma * (normalized_time - b2))
+        else:
+            envelope[i] = 1
+    return envelope
+
+
 def seismic_response(
     num=1,
     method="Radau",
@@ -121,6 +137,11 @@ def seismic_response(
     damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
     for i_th in range(num):
         time, acc_g = excitation.generate()
+        b1 = np.random.uniform(0.1, 0.2)
+        gamma = np.random.uniform(3, 5)
+        b2 = np.random.uniform(0.4, 0.6)
+        window_point = compound_envelope(b1, b2, gamma, time)
+        acc_g = acc_g * window_point
         parametric_sts = ShearTypeStructure(
             mass_vec=mass_vec,
             stiff_vec=stiff_vec,
@@ -174,7 +195,9 @@ def validation(method="Radau"):
     return solution
 
 
-def training_test_data(acc_sensor, data_compression_ratio=1, num_training_files=40):
+def training_test_data(
+    acc_sensor, data_compression_ratio=1, num_training_files=40, num_files=100
+):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     disp = []
     velo = []
@@ -192,7 +215,7 @@ def training_test_data(acc_sensor, data_compression_ratio=1, num_training_files=
         velo = solution["velo"][:, ::data_compression_ratio].T
         state.append(np.hstack((disp, velo)))
         acc.append(solution["acc"][acc_sensor, ::data_compression_ratio].T)
-    for i in range(num_training_files, 50):
+    for i in range(num_training_files, num_files):
         filename = "./dataset/sts/solution" + format(i, "03") + ".pkl"
         with open(filename, "rb") as f:
             solution = pickle.load(f)
@@ -215,8 +238,9 @@ def _birnn(
     acc_sensor,
     data_compression_ratio=1,
     num_training_files=40,
+    num_files=100,
     epochs=10000,
-    lr=1e-5,
+    lr=1e-4,
     weight_decay=0.0,
 ):
     """
@@ -225,7 +249,7 @@ def _birnn(
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     state, acc, state_test, acc_test = training_test_data(
-        acc_sensor, data_compression_ratio, num_training_files
+        acc_sensor, data_compression_ratio, num_training_files, num_files
     )
     train_set = {"X": acc, "Y": state}
     test_set = {"X": acc_test, "Y": state_test}
@@ -238,9 +262,9 @@ def _birnn(
         bidirectional=True,
     )
     train_h0 = torch.zeros(2, num_training_files, RNN_model_disp.hidden_size).to(device)
-    test_h0 = torch.zeros(2, 50 - num_training_files, RNN_model_disp.hidden_size).to(
-        device
-    )
+    test_h0 = torch.zeros(
+        2, num_files - num_training_files, RNN_model_disp.hidden_size
+    ).to(device)
     model_save_path = "./dataset/sts/birnn.pth"
     loss_save_path = "./dataset/sts/birnn.pkl"
     train_loss_list, test_loss_list = RNN_model_disp.train_RNN(
@@ -262,9 +286,10 @@ def _rnn(
     acc_sensor,
     data_compression_ratio=1,
     num_training_files=40,
+    num_files=100,
     epochs=10000,
     lr=1e-5,
-    weight_decay=1e-7,
+    weight_decay=0.0,
 ):
     """
     :param acc_sensor: (list) list of accelerometer locations
@@ -285,9 +310,9 @@ def _rnn(
         bidirectional=False,
     )
     train_h0 = torch.zeros(1, num_training_files, RNN_model_disp.hidden_size).to(device)
-    test_h0 = torch.zeros(1, 50 - num_training_files, RNN_model_disp.hidden_size).to(
-        device
-    )
+    test_h0 = torch.zeros(
+        1, num_files - num_training_files, RNN_model_disp.hidden_size
+    ).to(device)
     model_save_path = "./dataset/sts/rnn.pth"
     loss_save_path = "./dataset/sts/rnn.pkl"
     train_loss_list, test_loss_list = RNN_model_disp.train_RNN(
@@ -307,15 +332,17 @@ def _rnn(
 
 def build_birnn():
     dr = 1
-    ntf = 40
+    ntf = 90
+    nf = 100
     acc_sensor = [0, 1, 2, 3, 4]
     _, _ = _birnn(
         acc_sensor,
         data_compression_ratio=dr,
         num_training_files=ntf,
+        num_files=nf,
         epochs=50000,
-        lr=6e-5,
-        weight_decay=1e-7,
+        lr=1e-5,
+        weight_decay=0.0,
     )
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
@@ -329,8 +356,7 @@ def build_birnn():
 
     RNN4ststate.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    num_test_files = 50 - ntf
-    test_h0 = torch.zeros(2, num_test_files, 30).to(device)
+    test_h0 = torch.zeros(2, nf - ntf, 30).to(device)
     _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf)
     with torch.no_grad():
         state_pred, _ = RNN4ststate(acc_test, test_h0)
@@ -346,12 +372,14 @@ def build_birnn():
 
 def build_rnn():
     dr = 1
-    ntf = 40
+    ntf = 90
+    nf = 100
     acc_sensor = [0, 1, 2, 3, 4]
     _, _ = _rnn(
         acc_sensor,
         data_compression_ratio=dr,
         num_training_files=ntf,
+        num_files=nf,
         epochs=50000,
         lr=1e-5,
     )
@@ -366,8 +394,7 @@ def build_rnn():
         RNN4ststate.load_state_dict(torch.load(f))
     RNN4ststate.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    num_test_files = 50 - ntf
-    test_h0 = torch.zeros(1, num_test_files, 30).to(device)
+    test_h0 = torch.zeros(1, nf - ntf, 30).to(device)
     _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf)
     with torch.no_grad():
         state_pred, _ = RNN4ststate(acc_test, test_h0)
@@ -379,3 +406,160 @@ def build_rnn():
     plt.plot(state_pred[4, :], label="Prediction", linestyle="--")
     plt.legend()
     plt.show()
+
+
+def _dkf(
+    acc_sensor,
+    data_compression_ratio,
+    num_training_files,
+    num_modes,
+    dkf_params=[1e-20, 1e-2, 3e9],
+    type="test",
+):
+    if type == "test":
+        _, _, state_full, acc_full = training_test_data(
+            acc_sensor, data_compression_ratio, num_training_files
+        )
+    else:
+        state_full, acc_full, _, _ = training_test_data(
+            acc_sensor, data_compression_ratio, num_training_files
+        )
+    state_full = state_full.cpu().numpy()
+    acc_full = acc_full.cpu().numpy()
+    steps = state_full.shape[1]
+    # Define the system
+    data_path = "./dataset/sts/model_updating.pkl"
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    params = solution["params"]
+    nf = solution["nf"]
+    dp = solution["dp"]
+    stiff_factor = 1e2
+    mass_vec = 1 * np.ones(13)
+    stiff_vec = (
+        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
+    )
+    damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
+    time = np.arange(0, steps/20, 1/20)
+    acc_g = np.zeros_like(time)
+    parametric_sts = ShearTypeStructure(
+        mass_vec=mass_vec,
+        stiff_vec=stiff_vec,
+        damp_vec=damp_vec,
+        damp_type="Rayleigh",
+        t=time,
+        acc_g=acc_g,
+    )
+    parametric_sts.resp_dof = acc_sensor
+    parametric_sts.n_s = len(acc_sensor)
+    _, modes = parametric_sts.freqs_modes(mode_normalize=True)
+    md_mtx = modes[:, 0:num_modes]
+
+    # compute the state space matrices
+    A, B, G, J = parametric_sts.truncated_state_space_mtx(
+        truncation=num_modes, type="discrete"
+    )
+    Q_zeta = np.eye(num_modes * 2) * dkf_params[0]
+    R = np.eye(len(acc_sensor)) * dkf_params[1]
+    Q_p = np.eye(1) * dkf_params[2]
+
+    # initialization
+    load_mtx = np.zeros((1, steps))
+    zeta_mtx = np.zeros((num_modes * 2, steps))
+    P_p_mtx = np.zeros((1, 1, steps))
+    P_mtx = np.zeros((num_modes * 2, num_modes * 2, steps))
+    P_p_mtx[:, :, 0] = Q_p
+    P_mtx[:, :, 0] = Q_zeta
+    disp_list = []
+    velo_list = []
+    if type == "test":
+        it_num = 100 - num_training_files
+    else:
+        it_num = num_training_files
+
+    for j in range(it_num):
+        obs_data = acc_full[j, :, :].T
+        # kalman filter for input and state estimation
+        for i in range(steps - 1):
+            # Prediction stage for the input:
+            # Evolution of the input and prediction of covariance input:
+            p_k_m = load_mtx[:, i]
+            P_k_pm = P_p_mtx[:, :, i] + Q_p
+            # Update stage for the input:
+            # Calculation of Kalman gain for input:
+            G_k_p = P_k_pm @ J.T @ LA.inv(J @ P_k_pm @ J.T + R)
+            # Improve predictions of input using latest observation:
+            load_mtx[:, i + 1] = p_k_m + G_k_p @ (
+                obs_data[:, i + 1] - G @ zeta_mtx[:, i] - J @ p_k_m
+            )
+            P_p_mtx[:, :, i + 1] = P_k_pm - G_k_p @ J @ P_k_pm
+            # Prediction stage for the state:
+            # Evolution of state and prediction of covariance of state:
+            zeta_k_m = A @ zeta_mtx[:, i] + B @ load_mtx[:, i + 1]
+            P_k_m = A @ P_mtx[:, :, i] @ A.T + Q_zeta
+            # Update stage for the state:
+            # Calculation of Kalman gain for state:
+            G_k_zeta = P_k_m @ G.T @ LA.inv(G @ P_k_m @ G.T + R)
+            # Improve predictions of state using latest observation:
+            zeta_mtx[:, i + 1] = zeta_k_m + G_k_zeta @ (
+                obs_data[:, i + 1] - G @ zeta_k_m - J @ load_mtx[:, i + 1]
+            )
+            P_mtx[:, :, i + 1] = P_k_m - G_k_zeta @ G @ P_k_m
+            # print progress every 10% for test
+            # progress_percentage = (i + 2) / (steps) * 100
+            # if progress_percentage % 10 == 0:
+            #     print(f"Progress: {progress_percentage:.0f}%")
+        disp_pred = md_mtx @ zeta_mtx[:num_modes, :]
+        disp_list.append(disp_pred.T)
+        print(
+            "Dual Kalman Filter finished for {order}-th displacement prediction!".format(
+                order=j + 1
+            )
+        )
+        # return disp_pred
+        velo_pred = md_mtx @ zeta_mtx[num_modes:, :]
+        velo_list.append(velo_pred.T)
+        print(
+            "Dual Kalman Filter finished for {order}-th velocity prediction!".format(
+                order=j + 1
+            )
+        )
+        # return vel_pred
+    disp_array = np.array(disp_list)
+    velo_array = np.array(velo_list)
+    return disp_array, velo_array
+
+
+def tune_dkf_params():
+    R_values = np.logspace(-6, 2, 10)
+    disp_rmse = np.zeros(len(R_values))
+    velo_rmse = np.zeros(len(R_values))
+    state_full, _, _, _ = training_test_data([0, 1, 2, 3, 4], 1, 1)
+    disp = state_full[:, :, 0:13].cpu().numpy()
+    velo = state_full[:, :, 13:26].cpu().numpy()
+    for i, R_value in enumerate(R_values):
+        disp_pred, velo_pred = _dkf(
+            [0, 1, 2, 3, 4], 1, 1, 13, [1e-20, R_value, 1], "training"
+        )
+        disp_rmse[i] = np.sqrt(np.mean((disp_pred - disp) ** 2))
+        velo_rmse[i] = np.sqrt(np.mean((velo_pred - velo) ** 2))
+    plt.figure()
+    plt.plot(disp_pred[0, :, 8], label="Prediction")
+    plt.plot(disp[0, :, 8], label="Ground truth")
+    plt.show()
+    plt.figure()
+    plt.plot(velo_pred[0, :, 8], label="Prediction")
+    plt.plot(velo[0, :, 8], label="Ground truth")
+    plt.show()
+    results = {"R_values": R_values, "disp_rmse": disp_rmse, "vel_rmse": velo_rmse}
+    with open("./dataset/sts/dkf_tune.pkl", "wb") as f:
+        pickle.dump(results, f)
+
+
+def dkf():
+    # parameters are tuned via the funtion tune_dkf_params
+    disp_pred, velo_pred = _dkf(
+        [0, 1, 2, 3, 4], 1, 90, 13, [1e-20, 1e-3, 1], "test"
+    )
+    with open("./dataset/sts/dkf_pred.pkl", "wb") as f:
+        pickle.dump({"disp_pred": disp_pred, "velo_pred": velo_pred}, f)

@@ -59,3 +59,15 @@ def mac(pred, target):
 def self_psd(f_n, zeta, q, f_test):
     h = ((1-(f_test/f_n)**2)/((1-(f_test/f_n)**2)**2+(2*zeta*f_test/f_n)**2) - 1j*2*zeta*f_test/f_n/((1-(f_test/f_n)**2)**2+(2*zeta*f_test/f_n)**2)) * q
     return np.abs(h)**2
+
+def similarity(pred, target):
+    # pred and target are 3d array, whose dimension is 10*800*26
+    error_mtx = np.zeros((pred.shape[0], pred.shape[2]))
+    for i in range(pred.shape[0]):
+        for j in range(pred.shape[2]):
+            pred_vec = pred[i, :, j]
+            target_vec = target[i, :, j]
+            mean_target = np.mean(target_vec)
+            error_mtx[i, j] = 1- np.linalg.norm(pred_vec - target_vec) / np.linalg.norm(target_vec - mean_target)
+    return error_mtx
+    
