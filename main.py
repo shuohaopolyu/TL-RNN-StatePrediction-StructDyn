@@ -23,8 +23,8 @@ if __name__ == "__main__":
     # shear_type_structure.build_rnn()
     # shear_type_structure.tune_dkf_params()
     # shear_type_structure.dkf()
-    # base_isolated_shear_type_structure.seismic_response()
-    # strong_ground_motion.plot_ground_motion()
+    base_isolated_shear_type_structure.seismic_response()
+    strong_ground_motion.plot_ground_motion()
     shear_type_structure.birnn_seismic_pred()
     shear_type_structure.rnn_seismic_pred()
 
