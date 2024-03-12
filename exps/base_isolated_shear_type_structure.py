@@ -6,46 +6,113 @@ import torch
 from models import Rnn
 from excitations import FlatNoisePSD, PSDExcitationGenerator
 from scipy import interpolate
+import os
 
 
-def _read_smc_file(filename):
-    with open(filename) as f:
-        content = f.readlines()
-    data = []
-    counter = 0
-    for x in content:
-        if counter > 39:
-            s = x
-            numbers = [s[i : i + 10] for i in range(0, len(s), 10)]
-            number = []
-            for i in range(len(numbers) - 1):
-                number.append(float(numbers[i]))
-            data.append(number)
-        counter += 1
-    acc = np.array(data)
-    time = np.linspace(0, 0.02 * (len(acc[:, 0]) - 1), len(acc[:, 0]))
-    return time, acc[:, 0] * 1e-2
+"""
+@author: Daniel Hutabarat - UC Berkeley, 2017
+"""
 
 
-def seismic_response(num=1):
-    acc_file_root_name = "./excitations/SMSIM/m7.0r10.0_00"
-    acc_file_list = [
-        acc_file_root_name + format(i, "03") + ".smc" for i in range(1, num + 1)
+def processNGAfile(filepath, scalefactor=None):
+    """
+    This function process acceleration history for NGA data file (.AT2 format)
+    to a single column value and return the total number of data points and
+    time iterval of the recording.
+    Parameters:
+    ------------
+    filepath : string (location and name of the file)
+    scalefactor : float (Optional) - multiplier factor that is applied to each
+                  component in acceleration array.
+
+    Output:
+    ------------
+    desc: Description of the earthquake (e.g., name, year, etc)
+    npts: total number of recorded points (acceleration data)
+    dt: time interval of recorded points
+    time: array (n x 1) - time array, same length with npts
+    inp_acc: array (n x 1) - acceleration array, same length with time
+             unit usually in (g) unless stated as other.
+
+    Example: (plot time vs acceleration)
+    filepath = os.path.join(os.getcwd(),'motion_1')
+    desc, npts, dt, time, inp_acc = processNGAfile (filepath)
+    plt.plot(time,inp_acc)
+
+    """
+    try:
+        if not scalefactor:
+            scalefactor = 1.0
+        with open(filepath, "r") as f:
+            content = f.readlines()
+        counter = 0
+        desc, row4Val, acc_data = "", "", []
+        for x in content:
+            if counter == 1:
+                desc = x
+            elif counter == 3:
+                row4Val = x
+                if row4Val[0][0] == "N":
+                    val = row4Val.split()
+                    npts = float(val[(val.index("NPTS=")) + 1].rstrip(","))
+                    dt = float(val[(val.index("DT=")) + 1])
+                else:
+                    val = row4Val.split()
+                    npts = float(val[0])
+                    dt = float(val[1])
+            elif counter > 3:
+                data = str(x).split()
+                for value in data:
+                    a = float(value) * scalefactor
+                    acc_data.append(a)
+                inp_acc = np.asarray(acc_data)
+                time = []
+                for i in range(0, len(acc_data)):
+                    t = i * dt
+                    time.append(t)
+            counter = counter + 1
+        return desc, npts, dt, time, inp_acc
+    except IOError:
+        print("processMotion FAILED!: File is not in the directory")
+
+
+def plot_ground_motion():
+    acc_file_name_list = [
+        "./dataset/bists/ath.KOBE.NIS000.AT2",
+        "./dataset/bists/RSN12_KERN.PEL_PEL090.AT2",
+        "./dataset/bists/RSN137_TABAS_BAJ-L1.AT2",
+        "./dataset/bists/RSN570_SMART1.45_45C00DN.AT2",
+        "./dataset/bists/RSN826_CAPEMEND_EUR000.AT2",
+        "./dataset/bists/RSN832_LANDERS_ABY000.AT2",
     ]
+    for acc_file_i in acc_file_name_list:
+        _, _, _, time, inp_acc = processNGAfile(acc_file_i)
+        acc_g = inp_acc * 9.81
+        plt.plot(time, acc_g)
+        plt.title("Ground motion")
+        plt.show()
 
-    for acc_file_i in acc_file_list:
-        time, acc_g = _read_smc_file(acc_file_i)
-        time = time[1000:6000]
-        time = time - time[0]
-        acc_g = acc_g[1000:6000] * 10
+
+def seismic_response():
+    acc_file_name_list = [
+        "./dataset/bists/ath.KOBE.NIS000.AT2",
+        "./dataset/bists/RSN12_KERN.PEL_PEL090.AT2",
+        "./dataset/bists/RSN137_TABAS_BAJ-L1.AT2",
+        "./dataset/bists/RSN570_SMART1.45_45C00DN.AT2",
+        "./dataset/bists/RSN826_CAPEMEND_EUR000.AT2",
+        "./dataset/bists/RSN832_LANDERS_ABY000.AT2",
+    ]
+    factors = [1, 6, 8, 8, 2, 5]
+
+    for i, acc_file_i in enumerate(acc_file_name_list):
+        _, _, _, time, inp_acc = processNGAfile(acc_file_i)
+        acc_g = inp_acc * 9.81 * factors[i]
         interp_time = np.linspace(0, time[-1], 20000)
-        interp_acc_g = interpolate.interp1d(
-            time, acc_g, kind="quadratic", fill_value="extrapolate"
-        )(interp_time)
-        stiff_factor = 1e3
+        interp_acc_g = interpolate.interp1d(time, acc_g, kind="cubic")(interp_time)
+        stiff_factor = 1e2
         damp_factor = 3
         mass_vec = 1 * np.ones(12)
-        stiff_vec = np.array([12, 12, 12, 8, 8, 8, 5, 5, 5, 3, 2, 1]) * stiff_factor
+        stiff_vec = np.array([12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
         damp_vec = (
             np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
             * damp_factor
@@ -58,13 +125,13 @@ def seismic_response(num=1):
                 "m_b": 1,
                 "c_b": 1.0 * damp_factor,
                 "k_b": 13 * stiff_factor,
-                "q": 5e-2,
-                "A": 1.0,
+                "q": 1e-2,
+                "A": 1,
                 "beta": 0.5,
                 "gamma": 0.5,
-                "n": 2.5,
-                "z_0": 0.0,
-                "F_y": 10.0,
+                "n": 2,
+                "z_0": 0,
+                "F_y": 10,
                 "alpha": 0.7,
             },
             x_0=np.zeros(13),
@@ -84,19 +151,18 @@ def seismic_response(num=1):
         }
 
         file_name = (
-            "./dataset/base_isolated_structure/solution"
-            + format(acc_file_list.index(acc_file_i) + 1, "03")
+            "./dataset/bists/solution"
+            + format(acc_file_name_list.index(acc_file_i) + 1, "03")
             + ".pkl"
         )
         with open(file_name, "wb") as f:
             pickle.dump(solution, f)
         print("File " + file_name + " saved.")
-        _ = parametric_bists.print_natural_frequency(10)
     return solution
 
 
 def plot_response():
-    solution = seismic_response(1)
+    solution = seismic_response()
     time = solution["time"]
     acc = solution["acc"]
     disp = solution["disp"]
@@ -298,46 +364,45 @@ def lf_rnn_prediction(which=1, dof=0):
     # dof: int, is the degree of freedom to be ploted
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dr = 10
-    acc_sensor = [0, 4, 7, 11]
-    RNN_model_disp = Rnn(
+    acc_sensor = [0, 1, 2, 3, 4]
+    RNN4ststate = Rnn(
         input_size=len(acc_sensor),
-        hidden_size=10,
-        output_size=13,
+        hidden_size=30,
+        output_size=26,
         num_layers=1,
-        bidirectional=True,
+        bidirectional=False,
     )
-    with open("./dataset/shear_type_structure/rnn_disp.pth", "rb") as f:
-        RNN_model_disp.load_state_dict(torch.load(f))
-    h0 = torch.zeros(2, 50, 10).to(device)
-    acc_test = []
-    disp_test = []
-    # for param in RNN_model_disp.parameters():
-    #     print(type(param))
-    RNN_model_disp.eval()
-    for i in range(50):
-        filename = (
-            "./dataset/base_isolated_structure/solution" + format(i + 1, "03") + ".pkl"
-        )
-        with open(filename, "rb") as f:
-            solution = pickle.load(f)
-        acc1 = solution["acc"][acc_sensor, ::dr].T
-        acc1[:, 1:] += acc1[:, 0:1]
-        disp1 = solution["disp"][:, ::dr].T
-        disp1[:, 1:] += disp1[:, 0:1]
-        acc_test.append(acc1)
-        disp_test.append(disp1)
-    time = solution["time"][::dr]
-    acc_test = np.array(acc_test)
-    disp_test = np.array(disp_test)
-    acc_test = torch.tensor(acc_test, dtype=torch.float32).to(device)
-    with torch.no_grad():
-        disp_pred, _ = RNN_model_disp(acc_test, h0)
-    disp_pred = disp_pred.cpu().numpy()
-    # plot the prediction and ground truth
-    plt.plot(time, disp_test[which - 1, :, dof], label="Ground truth")
-    plt.plot(time, disp_pred[which - 1, :, dof], label="Prediction")
-    plt.legend()
-    plt.show()
+    with open("./dataset/sts/rnn.pth", "rb") as f:
+        RNN4ststate.load_state_dict(torch.load(f))
+    RNN4ststate.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    test_h0 = torch.zeros(1, 1, 30).to(device)
+    # acc_test = []
+    # disp_test = []
+    # for i in range(1):
+    #     filename = (
+    #         "./dataset/base_isolated_structure/solution" + format(i + 1, "03") + ".pkl"
+    #     )
+    #     with open(filename, "rb") as f:
+    #         solution = pickle.load(f)
+    #     acc1 = solution["acc"][acc_sensor, ::dr].T
+    #     acc1[:, 1:] += acc1[:, 0:1]
+    #     disp1 = solution["disp"][:, ::dr].T
+    #     disp1[:, 1:] += disp1[:, 0:1]
+    #     acc_test.append(acc1)
+    #     disp_test.append(disp1)
+    # time = solution["time"][::dr]
+    # acc_test = np.array(acc_test)
+    # disp_test = np.array(disp_test)
+    # acc_test = torch.tensor(acc_test, dtype=torch.float32).to(device)
+    # with torch.no_grad():
+    #     disp_pred, _ = RNN_model_disp(acc_test, h0)
+    # disp_pred = disp_pred.cpu().numpy()
+    # # plot the prediction and ground truth
+    # plt.plot(time, disp_test[which - 1, :, dof], label="Ground truth")
+    # plt.plot(time, disp_pred[which - 1, :, dof], label="Prediction")
+    # plt.legend()
+    # plt.show()
 
 
 def _tr_rnn(

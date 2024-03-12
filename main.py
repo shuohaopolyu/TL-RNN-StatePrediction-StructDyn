@@ -7,7 +7,7 @@ import random
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
-from figures import system_identification, rnn_training, artifical_acc
+from figures import system_identification, rnn_training, artifical_acc, strong_ground_motion
 
 random.seed(0)
 
@@ -22,8 +22,11 @@ if __name__ == "__main__":
     # shear_type_structure.build_birnn()
     # shear_type_structure.build_rnn()
     # shear_type_structure.tune_dkf_params()
-    shear_type_structure.dkf()
-
+    # shear_type_structure.dkf()
+    # base_isolated_shear_type_structure.seismic_response()
+    # strong_ground_motion.plot_ground_motion()
+    shear_type_structure.birnn_seismic_pred()
+    shear_type_structure.rnn_seismic_pred()
 
     # figure plot
     # system_identification.base_loads()
@@ -35,5 +38,5 @@ if __name__ == "__main__":
     # rnn_training.loss_curve()
     # rnn_training.disp_pred()
     # rnn_training.velo_pred()
-    rnn_training.performance_evaluation()
+    # rnn_training.performance_evaluation()
 
