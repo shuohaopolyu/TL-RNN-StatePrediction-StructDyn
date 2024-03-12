@@ -440,7 +440,7 @@ def _dkf(
         np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
     )
     damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
-    time = np.arange(0, steps/20, 1/20)
+    time = np.arange(0, steps / 20, 1 / 20)
     acc_g = np.zeros_like(time)
     parametric_sts = ShearTypeStructure(
         mass_vec=mass_vec,
@@ -558,52 +558,48 @@ def tune_dkf_params():
 
 def dkf():
     # parameters are tuned via the funtion tune_dkf_params
-    disp_pred, velo_pred = _dkf(
-        [0, 1, 2, 3, 4], 1, 90, 13, [1e-20, 1e-3, 1], "test"
-    )
+    disp_pred, velo_pred = _dkf([0, 1, 2, 3, 4], 1, 90, 13, [1e-20, 1e-3, 1], "test")
     with open("./dataset/sts/dkf_pred.pkl", "wb") as f:
         pickle.dump({"disp_pred": disp_pred, "velo_pred": velo_pred}, f)
 
-def generate_seismic_response(acc_sensor):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    num_seismic = 1
-    acc_array = []
-    state_array = []
+
+def generate_seismic_response(acc_sensor, num_seismic):
+    # list that contains num_seismic number of acc arrays, each of shape (len(time_interpolated), len(acc_sensor))
+    acc_list = []
+    state_list = []
     for i in range(num_seismic):
-        file_name = (
-            "./dataset/bists/solution"
-            + format(i + 4, "03")
-            + ".pkl"
-        )
+        file_name = "./dataset/bists/solution" + format(i, "03") + ".pkl"
         with open(file_name, "rb") as f:
             solution = pickle.load(f)
         acc = solution["acc"][acc_sensor, :].T
         disp = solution["disp"].T
         velo = solution["velo"].T
-        acc[:, 1:] = acc[:, 1:] + np.tile(acc[:, 0].reshape(-1,1), (1, acc.shape[1] - 1))
-        disp[:, 1:] = disp[:, 1:] + np.tile(disp[:, 0].reshape(-1,1), (1, disp.shape[1] - 1))
-        velo[:, 1:] = velo[:, 1:] + np.tile(velo[:, 0].reshape(-1,1), (1, velo.shape[1] - 1))
+        acc[:, 1:] = acc[:, 1:] + np.tile(
+            acc[:, 0].reshape(-1, 1), (1, acc.shape[1] - 1)
+        )
+        disp[:, 1:] = disp[:, 1:] + np.tile(
+            disp[:, 0].reshape(-1, 1), (1, disp.shape[1] - 1)
+        )
+        velo[:, 1:] = velo[:, 1:] + np.tile(
+            velo[:, 0].reshape(-1, 1), (1, velo.shape[1] - 1)
+        )
         state = np.hstack((disp, velo))
         time = solution["time"]
-        time_interpolated = np.arange(time[0], time[-1], 1/20)
+        time_interpolated = np.arange(time[0], time[-1], 1 / 20)
         acc_interpolated = np.zeros((len(time_interpolated), acc.shape[1]))
         state_interpolated = np.zeros((len(time_interpolated), state.shape[1]))
         for j in range(acc.shape[1]):
             acc_interpolated[:, j] = np.interp(time_interpolated, time, acc[:, j])
         for j in range(state.shape[1]):
             state_interpolated[:, j] = np.interp(time_interpolated, time, state[:, j])
-        acc_array.append(acc_interpolated)
-        state_array.append(state_interpolated)
-    acc_array = np.array(acc_array)
-    state_array = np.array(state_array)
-    acc_tensor = torch.tensor(acc_array, dtype=torch.float32).to(device)
-    state_tensor = torch.tensor(state_array, dtype=torch.float32).to(device)
-    return acc_tensor, state_tensor
+        acc_list.append(acc_interpolated)
+        state_list.append(state_interpolated)
+    return acc_list, state_list
 
 
 def birnn_seismic_pred():
     acc_sensor = [0, 1, 2, 3, 4]
-    num_seismic = 1
+    num_seismic = 6
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
@@ -616,18 +612,24 @@ def birnn_seismic_pred():
 
     RNN4ststate.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    test_h0 = torch.zeros(2, num_seismic, 30).to(device)
-    acc_tensor, state_tensor = generate_seismic_response(acc_sensor)
+    test_h0 = torch.zeros(2, 1, 30).to(device)
+    acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
+    state_pred_list = []
     with torch.no_grad():
-        state_pred, _ = RNN4ststate(acc_tensor, test_h0)
-    state_pred = state_pred.cpu().numpy()
-    state_pred = state_pred[:, :, 8]
-    state_tensor = state_tensor.cpu().numpy()
-    state_tensor = state_tensor[:, :, 8]
-    plt.plot(state_tensor[0, :], label="Ground truth")
-    plt.plot(state_pred[0, :], label="Prediction", linestyle="--")
+        for i in range(num_seismic):
+            acc_tensor = torch.tensor(acc_list[i], dtype=torch.float32).to(device)
+            acc_tensor = acc_tensor.unsqueeze(0)
+            state_pred, _ = RNN4ststate(acc_tensor, test_h0)
+            state_pred = state_pred.squeeze()
+            state_pred = state_pred.cpu().numpy()
+            state_pred_list.append(state_pred)
+    i_th_state_true = state_list[0]
+    i_th_state_pred = state_pred_list[0]
+    plt.plot(i_th_state_true[:, 8], label="Ground truth")
+    plt.plot(i_th_state_pred[:, 8], label="Prediction", linestyle="--")
     plt.legend()
     plt.show()
+
 
 def rnn_seismic_pred():
     acc_sensor = [0, 1, 2, 3, 4]
@@ -644,21 +646,34 @@ def rnn_seismic_pred():
 
     RNN4ststate.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    test_h0 = torch.zeros(1, num_seismic, 30).to(device)
-    acc_tensor, state_tensor = generate_seismic_response(acc_sensor)
+    test_h0 = torch.zeros(1, 1, 30).to(device)
+    acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
+    state_pred_list = []
     with torch.no_grad():
-        state_pred, _ = RNN4ststate(acc_tensor, test_h0)
-    state_pred = state_pred.cpu().numpy()
-    state_pred = state_pred[:, :, 16]
-    state_tensor = state_tensor.cpu().numpy()
-    state_tensor = state_tensor[:, :, 16]
-    plt.plot(state_tensor[0, :], label="Ground truth")
-    plt.plot(state_pred[0, :], label="Prediction", linestyle="--")
+        for i in range(num_seismic):
+            acc_tensor = torch.tensor(acc_list[i], dtype=torch.float32).to(device)
+            acc_tensor = acc_tensor.unsqueeze(0)
+            state_pred, _ = RNN4ststate(acc_tensor, test_h0)
+            state_pred = state_pred.squeeze()
+            state_pred = state_pred.cpu().numpy()
+            state_pred_list.append(state_pred)
+    i_th_state_true = state_list[0]
+    i_th_state_pred = state_pred_list[0]
+    plt.plot(i_th_state_true[:, 8], label="Ground truth")
+    plt.plot(i_th_state_pred[:, 8], label="Prediction", linestyle="--")
     plt.legend()
     plt.show()
 
 
-
-
-
-
+def floor_drifts(num_seismic, floors):
+    # a good paper: A CRITICAL ASSESSMENT OF INTERSTORY DRIFT MEASUREMENTS
+    # floors is a list, e.g., [[1,2], [3,4], [5,6], [9,11]]
+    disp_list = []
+    for i in range(num_seismic):
+        file_name = "./dataset/bists/solution" + format(i, "03") + ".pkl"
+        with open(file_name, "rb") as f:
+            solution = pickle.load(f)
+        disp = solution["disp"].T
+        for j in range(len(floors)):
+            disp_list.append(disp[floors[j][1], :] - disp[floors[j][0], :])
+    return disp_list

@@ -8,38 +8,15 @@ from excitations import FlatNoisePSD, PSDExcitationGenerator
 from scipy import interpolate
 import os
 
-
-"""
-@author: Daniel Hutabarat - UC Berkeley, 2017
-"""
+# set the fonttype to be Arial
+plt.rcParams["font.family"] = "Arial"
+# set the font size's default value
+plt.rcParams.update({"font.size": 10})
+ts = {"fontname": "Times New Roman"}
+cm = 1 / 2.54  # centimeters in inches
 
 
 def processNGAfile(filepath, scalefactor=None):
-    """
-    This function process acceleration history for NGA data file (.AT2 format)
-    to a single column value and return the total number of data points and
-    time iterval of the recording.
-    Parameters:
-    ------------
-    filepath : string (location and name of the file)
-    scalefactor : float (Optional) - multiplier factor that is applied to each
-                  component in acceleration array.
-
-    Output:
-    ------------
-    desc: Description of the earthquake (e.g., name, year, etc)
-    npts: total number of recorded points (acceleration data)
-    dt: time interval of recorded points
-    time: array (n x 1) - time array, same length with npts
-    inp_acc: array (n x 1) - acceleration array, same length with time
-             unit usually in (g) unless stated as other.
-
-    Example: (plot time vs acceleration)
-    filepath = os.path.join(os.getcwd(),'motion_1')
-    desc, npts, dt, time, inp_acc = processNGAfile (filepath)
-    plt.plot(time,inp_acc)
-
-    """
     try:
         if not scalefactor:
             scalefactor = 1.0
@@ -85,10 +62,31 @@ def plot_ground_motion():
         "./dataset/bists/RSN826_CAPEMEND_EUR000.AT2",
         "./dataset/bists/RSN832_LANDERS_ABY000.AT2",
     ]
-    factors = [1, 6, 8, 8, 2, 5]
-    fig, axs = plt.subplots(3, 2, figsize=(15, 10))
+    xlim_list = [[0, 40], [0, 70], [0, 40], [0, 50], [0, 40], [0, 50]]
+    ylim_list = [
+        [-0.6, 0.6],
+        [-0.4, 0.4],
+        [-0.9, 0.9],
+        [-0.7, 0.7],
+        [-0.4, 0.4],
+        [-0.7, 0.7],
+    ]
+    factors = [1, 6, 5, 4, 2, 5]
+    fig, axs = plt.subplots(3, 2, figsize=(22 * cm, 10 * cm))
     for i, acc_file_i in enumerate(acc_file_name_list):
         _, _, _, time, inp_acc = processNGAfile(acc_file_i)
-        acc_g = inp_acc * 9.81 * factors[i]
-        axs[i // 2, i % 2].plot(time, acc_g)
+        acc_g = inp_acc * factors[i]
+        axs[i // 2, i % 2].plot(time, acc_g, "k", linewidth=0.8)
+        axs[i // 2, i % 2].tick_params(
+            which="both", direction="in", right=True, top=True
+        )
+        axs[i // 2, i % 2].grid(True)
+        axs[i // 2, i % 2].set_xlim(xlim_list[i])
+        axs[i // 2, i % 2].set_ylim([-0.6, 0.6])
+        axs[i // 2, i % 2].set_yticks(np.arange(-0.6, 0.7, 0.3))
+        if i == 2:
+            axs[i // 2, i % 2].set_ylabel(r"Acceleration (g)")
+        if i == 4 or i == 5:
+            axs[i // 2, i % 2].set_xlabel("Time (s)")
+    plt.savefig("./figures/strong_ground_motion.svg", bbox_inches="tight")
     plt.show()

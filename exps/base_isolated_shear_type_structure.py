@@ -76,23 +76,6 @@ def processNGAfile(filepath, scalefactor=None):
         print("processMotion FAILED!: File is not in the directory")
 
 
-def plot_ground_motion():
-    acc_file_name_list = [
-        "./dataset/bists/ath.KOBE.NIS000.AT2",
-        "./dataset/bists/RSN12_KERN.PEL_PEL090.AT2",
-        "./dataset/bists/RSN137_TABAS_BAJ-L1.AT2",
-        "./dataset/bists/RSN570_SMART1.45_45C00DN.AT2",
-        "./dataset/bists/RSN826_CAPEMEND_EUR000.AT2",
-        "./dataset/bists/RSN832_LANDERS_ABY000.AT2",
-    ]
-    for acc_file_i in acc_file_name_list:
-        _, _, _, time, inp_acc = processNGAfile(acc_file_i)
-        acc_g = inp_acc * 9.81
-        plt.plot(time, acc_g)
-        plt.title("Ground motion")
-        plt.show()
-
-
 def seismic_response():
     acc_file_name_list = [
         "./dataset/bists/ath.KOBE.NIS000.AT2",
@@ -102,7 +85,7 @@ def seismic_response():
         "./dataset/bists/RSN826_CAPEMEND_EUR000.AT2",
         "./dataset/bists/RSN832_LANDERS_ABY000.AT2",
     ]
-    factors = [1, 6, 8, 8, 2, 5]
+    factors = [1, 6, 5, 4, 2, 5]
 
     for i, acc_file_i in enumerate(acc_file_name_list):
         _, _, _, time, inp_acc = processNGAfile(acc_file_i)
@@ -152,38 +135,13 @@ def seismic_response():
 
         file_name = (
             "./dataset/bists/solution"
-            + format(acc_file_name_list.index(acc_file_i) + 1, "03")
+            + format(acc_file_name_list.index(acc_file_i), "03")
             + ".pkl"
         )
         with open(file_name, "wb") as f:
             pickle.dump(solution, f)
         print("File " + file_name + " saved.")
     return solution
-
-
-def plot_response():
-    solution = seismic_response()
-    time = solution["time"]
-    acc = solution["acc"]
-    disp = solution["disp"]
-    acc_g = solution["acc_g"]
-    z = solution["z"]
-    plt.plot(time, acc_g.T, label="Ground motion")
-    plt.legend()
-    plt.show()
-    plt.plot(time, disp[0, :].T, label="Ground floor displacement")
-    plt.plot(time, disp[8, :].T + disp[0, :].T, label="8th floor displacement")
-    plt.plot(time, disp[12, :].T + disp[0, :].T, label="12th floor displacement")
-    plt.legend()
-    plt.show()
-    plt.plot(time, np.squeeze(z))
-    plt.title("Base isolation system displacement")
-    plt.show()
-    plt.plot(time, acc[0, :].T, label="Ground floor acceleration")
-    plt.plot(time, acc[8, :].T + acc[0, :].T, label="8th floor acceleration")
-    plt.plot(time, acc[12, :].T + acc[0, :].T, label="12th floor acceleration")
-    plt.legend()
-    plt.show()
 
 
 def validation():
