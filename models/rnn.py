@@ -36,7 +36,6 @@ class Rnn(nn.Module):
 
     def forward(self, u, h0):
         y, hn = self.rnn(u, h0)
-        y = self.tanh(y)
         y = self.linear(y)
         y = self.tanh(y)
         y = self.linear2(y)

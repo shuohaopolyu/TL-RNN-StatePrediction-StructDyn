@@ -850,7 +850,7 @@ def tr_birnn(output="all"):
             measured_drift_test,
             lr,
             epochs,
-            unfrozen_params=[0, 1],
+            unfrozen_params=[0, 1, 2, 3],
             output="disp",
             num=i,
         )
