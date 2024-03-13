@@ -1,12 +1,14 @@
 from systems import ShearTypeStructure
 import numpy as np
 import pickle
-from utils import compute_metrics, fdd, mac
-from models import Rnn, Lstm
+from utils import mac
+from models import Rnn
 import torch
 import matplotlib.pyplot as plt
 from excitations import FlatNoisePSD, PSDExcitationGenerator
 from numpy import linalg as LA
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def modal_analysis():
@@ -196,9 +198,12 @@ def validation(method="Radau"):
 
 
 def training_test_data(
-    acc_sensor, data_compression_ratio=1, num_training_files=40, num_files=100
+    acc_sensor,
+    data_compression_ratio=1,
+    num_training_files=40,
+    num_files=100,
+    output="all",
 ):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     disp = []
     velo = []
     acc = []
@@ -213,7 +218,12 @@ def training_test_data(
             solution = pickle.load(f)
         disp = solution["disp"][:, ::data_compression_ratio].T
         velo = solution["velo"][:, ::data_compression_ratio].T
-        state.append(np.hstack((disp, velo)))
+        if output == "all":
+            state.append(np.hstack((disp, velo)))
+        elif output == "disp":
+            state.append(disp)
+        elif output == "velo":
+            state.append(velo)
         acc.append(solution["acc"][acc_sensor, ::data_compression_ratio].T)
     for i in range(num_training_files, num_files):
         filename = "./dataset/sts/solution" + format(i, "03") + ".pkl"
@@ -221,7 +231,12 @@ def training_test_data(
             solution = pickle.load(f)
         disp_test = solution["disp"][:, ::data_compression_ratio].T
         velo_test = solution["velo"][:, ::data_compression_ratio].T
-        state_test.append(np.hstack((disp_test, velo_test)))
+        if output == "all":
+            state_test.append(np.hstack((disp_test, velo_test)))
+        elif output == "disp":
+            state_test.append(disp_test)
+        elif output == "velo":
+            state_test.append(velo_test)
         acc_test.append(solution["acc"][acc_sensor, ::data_compression_ratio].T)
     state = np.array(state)
     state_test = np.array(state_test)
@@ -242,22 +257,22 @@ def _birnn(
     epochs=10000,
     lr=1e-4,
     weight_decay=0.0,
+    output="all",
 ):
     """
     :param acc_sensor: (list) list of accelerometer locations
     :param data_compression_ratio: (int) data compression ratio
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     state, acc, state_test, acc_test = training_test_data(
-        acc_sensor, data_compression_ratio, num_training_files, num_files
+        acc_sensor, data_compression_ratio, num_training_files, num_files, output
     )
     train_set = {"X": acc, "Y": state}
     test_set = {"X": acc_test, "Y": state_test}
-
+    output_size = 26 if output == "all" else 13
     RNN_model_disp = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
-        output_size=26,
+        output_size=output_size,
         num_layers=1,
         bidirectional=True,
     )
@@ -295,7 +310,6 @@ def _rnn(
     :param acc_sensor: (list) list of accelerometer locations
     :param data_compression_ratio: (int) data compression ratio
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     state, acc, state_test, acc_test = training_test_data(
         acc_sensor, data_compression_ratio, num_training_files
     )
@@ -330,24 +344,27 @@ def _rnn(
     return train_loss_list, test_loss_list
 
 
-def build_birnn():
+def build_birnn(output="all"):
     dr = 1
     ntf = 90
     nf = 100
     acc_sensor = [0, 1, 2, 3, 4]
+    output_size = 26 if output == "all" else 13
+    epochs = 50000 if output == "all" else 40000
     _, _ = _birnn(
         acc_sensor,
         data_compression_ratio=dr,
         num_training_files=ntf,
         num_files=nf,
-        epochs=50000,
+        epochs=epochs,
         lr=1e-5,
         weight_decay=0.0,
+        output=output,
     )
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
-        output_size=26,
+        output_size=output_size,
         num_layers=1,
         bidirectional=True,
     )
@@ -355,9 +372,8 @@ def build_birnn():
         RNN4ststate.load_state_dict(torch.load(f))
 
     RNN4ststate.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     test_h0 = torch.zeros(2, nf - ntf, 30).to(device)
-    _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf)
+    _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf, nf, output)
     with torch.no_grad():
         state_pred, _ = RNN4ststate(acc_test, test_h0)
     state_pred = state_pred.cpu().numpy()
@@ -393,7 +409,6 @@ def build_rnn():
     with open("./dataset/sts/rnn.pth", "rb") as f:
         RNN4ststate.load_state_dict(torch.load(f))
     RNN4ststate.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     test_h0 = torch.zeros(1, nf - ntf, 30).to(device)
     _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf)
     with torch.no_grad():
@@ -563,8 +578,19 @@ def dkf():
         pickle.dump({"disp_pred": disp_pred, "velo_pred": velo_pred}, f)
 
 
-def generate_seismic_response(acc_sensor, num_seismic):
-    # list that contains num_seismic number of acc arrays, each of shape (len(time_interpolated), len(acc_sensor))
+def generate_seismic_response(acc_sensor, num_seismic, output="all"):
+    """
+    generate seismic response from the high-fidelity model (real-world structure)
+
+    Args:
+        acc_sensor (list): a list of accelerometer locations
+        num_seismic (int): number of seismic response to be generated
+
+    Returns:
+        acc_list (list): a list containing num_seismic acceleration tensors, each tensor has the shape of (n_t, n_sensor)
+        state_list (list): a list containing num_seismic state tensors, each tensor has the shape of (n_t, n_state)
+    """
+
     acc_list = []
     state_list = []
     for i in range(num_seismic):
@@ -583,7 +609,12 @@ def generate_seismic_response(acc_sensor, num_seismic):
         velo[:, 1:] = velo[:, 1:] + np.tile(
             velo[:, 0].reshape(-1, 1), (1, velo.shape[1] - 1)
         )
-        state = np.hstack((disp, velo))
+        if output == "all":
+            state = np.hstack((disp, velo))
+        elif output == "disp":
+            state = disp
+        elif output == "velo":
+            state = velo
         time = solution["time"]
         time_interpolated = np.arange(time[0], time[-1], 1 / 20)
         acc_interpolated = np.zeros((len(time_interpolated), acc.shape[1]))
@@ -592,38 +623,103 @@ def generate_seismic_response(acc_sensor, num_seismic):
             acc_interpolated[:, j] = np.interp(time_interpolated, time, acc[:, j])
         for j in range(state.shape[1]):
             state_interpolated[:, j] = np.interp(time_interpolated, time, state[:, j])
+        acc_interpolated = torch.tensor(acc_interpolated, dtype=torch.float32).to(
+            device
+        )
+        state_interpolated = torch.tensor(state_interpolated, dtype=torch.float32).to(
+            device
+        )
         acc_list.append(acc_interpolated)
         state_list.append(state_interpolated)
     return acc_list, state_list
 
 
-def birnn_seismic_pred():
+def generate_floor_drift(num_seismic, floors):
+    # a good paper: A CRITICAL ASSESSMENT OF INTERSTORY DRIFT MEASUREMENTS
+    """
+    generate floor drifts from the seismic response
+
+    Args:
+        num_seismic (int): number of seismic response to be generated
+        floors (list): a list of floor pairs, e.g., [[1,2], [3,4], [5,6], [9,11]]
+
+    Returns:
+        drift_list (list): a list of tensors, each of shape (nt, len(floors))
+    """
+    drift_list = []
+
+    for i in range(num_seismic):
+        file_name = "./dataset/bists/solution" + format(i, "03") + ".pkl"
+        with open(file_name, "rb") as f:
+            solution = pickle.load(f)
+        disp = solution["disp"].T
+        disp[:, 1:] = disp[:, 1:] + np.tile(
+            disp[:, 0].reshape(-1, 1), (1, disp.shape[1] - 1)
+        )
+        time = solution["time"]
+        time_interpolated = np.arange(time[0], time[-1], 1 / 20)
+        disp_interpolated = np.zeros((len(time_interpolated), disp.shape[1]))
+        for j in range(disp.shape[1]):
+            disp_interpolated[:, j] = np.interp(time_interpolated, time, disp[:, j])
+        drift_mtx = np.zeros((len(time_interpolated), len(floors)))
+        for j in range(len(floors)):
+            drift_mtx[:, j] = (
+                disp_interpolated[:, floors[j][1]] - disp_interpolated[:, floors[j][0]]
+            )
+        drift_tensor = torch.tensor(drift_mtx, dtype=torch.float32).to(device)
+        drift_list.append(drift_tensor)
+    return drift_list
+
+
+def floor_drift_pred(RNN4ststate, acc_tensor, floors):
+    """compute floor drifts from the rnn and birnn predictions
+
+    Args:
+        RNN4ststate (obj): rnn or birnn model
+        acc_tensor (tensor): acceleration tensor of shape (nt, n_sensor)
+        floors (list): a list of floor pairs, e.g., [[1,2], [3,4], [5,6], [9,11]]
+
+    Returns:
+        drift_pred: a tensor of shape (nt, len(floors))
+    """
+    if RNN4ststate.bidirectional:
+        h0 = torch.zeros(2, 1, 30).to(device)
+    else:
+        h0 = torch.zeros(1, 1, 30).to(device)
+    state_pred, _ = RNN4ststate(acc_tensor, h0)
+    state_pred = state_pred.squeeze()
+    disp_pred = state_pred[:, 0:13]
+    drift_pred = torch.zeros(disp_pred.shape[0], len(floors)).to(device)
+    for i in range(len(floors)):
+        drift_pred[:, i] = disp_pred[:, floors[i][1]] - disp_pred[:, floors[i][0]]
+    return drift_pred
+
+
+def birnn_seismic_pred(output="all"):
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 6
+    output_size = 26 if output == "all" else 13
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
-        output_size=26,
+        output_size=output_size,
         num_layers=1,
         bidirectional=True,
     )
     with open("./dataset/sts/birnn.pth", "rb") as f:
         RNN4ststate.load_state_dict(torch.load(f))
-
     RNN4ststate.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     test_h0 = torch.zeros(2, 1, 30).to(device)
     acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
     state_pred_list = []
     with torch.no_grad():
         for i in range(num_seismic):
-            acc_tensor = torch.tensor(acc_list[i], dtype=torch.float32).to(device)
-            acc_tensor = acc_tensor.unsqueeze(0)
+            acc_tensor = acc_list[i].unsqueeze(0)
             state_pred, _ = RNN4ststate(acc_tensor, test_h0)
             state_pred = state_pred.squeeze()
             state_pred = state_pred.cpu().numpy()
             state_pred_list.append(state_pred)
-    i_th_state_true = state_list[0]
+    i_th_state_true = state_list[0].cpu().numpy()
     i_th_state_pred = state_pred_list[0]
     plt.plot(i_th_state_true[:, 8], label="Ground truth")
     plt.plot(i_th_state_pred[:, 8], label="Prediction", linestyle="--")
@@ -633,7 +729,7 @@ def birnn_seismic_pred():
 
 def rnn_seismic_pred():
     acc_sensor = [0, 1, 2, 3, 4]
-    num_seismic = 1
+    num_seismic = 6
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
@@ -645,35 +741,173 @@ def rnn_seismic_pred():
         RNN4ststate.load_state_dict(torch.load(f))
 
     RNN4ststate.eval()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     test_h0 = torch.zeros(1, 1, 30).to(device)
     acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
     state_pred_list = []
     with torch.no_grad():
         for i in range(num_seismic):
-            acc_tensor = torch.tensor(acc_list[i], dtype=torch.float32).to(device)
-            acc_tensor = acc_tensor.unsqueeze(0)
+            acc_tensor = acc_list[i].unsqueeze(0)
             state_pred, _ = RNN4ststate(acc_tensor, test_h0)
             state_pred = state_pred.squeeze()
             state_pred = state_pred.cpu().numpy()
             state_pred_list.append(state_pred)
-    i_th_state_true = state_list[0]
+    i_th_state_true = state_list[0].cpu().numpy()
     i_th_state_pred = state_pred_list[0]
-    plt.plot(i_th_state_true[:, 8], label="Ground truth")
-    plt.plot(i_th_state_pred[:, 8], label="Prediction", linestyle="--")
-    plt.legend()
-    plt.show()
+    # plt.plot(i_th_state_true[:, 0], label="Ground truth")
+    # plt.plot(i_th_state_pred[:, 0], label="Prediction", linestyle="--")
+    # plt.plot(i_th_state_true[:, 1], label="Ground truth")
+    # plt.plot(i_th_state_pred[:, 1], label="Prediction", linestyle="--")
+    # plt.plot(i_th_state_true[:, 1] - i_th_state_true[:, 0], label="Ground truth")
+    # plt.legend()
+    # plt.show()
 
 
-def floor_drifts(num_seismic, floors):
-    # a good paper: A CRITICAL ASSESSMENT OF INTERSTORY DRIFT MEASUREMENTS
-    # floors is a list, e.g., [[1,2], [3,4], [5,6], [9,11]]
-    disp_list = []
+def tr_training(
+    RNN4ststate,
+    acc_tensor,
+    floor_train,
+    floor_test,
+    measured_drift_train,
+    measured_drift_test,
+    lr,
+    epochs,
+    unfrozen_params,
+    output,
+    num,
+):
+    loss_fun = torch.nn.MSELoss(reduction="mean")
+
+    for j, param in enumerate(RNN4ststate.parameters()):
+        print(j, param.shape)
+        param.requires_grad = False
+        if j in unfrozen_params:
+            param.requires_grad = True
+    optimizer = torch.optim.Adam(RNN4ststate.parameters(), lr=lr)
+    loss_history = []
+    # test the prediction
+    _, state_list = generate_seismic_response([0, 1, 2, 3, 4], 6, output)
+    h0 = torch.zeros(2, 1, 30).to(device)
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+        drift_pred_train = floor_drift_pred(RNN4ststate, acc_tensor, floor_train)
+        RNN4ststate.train()
+        loss = loss_fun(drift_pred_train, measured_drift_train)
+        loss.backward()
+        optimizer.step()
+        if epoch % 500 == 0:
+            drift_pred_test = floor_drift_pred(RNN4ststate, acc_tensor, floor_test)
+            test_loss = loss_fun(drift_pred_test, measured_drift_test)
+            loss_history.append([loss.item(), test_loss.item()])
+            print(
+                f"Epoch {epoch}, Training Loss: {loss.item()}, Test Loss: {test_loss.item()}"
+            )
+            # test the prediction
+            state_pred, _ = RNN4ststate(acc_tensor, h0)
+            state_pred = state_pred.squeeze()
+            state_pred = state_pred.cpu().detach().numpy()
+            plt.plot(state_list[num].cpu().numpy()[:, 8], label="Ground truth")
+            plt.plot(state_pred[:, 8], label="Prediction", linestyle="--")
+            plt.legend()
+            plt.show()
+    return loss_history
+
+
+def tr_birnn(output="all"):
+    # transfer learning of birnn
+    acc_sensor = [0, 1, 2, 3, 4]
+    num_seismic = 6
+    floors_train = [
+        [2, 3],
+        [5, 6],
+        [8, 9],
+    ]
+    floors_test = [[4, 5]]
+    acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
+    drift_train_list = generate_floor_drift(num_seismic, floors_train)
+    drift_test_list = generate_floor_drift(num_seismic, floors_test)
+    lr = 1e-6
+    epochs = 3000
+    output_size = 26 if output == "all" else 13
     for i in range(num_seismic):
-        file_name = "./dataset/bists/solution" + format(i, "03") + ".pkl"
-        with open(file_name, "rb") as f:
-            solution = pickle.load(f)
-        disp = solution["disp"].T
-        for j in range(len(floors)):
-            disp_list.append(disp[floors[j][1], :] - disp[floors[j][0], :])
-    return disp_list
+        RNN4ststate = Rnn(
+            input_size=len(acc_sensor),
+            hidden_size=30,
+            output_size=output_size,
+            num_layers=1,
+            bidirectional=True,
+        )
+        with open("./dataset/sts/birnn.pth", "rb") as f:
+            RNN4ststate.load_state_dict(torch.load(f))
+        acc_tensor = acc_list[i].unsqueeze(0)
+        measured_drift_train = drift_train_list[i]
+        measured_drift_test = drift_test_list[i]
+        loss_history = tr_training(
+            RNN4ststate,
+            acc_tensor,
+            floors_train,
+            floors_test,
+            measured_drift_train,
+            measured_drift_test,
+            lr,
+            epochs,
+            unfrozen_params=[0, 1],
+            output="disp",
+            num=i,
+        )
+        with open("./dataset/sts/tr_birnn" + format(i, "03") + ".pkl", "wb") as f:
+            pickle.dump(loss_history, f)
+        loss_history = np.array(loss_history)
+        plt.plot(loss_history[:, 0], label="Training Loss")
+        plt.plot(loss_history[:, 1], label="Test Loss")
+        plt.legend()
+        plt.show()
+
+
+def tr_rnn():
+    # transfer learning for rnn
+    acc_sensor = [0, 1, 2, 3, 4]
+    num_seismic = 6
+    floors_train = [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 4],
+        [4, 5],
+        [5, 6],
+        [6, 7],
+        [7, 8],
+        [8, 9],
+        [9, 10],
+        [10, 11],
+        [11, 12],
+    ]
+    floors_test = [[5, 6]]
+    acc_list, _ = generate_seismic_response(acc_sensor, num_seismic)
+    drift_train_list = generate_floor_drift(num_seismic, floors_train)
+    drift_test_list = generate_floor_drift(num_seismic, floors_test)
+    lr = 1e-3
+    epochs = 10000
+    for i in range(num_seismic):
+        RNN4ststate = Rnn(
+            input_size=len(acc_sensor),
+            hidden_size=30,
+            output_size=26,
+            num_layers=1,
+            bidirectional=False,
+        )
+        with open("./dataset/sts/rnn.pth", "rb") as f:
+            RNN4ststate.load_state_dict(torch.load(f))
+        acc_tensor = acc_list[i].unsqueeze(0)
+        measured_drift_train = drift_train_list[i]
+        measured_drift_test = drift_test_list[i]
+        loss_history = tr_training(
+            RNN4ststate,
+            acc_tensor,
+            floors_train,
+            floors_test,
+            measured_drift_train,
+            measured_drift_test,
+            lr,
+            epochs,
+            unfrozen_params=[3, 4, 5],
+        )

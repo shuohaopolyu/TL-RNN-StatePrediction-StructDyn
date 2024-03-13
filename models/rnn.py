@@ -22,6 +22,7 @@ class Rnn(nn.Module):
             batch_first=True,
             bias=False,
         ).to(device)
+        self.bidirectional = bidirectional
         self.hidden_size = hidden_size
         if bidirectional:
             self.linear = nn.Linear(2 * hidden_size, output_size, bias=False).to(device)
@@ -30,12 +31,13 @@ class Rnn(nn.Module):
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
         self.linear2 = nn.Linear(output_size, output_size, bias=False).to(device)
+        # self.linear3 = nn.Linear(output_size, output_size, bias=False).to(device)
+        # self.linear4 = nn.Linear(output_size, output_size, bias=False).to(device)
 
     def forward(self, u, h0):
         y, hn = self.rnn(u, h0)
-        y = self.linear(y)
         y = self.tanh(y)
-        y = self.linear2(y)
+        y = self.linear(y)
         y = self.tanh(y)
         y = self.linear2(y)
         return y, hn

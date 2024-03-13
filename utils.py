@@ -5,25 +5,24 @@ import numpy.linalg as LA
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def rmse_loss(pred, target):
-    return (torch.sqrt(torch.mean((pred - target)**2))).cpu().detach().numpy()
 
-def mae_loss(pred, target):
-    return (torch.mean(torch.abs(pred - target))).cpu().detach().numpy()
-
-def mse_loss(pred, target):
-    return (torch.mean((pred - target)**2)).cpu().detach().numpy()
-
-def compute_metrics(pred, target):
-    rmse = rmse_loss(pred, target)
-    mae = mae_loss(pred, target)
-    mse = mse_loss(pred, target)
-    return np.array([rmse, mae, mse])
-
-def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20, psd=False):
+def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20):
     # implementation of frequency domain decomposition
-    # signal should in matrix form, whose dimension is ns*n_t
+    # this function is not used in the final version, I used pyoma2 instead.
+    # signal should prepared in matrix form, whose dimension is ns*n_t
     # will return the mode shapes and the natural frequency
+    """_summary_
+    Args:
+        signal_mtx (array): signal matrix, whose dimension is ns*n_t
+        f_lb (float): lower bound of frequency. Defaults to 0.3.
+        f_ub (float): upper bound of frequency. Defaults to 0.8.
+        nperseg_num (int): number of data points in each segment. Defaults to 1000.
+        fs (int): sampling frequency. Defaults to 20.
+
+    Returns:
+        ms_peak (array): mode shape
+        nf (float): natural frequency
+    """
     w_f = []
     w_acc = []
     for i in range(signal_mtx.shape[0]):
@@ -46,19 +45,14 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20, psd=False):
     nf_idx = idx[0]+nf_temp_idx
     nf = w_f[0][nf_idx]
     ms_peak = np.array(ms)[nf_temp_idx, :]
-    if not psd:
-        return ms_peak, nf
-    else:
-        return tru_w_f, np.array(sv)
+    return ms_peak, nf
+
 
 
 def mac(pred, target):
     # pred and target are both mode shapes
     return np.abs(np.dot(pred, target))**2 / (np.dot(pred, pred) * np.dot(target, target))
 
-def self_psd(f_n, zeta, q, f_test):
-    h = ((1-(f_test/f_n)**2)/((1-(f_test/f_n)**2)**2+(2*zeta*f_test/f_n)**2) - 1j*2*zeta*f_test/f_n/((1-(f_test/f_n)**2)**2+(2*zeta*f_test/f_n)**2)) * q
-    return np.abs(h)**2
 
 def similarity(pred, target):
     # pred and target are 3d array, whose dimension is 10*800*26
