@@ -23,7 +23,7 @@ if __name__ == "__main__":
     # shear_type_structure.modal_analysis()
     # shear_type_structure.model_updating(num_modes=5)
     # shear_type_structure.seismic_response(num=100)
-    # shear_type_structure.build_birnn()
+    shear_type_structure.build_birnn()
     # shear_type_structure.build_rnn()
     # shear_type_structure.tune_dkf_params()
     # shear_type_structure.dkf()
