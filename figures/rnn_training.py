@@ -5,6 +5,7 @@ from models import Rnn
 from exps import shear_type_structure
 import pickle
 from utils import similarity
+
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Arial"
 # set the font size's default value
@@ -20,12 +21,15 @@ def loss_curve():
     loss_save_path = "./dataset/sts/rnn.pkl"
     with open(loss_save_path, "rb") as f:
         rnn = torch.load(f)
-    epoch = np.arange(1, (len(birnn["train_loss_list"])) * 200, 200)
+    epoch_birnn = np.arange(1, (len(birnn["train_loss_list"])) * 200, 200)
+    epoch_rnn = np.arange(1, (len(rnn["train_loss_list"])) * 200, 200)
     plt.figure(figsize=(10 * cm, 8 * cm))
-    plt.plot(epoch, birnn["train_loss_list"], color="r", linewidth=1.5)
-    plt.plot(epoch, birnn["test_loss_list"], color="r", linestyle="--", linewidth=1.5)
-    plt.plot(epoch, rnn["train_loss_list"], color="b", linewidth=1.5)
-    plt.plot(epoch, rnn["test_loss_list"], color="b", linestyle="--", linewidth=1.5)
+    plt.plot(epoch_birnn, birnn["train_loss_list"], color="r", linewidth=1.5)
+    plt.plot(
+        epoch_birnn, birnn["test_loss_list"], color="r", linestyle="--", linewidth=1.5
+    )
+    plt.plot(epoch_rnn, rnn["train_loss_list"], color="b", linewidth=1.5)
+    plt.plot(epoch_rnn, rnn["test_loss_list"], color="b", linestyle="--", linewidth=1.5)
     plt.tick_params(which="both", direction="in")
     plt.legend(
         ["BiRNN training", "BiRNN test", "RNN training", "RNN test"],
@@ -33,8 +37,11 @@ def loss_curve():
         facecolor="white",
         edgecolor="black",
     )
-    plt.xlim(0, 50000)
-    plt.xticks([0, 10000, 20000, 30000, 40000, 50000], ["0", "1", "2", "3", "4", "5"])
+    plt.xlim(0, 80000)
+    plt.xticks(
+        [0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000],
+        ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+    )
     plt.yscale("log")
     plt.xlabel(r"Epoch ($\times 10^4$)")
     plt.ylabel("Loss")
@@ -60,7 +67,7 @@ def disp_pred():
         num_layers=1,
         bidirectional=False,
     )
-    time = np.arange(0, 40, 1/20)
+    time = np.arange(0, 40, 1 / 20)
     with open("./dataset/sts/rnn.pth", "rb") as f:
         RNN4ststate.load_state_dict(torch.load(f))
     with open("./dataset/sts/birnn.pth", "rb") as f:
@@ -91,41 +98,43 @@ def disp_pred():
     dkf_state_pred[file_idx, 1:] = dkf_state_pred[file_idx, :-1]
     dkf_state_pred[file_idx, 0] = 0
     plt.figure(figsize=(20 * cm, 8 * cm))
-    plt.plot(time, state_test[file_idx, :]*100, label="Ref.", color="k", linewidth=1.2)
-    plt.plot(time,
-        birnn_state_pred[file_idx, :]*100,
+    plt.plot(
+        time, state_test[file_idx, :] * 100, label="Ref.", color="k", linewidth=1.2
+    )
+    plt.plot(
+        time,
+        birnn_state_pred[file_idx, :] * 100,
         label="BiRNN pred.",
         linestyle="--",
         color="r",
         linewidth=1.2,
     )
-    plt.plot(time,
-        rnn_state_pred[file_idx, :]*100,
+    plt.plot(
+        time,
+        rnn_state_pred[file_idx, :] * 100,
         label="RNN pred.",
         linestyle="-.",
         color="b",
         linewidth=1.2,
     )
-    plt.plot(time,
-        dkf_state_pred[file_idx, :]*100,
+    plt.plot(
+        time,
+        dkf_state_pred[file_idx, :] * 100,
         label="DKF pred.",
         linestyle=":",
         color="g",
         linewidth=1.2,
     )
-    plt.legend(
-        fontsize=10,
-        facecolor="white",
-        edgecolor="black",
-        ncol=4
-    )
+    plt.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=4)
     plt.grid(True)
     plt.xlabel("Time (s)")
     plt.ylabel("Displacement (cm)")
     plt.tick_params(which="both", direction="in")
     plt.xlim(0, 40)
-    plt.ylim(-0.5*100, 0.5*100)
-    plt.text(0.9, 0.125, "9th floor", ha="center", va="center", transform=plt.gca().transAxes)
+    plt.ylim(-0.5 * 100, 0.5 * 100)
+    plt.text(
+        0.9, 0.125, "9th floor", ha="center", va="center", transform=plt.gca().transAxes
+    )
     plt.savefig("./figures/disp_pred.svg", bbox_inches="tight")
     plt.show()
 
@@ -147,7 +156,7 @@ def velo_pred():
         num_layers=1,
         bidirectional=False,
     )
-    time = np.arange(0, 40, 1/20)
+    time = np.arange(0, 40, 1 / 20)
     with open("./dataset/sts/rnn.pth", "rb") as f:
         RNN4ststate.load_state_dict(torch.load(f))
     with open("./dataset/sts/birnn.pth", "rb") as f:
@@ -179,34 +188,39 @@ def velo_pred():
     dkf_state_pred[file_idx, 0] = 0
     plt.figure(figsize=(20 * cm, 8 * cm))
     plt.plot(time, state_test[file_idx, :], label="Ref.", color="k", linewidth=1.2)
-    plt.plot(time,
+    plt.plot(
+        time,
         birnn_state_pred[file_idx, :],
         label="BiRNN pred.",
         linestyle="--",
         color="r",
         linewidth=1.2,
     )
-    plt.plot(time,
+    plt.plot(
+        time,
         rnn_state_pred[file_idx, :],
         label="RNN pred.",
         linestyle="-.",
         color="b",
         linewidth=1.2,
     )
-    plt.plot(time,
+    plt.plot(
+        time,
         dkf_state_pred[file_idx, :],
         label="DKF pred.",
         linestyle=":",
         color="g",
         linewidth=1.2,
     )
-    plt.legend(
-        fontsize=10,
-        facecolor="white",
-        edgecolor="black",
-        ncol=4
+    plt.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=4)
+    plt.text(
+        0.9,
+        0.125,
+        "13th floor",
+        ha="center",
+        va="center",
+        transform=plt.gca().transAxes,
     )
-    plt.text(0.9, 0.125, "13th floor", ha="center", va="center", transform=plt.gca().transAxes)
     plt.grid(True)
     plt.xlabel("Time (s)")
     plt.ylabel("Velocity (m/s)")
@@ -215,6 +229,7 @@ def velo_pred():
     plt.ylim(-3, 3)
     plt.savefig("./figures/velo_pred.svg", bbox_inches="tight")
     plt.show()
+
 
 def performance_evaluation():
     BiRNN4ststate = Rnn(
@@ -255,14 +270,14 @@ def performance_evaluation():
     state_test = state_test.cpu().numpy()
     dkf_pred_disp = dkf_pred["disp_pred"]
     dkf_pred_velo = dkf_pred["velo_pred"]
-    dkf_pred_disp[:,1:, :] = dkf_pred_disp[:,:-1, :]
-    dkf_pred_disp[:,0, :] = 0
-    dkf_pred_velo[:,1:, :] = dkf_pred_velo[:,:-1, :]
-    dkf_pred_velo[:,0, :] = 0
+    dkf_pred_disp[:, 1:, :] = dkf_pred_disp[:, :-1, :]
+    dkf_pred_disp[:, 0, :] = 0
+    dkf_pred_velo[:, 1:, :] = dkf_pred_velo[:, :-1, :]
+    dkf_pred_velo[:, 0, :] = 0
     err_mtx_rnn = similarity(rnn_state_pred, state_test)
     err_mtx_birnn = similarity(birnn_state_pred, state_test)
     err_mtx_dkf_disp = similarity(dkf_pred_disp, state_test)
-    err_mtx_dkf_velo = similarity(dkf_pred_velo, state_test[:,:,13:])
+    err_mtx_dkf_velo = similarity(dkf_pred_velo, state_test[:, :, 13:])
     mean_err_rnn_disp = np.mean(err_mtx_rnn[:, 0:13])
     mean_err_birnn_disp = np.mean(err_mtx_birnn[:, 0:13])
     mean_err_dkf_disp = np.mean(err_mtx_dkf_disp)
@@ -278,8 +293,8 @@ def performance_evaluation():
     plt.figure(figsize=(10 * cm, 8 * cm))
     plt.bar(
         np.arange(3),
-        [mean_err_rnn_disp*100, mean_err_birnn_disp*100, mean_err_dkf_disp*100],
-        yerr=[std_err_rnn_disp*100, std_err_birnn_disp*100, std_err_dkf_disp*100],
+        [mean_err_rnn_disp * 100, mean_err_birnn_disp * 100, mean_err_dkf_disp * 100],
+        yerr=[std_err_rnn_disp * 100, std_err_birnn_disp * 100, std_err_dkf_disp * 100],
         capsize=5,
         color="b",
     )
@@ -292,8 +307,8 @@ def performance_evaluation():
     plt.figure(figsize=(10 * cm, 8 * cm))
     plt.bar(
         np.arange(3),
-        [mean_err_rnn_velo*100, mean_err_birnn_velo*100, mean_err_dkf_velo*100],
-        yerr=[std_err_rnn_velo*100, std_err_birnn_velo*100, std_err_dkf_velo*100],
+        [mean_err_rnn_velo * 100, mean_err_birnn_velo * 100, mean_err_dkf_velo * 100],
+        yerr=[std_err_rnn_velo * 100, std_err_birnn_velo * 100, std_err_dkf_velo * 100],
         capsize=5,
         color="r",
     )
@@ -302,5 +317,3 @@ def performance_evaluation():
     plt.title("Velocity")
     plt.savefig("./figures/performance_velo.svg", bbox_inches="tight")
     plt.show()
-
-

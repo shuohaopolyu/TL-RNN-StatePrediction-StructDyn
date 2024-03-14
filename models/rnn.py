@@ -32,7 +32,8 @@ class Rnn(nn.Module):
         self.tanh = nn.Tanh()
         self.linear2 = nn.Linear(output_size, output_size, bias=False).to(device)
         self.linear3 = nn.Linear(output_size, output_size, bias=False).to(device)
-        # self.linear4 = nn.Linear(output_size, output_size, bias=False).to(device)
+        self.linear4 = nn.Linear(output_size, output_size, bias=False).to(device)
+        self.linear5 = nn.Linear(output_size, output_size, bias=False).to(device)
 
     def forward(self, u, h0):
         y, hn = self.rnn(u, h0)
@@ -41,6 +42,8 @@ class Rnn(nn.Module):
         y = self.linear2(y)
         y = self.tanh(y)
         y = self.linear3(y)
+        y = self.tanh(y)
+        y = self.linear4(y)
         return y, hn
 
     def train_RNN(

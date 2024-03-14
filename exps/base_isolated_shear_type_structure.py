@@ -85,7 +85,7 @@ def seismic_response():
         "./dataset/bists/RSN826_CAPEMEND_EUR000.AT2",
         "./dataset/bists/RSN832_LANDERS_ABY000.AT2",
     ]
-    factors = [1, 6, 5, 4, 2, 5]
+    factors = [1, 8, 4, 5, 4.2, 5]
 
     for i, acc_file_i in enumerate(acc_file_name_list):
         _, _, _, time, inp_acc = processNGAfile(acc_file_i)

@@ -9,6 +9,7 @@ from excitations import FlatNoisePSD, PSDExcitationGenerator
 from numpy import linalg as LA
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.manual_seed(0)
 
 
 def modal_analysis():
@@ -350,14 +351,14 @@ def build_birnn(output="all"):
     nf = 100
     acc_sensor = [0, 1, 2, 3, 4]
     output_size = 26 if output == "all" else 13
-    epochs = 50000 if output == "all" else 40000
+    epochs = 60000 if output == "all" else 40000
     _, _ = _birnn(
         acc_sensor,
         data_compression_ratio=dr,
         num_training_files=ntf,
         num_files=nf,
         epochs=epochs,
-        lr=1e-5,
+        lr=8e-6,
         weight_decay=0.0,
         output=output,
     )
@@ -396,7 +397,7 @@ def build_rnn():
         data_compression_ratio=dr,
         num_training_files=ntf,
         num_files=nf,
-        epochs=50000,
+        epochs=80000,
         lr=1e-5,
     )
     RNN4ststate = Rnn(
@@ -455,7 +456,7 @@ def _dkf(
         np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
     )
     damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
-    time = np.arange(0, steps / 20, 1 / 20)
+    time = np.arange(0, 1, 1 / 20)
     acc_g = np.zeros_like(time)
     parametric_sts = ShearTypeStructure(
         mass_vec=mass_vec,
@@ -753,13 +754,119 @@ def rnn_seismic_pred():
             state_pred_list.append(state_pred)
     i_th_state_true = state_list[0].cpu().numpy()
     i_th_state_pred = state_pred_list[0]
-    # plt.plot(i_th_state_true[:, 0], label="Ground truth")
-    # plt.plot(i_th_state_pred[:, 0], label="Prediction", linestyle="--")
-    # plt.plot(i_th_state_true[:, 1], label="Ground truth")
-    # plt.plot(i_th_state_pred[:, 1], label="Prediction", linestyle="--")
-    # plt.plot(i_th_state_true[:, 1] - i_th_state_true[:, 0], label="Ground truth")
-    # plt.legend()
-    # plt.show()
+    plt.plot(i_th_state_true[:, 8], label="Ground truth")
+    plt.plot(i_th_state_pred[:, 8], label="Prediction", linestyle="--")
+    plt.legend()
+    plt.show()
+
+
+def dkf_seismic_pred():
+    acc_sensor = [0, 1, 2, 3, 4]
+    num_seismic = 6
+    num_modes = 13
+    dkf_params = [1e-20, 1e-3, 1]
+    acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
+    # Define the system
+    data_path = "./dataset/sts/model_updating.pkl"
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    params = solution["params"]
+    nf = solution["nf"]
+    dp = solution["dp"]
+    stiff_factor = 1e2
+    mass_vec = 1 * np.ones(13)
+    stiff_vec = (
+        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
+    )
+    damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
+    time = np.arange(0, 1, 1 / 20)
+    acc_g = np.zeros_like(time)
+    parametric_sts = ShearTypeStructure(
+        mass_vec=mass_vec,
+        stiff_vec=stiff_vec,
+        damp_vec=damp_vec,
+        damp_type="Rayleigh",
+        t=time,
+        acc_g=acc_g,
+    )
+    parametric_sts.resp_dof = acc_sensor
+    parametric_sts.n_s = len(acc_sensor)
+    _, modes = parametric_sts.freqs_modes(mode_normalize=True)
+    md_mtx = modes[:, 0:num_modes]
+
+    # compute the state space matrices
+    A, B, G, J = parametric_sts.truncated_state_space_mtx(
+        truncation=num_modes, type="discrete"
+    )
+    Q_zeta = np.eye(num_modes * 2) * dkf_params[0]
+    R = np.eye(len(acc_sensor)) * dkf_params[1]
+    Q_p = np.eye(1) * dkf_params[2]
+    disp_list = []
+    velo_list = []
+    for j in range(num_seismic):
+        obs_data = acc_list[j].cpu().numpy().T
+        steps = obs_data.shape[1]
+        # initialization
+        load_mtx = np.zeros((1, steps))
+        zeta_mtx = np.zeros((num_modes * 2, steps))
+        P_p_mtx = np.zeros((1, 1, steps))
+        P_mtx = np.zeros((num_modes * 2, num_modes * 2, steps))
+        P_p_mtx[:, :, 0] = Q_p
+        P_mtx[:, :, 0] = Q_zeta
+        # kalman filter for input and state estimation
+        for i in range(steps - 1):
+            # Prediction stage for the input:
+            # Evolution of the input and prediction of covariance input:
+            p_k_m = load_mtx[:, i]
+            P_k_pm = P_p_mtx[:, :, i] + Q_p
+            # Update stage for the input:
+            # Calculation of Kalman gain for input:
+            G_k_p = P_k_pm @ J.T @ LA.inv(J @ P_k_pm @ J.T + R)
+            # Improve predictions of input using latest observation:
+            load_mtx[:, i + 1] = p_k_m + G_k_p @ (
+                obs_data[:, i + 1] - G @ zeta_mtx[:, i] - J @ p_k_m
+            )
+            P_p_mtx[:, :, i + 1] = P_k_pm - G_k_p @ J @ P_k_pm
+            # Prediction stage for the state:
+            # Evolution of state and prediction of covariance of state:
+            zeta_k_m = A @ zeta_mtx[:, i] + B @ load_mtx[:, i + 1]
+            P_k_m = A @ P_mtx[:, :, i] @ A.T + Q_zeta
+            # Update stage for the state:
+            # Calculation of Kalman gain for state:
+            G_k_zeta = P_k_m @ G.T @ LA.inv(G @ P_k_m @ G.T + R)
+            # Improve predictions of state using latest observation:
+            zeta_mtx[:, i + 1] = zeta_k_m + G_k_zeta @ (
+                obs_data[:, i + 1] - G @ zeta_k_m - J @ load_mtx[:, i + 1]
+            )
+            P_mtx[:, :, i + 1] = P_k_m - G_k_zeta @ G @ P_k_m
+            # print progress every 10% for test
+            # progress_percentage = (i + 2) / (steps) * 100
+            # if progress_percentage % 10 == 0:
+            #     print(f"Progress: {progress_percentage:.0f}%")
+        disp_pred = md_mtx @ zeta_mtx[:num_modes, :]
+        disp_list.append(disp_pred.T)
+        print(
+            "Dual Kalman Filter finished for {order}-th displacement prediction!".format(
+                order=j + 1
+            )
+        )
+        # return disp_pred
+        velo_pred = md_mtx @ zeta_mtx[num_modes:, :]
+        velo_list.append(velo_pred.T)
+        print(
+            "Dual Kalman Filter finished for {order}-th velocity prediction!".format(
+                order=j + 1
+            )
+        )
+        # return vel_pred
+    # disp_array = np.array(disp_list)
+    # velo_array = np.array(velo_list)
+    i_th_state_true = state_list[0].cpu().numpy()
+    i_th_state_pred = disp_list[0]
+    plt.plot(i_th_state_true[:, 8], label="Ground truth")
+    plt.plot(i_th_state_pred[:, 8], label="Prediction", linestyle="--")
+    plt.legend()
+    plt.show()
 
 
 def tr_training(
@@ -786,7 +893,10 @@ def tr_training(
     loss_history = []
     # test the prediction
     _, state_list = generate_seismic_response([0, 1, 2, 3, 4], 6, output)
-    h0 = torch.zeros(2, 1, 30).to(device)
+    if RNN4ststate.bidirectional:
+        h0 = torch.zeros(2, 1, 30).to(device)
+    else:
+        h0 = torch.zeros(1, 1, 30).to(device)
     for epoch in range(epochs):
         optimizer.zero_grad()
         drift_pred_train = floor_drift_pred(RNN4ststate, acc_tensor, floor_train)
@@ -794,10 +904,10 @@ def tr_training(
         loss = loss_fun(drift_pred_train, measured_drift_train)
         loss.backward()
         optimizer.step()
+        drift_pred_test = floor_drift_pred(RNN4ststate, acc_tensor, floor_test)
+        test_loss = loss_fun(drift_pred_test, measured_drift_test)
+        loss_history.append([loss.item(), test_loss.item()])
         if epoch % 500 == 0:
-            drift_pred_test = floor_drift_pred(RNN4ststate, acc_tensor, floor_test)
-            test_loss = loss_fun(drift_pred_test, measured_drift_test)
-            loss_history.append([loss.item(), test_loss.item()])
             print(
                 f"Epoch {epoch}, Training Loss: {loss.item()}, Test Loss: {test_loss.item()}"
             )
@@ -851,7 +961,7 @@ def tr_birnn(output="all"):
             lr,
             epochs,
             unfrozen_params=[0, 1, 2, 3],
-            output="disp",
+            output=output,
             num=i,
         )
         with open("./dataset/sts/tr_birnn" + format(i, "03") + ".pkl", "wb") as f:
@@ -868,25 +978,16 @@ def tr_rnn():
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 6
     floors_train = [
-        [0, 1],
-        [1, 2],
         [2, 3],
-        [3, 4],
-        [4, 5],
         [5, 6],
-        [6, 7],
-        [7, 8],
         [8, 9],
-        [9, 10],
-        [10, 11],
-        [11, 12],
     ]
-    floors_test = [[5, 6]]
+    floors_test = [[4, 5]]
     acc_list, _ = generate_seismic_response(acc_sensor, num_seismic)
     drift_train_list = generate_floor_drift(num_seismic, floors_train)
     drift_test_list = generate_floor_drift(num_seismic, floors_test)
-    lr = 1e-3
-    epochs = 10000
+    lr = 1e-5
+    epochs = 3000
     for i in range(num_seismic):
         RNN4ststate = Rnn(
             input_size=len(acc_sensor),
@@ -909,5 +1010,7 @@ def tr_rnn():
             measured_drift_test,
             lr,
             epochs,
-            unfrozen_params=[3, 4, 5],
+            unfrozen_params=[0, 1],
+            output="all",
+            num=i,
         )

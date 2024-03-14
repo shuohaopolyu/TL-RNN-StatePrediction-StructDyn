@@ -71,7 +71,7 @@ def plot_ground_motion():
         [-0.4, 0.4],
         [-0.7, 0.7],
     ]
-    factors = [1, 6, 5, 4, 2, 5]
+    factors = [1, 8, 4, 5, 4.2, 5]
     fig, axs = plt.subplots(3, 2, figsize=(22 * cm, 10 * cm))
     for i, acc_file_i in enumerate(acc_file_name_list):
         _, _, _, time, inp_acc = processNGAfile(acc_file_i)
