@@ -130,7 +130,7 @@ class MultiDOF:
             for i in range(self.DOF):
                 v[:, i] = v[:, i] / np.sqrt(mo_mass[i, i])
         return np.sqrt(w) / (2 * np.pi), v
-    
+
     def damping_ratio(self):
         """
         Return the damping ratio of the system
@@ -141,7 +141,9 @@ class MultiDOF:
         mo_damp = v.T @ self.damp_mtx @ v
         damping_ratio = np.zeros(self.DOF)
         for i in range(self.DOF):
-            damping_ratio[i] = mo_damp[i, i] / (2 * np.sqrt(mo_mass[i, i] * mo_stiff[i, i]))
+            damping_ratio[i] = mo_damp[i, i] / (
+                2 * np.sqrt(mo_mass[i, i] * mo_stiff[i, i])
+            )
         return damping_ratio
 
     def state_space_mtx(self, type="continuous"):
@@ -185,7 +187,7 @@ class MultiDOF:
             # D_d = D
             return A_d, B_d, C, D
 
-    def truncated_state_space_mtx(self, truncation=10, type="continuous"):
+    def truncated_state_space_mtx(self, truncation=10, type="continuous", kwargs=None):
         """
         truncation: int type, number of truncation
         type: 'continuous' or 'discrete'
@@ -195,41 +197,45 @@ class MultiDOF:
         modes_reduced = modes[:, 0:truncation]
         Omega_sq = modes_reduced.T @ self.stiff_mtx @ modes_reduced
         Ka = modes_reduced.T @ self.damp_mtx @ modes_reduced
-        # L = np.zeros((self.DOF, len(self.f_dof)))
-        # for i in range(self.n_f):
-        #     L[self.f_dof[i], i] = 1
-        L = L = np.ones((self.DOF, 1)) # Note: this is a temporary solution dedicated for seismic response analysis
-        J = np.zeros((self.n_s, self.DOF))
-        for i in range(self.n_s):
-            J[i, self.resp_dof[i]] = 1
+        Sp = np.ones((self.DOF, 1))
         A_c = np.vstack(
             (
                 np.hstack((np.zeros((truncation, truncation)), np.eye(truncation))),
                 np.hstack((-Omega_sq, -Ka)),
             )
         )
-        # B_c = np.vstack(
-        #     (
-        #         np.zeros((truncation, len(self.f_dof))),
-        #         modes_reduced.T @ L,
-        #     )
-        # ) # Note: this is a temporary solution dedicated for seismic response analysis
         B_c = np.vstack(
             (
-                np.zeros_like(modes_reduced.T @ L),
-                modes_reduced.T @ L,
+                np.zeros_like(modes_reduced.T @ Sp),
+                modes_reduced.T @ Sp,
             )
         )
-        C_c = -J @ modes_reduced @ np.hstack((Omega_sq, Ka))
-        D_c = J @ modes_reduced @ modes_reduced.T @ L
+        Sa = np.zeros((self.n_s, truncation))
+        for i in range(self.n_s):
+            Sa[i, self.resp_dof[i]] = 1
+        if kwargs == None:
+            C_c = -Sa @ modes_reduced @ np.hstack((Omega_sq, Ka))
+            D_c = Sa @ modes_reduced @ modes_reduced.T @ Sp
+        else:
+            floors = kwargs["floors"]
+            Sd = np.zeros((len(floors), truncation))
+            for i in range(len(floors)):
+                Sd[i, floors[i][0]] = -1
+                Sd[i, floors[i][1]] = 1
+            C_c_S_d = -np.hstack(
+                (Sd @ modes_reduced, np.zeros((len(floors), truncation)))
+            )
+            C_c_S_a = -Sa @ modes_reduced @ np.hstack((Omega_sq, Ka))
+            C_c = np.vstack((C_c_S_d, C_c_S_a))
+            D_c_S_d = np.zeros((len(floors), 1))
+            D_c_S_a = Sa @ modes_reduced @ modes_reduced.T @ Sp
+            D_c = np.vstack((D_c_S_d, D_c_S_a))
         if type == "continuous":
             return A_c, B_c, C_c, D_c
         elif type == "discrete":
             dt = self.t_eval[1] - self.t_eval[0]
             A_d = expm(A_c * dt)
             B_d = (A_d - np.eye(2 * truncation)) @ LA.inv(A_c) @ B_c
-            # C_d = C
-            # D_d = D
             return A_d, B_d, C_c, D_c
 
     def markov_params(self):

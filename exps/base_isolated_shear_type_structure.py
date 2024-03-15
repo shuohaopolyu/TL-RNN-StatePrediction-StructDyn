@@ -80,12 +80,12 @@ def seismic_response():
     acc_file_name_list = [
         "./dataset/bists/ath.KOBE.NIS000.AT2",
         "./dataset/bists/RSN12_KERN.PEL_PEL090.AT2",
-        "./dataset/bists/RSN137_TABAS_BAJ-L1.AT2",
+        "./dataset/bists/RSN22_ELALAMO_ELC180.AT2",
         "./dataset/bists/RSN570_SMART1.45_45C00DN.AT2",
-        "./dataset/bists/RSN826_CAPEMEND_EUR000.AT2",
-        "./dataset/bists/RSN832_LANDERS_ABY000.AT2",
+        # "./dataset/bists/RSN22_ELALAMO_ELC270.AT2",
+        # "./dataset/bists/RSN286_ITALY_A-BIS000.AT2",
     ]
-    factors = [1, 8, 4, 5, 4.2, 5]
+    factors = [1, 1, 6, 2, 2, 2]
 
     for i, acc_file_i in enumerate(acc_file_name_list):
         _, _, _, time, inp_acc = processNGAfile(acc_file_i)
@@ -134,7 +134,7 @@ def seismic_response():
         }
 
         file_name = (
-            "./dataset/bists/solution"
+            ".//dataset//bists//solution"
             + format(acc_file_name_list.index(acc_file_i), "03")
             + ".pkl"
         )

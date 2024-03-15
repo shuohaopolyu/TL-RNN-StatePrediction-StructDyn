@@ -75,6 +75,9 @@ def disp_pred():
     with open("./dataset/sts/dkf_pred.pkl", "rb") as f:
         dkf_pred = pickle.load(f)
     dkf_pred = dkf_pred["disp_pred"]
+    with open("./dataset/sts/akf_pred.pkl", "rb") as f:
+        akf_pred = pickle.load(f)
+    akf_pred = akf_pred["disp_pred"]
     RNN4ststate.eval()
     BiRNN4ststate.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -97,6 +100,9 @@ def disp_pred():
     dkf_state_pred = dkf_pred[:, :, dof_idx]
     dkf_state_pred[file_idx, 1:] = dkf_state_pred[file_idx, :-1]
     dkf_state_pred[file_idx, 0] = 0
+    akf_state_pred = akf_pred[:, :, dof_idx]
+    akf_state_pred[file_idx, 1:] = akf_state_pred[file_idx, :-1]
+    akf_state_pred[file_idx, 0] = 0
     plt.figure(figsize=(20 * cm, 8 * cm))
     plt.plot(
         time, state_test[file_idx, :] * 100, label="Ref.", color="k", linewidth=1.2
@@ -122,10 +128,18 @@ def disp_pred():
         dkf_state_pred[file_idx, :] * 100,
         label="DKF pred.",
         linestyle=":",
-        color="g",
+        color="lime",
         linewidth=1.2,
     )
-    plt.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=4)
+    plt.plot(
+        time,
+        akf_state_pred[file_idx, :] * 100,
+        label="AKF pred.",
+        linestyle="--",
+        color="darkviolet",
+        linewidth=1.2,
+    )
+    plt.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
     plt.grid(True)
     plt.xlabel("Time (s)")
     plt.ylabel("Displacement (cm)")
@@ -163,6 +177,9 @@ def velo_pred():
         BiRNN4ststate.load_state_dict(torch.load(f))
     with open("./dataset/sts/dkf_pred.pkl", "rb") as f:
         dkf_pred = pickle.load(f)
+    with open("./dataset/sts/akf_pred.pkl", "rb") as f:
+        akf_pred = pickle.load(f)
+
     RNN4ststate.eval()
     BiRNN4ststate.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -186,6 +203,11 @@ def velo_pred():
     dkf_state_pred = dkf_pred[:, :, dof_idx]
     dkf_state_pred[file_idx, 1:] = dkf_state_pred[file_idx, :-1]
     dkf_state_pred[file_idx, 0] = 0
+    akf_pred = akf_pred["velo_pred"]
+    akf_state_pred = akf_pred[:, :, dof_idx]
+    akf_state_pred[file_idx, 1:] = akf_state_pred[file_idx, :-1]
+    akf_state_pred[file_idx, 0] = 0
+
     plt.figure(figsize=(20 * cm, 8 * cm))
     plt.plot(time, state_test[file_idx, :], label="Ref.", color="k", linewidth=1.2)
     plt.plot(
@@ -209,10 +231,18 @@ def velo_pred():
         dkf_state_pred[file_idx, :],
         label="DKF pred.",
         linestyle=":",
-        color="g",
+        color="lime",
         linewidth=1.2,
     )
-    plt.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=4)
+    plt.plot(
+        time,
+        akf_state_pred[file_idx, :],
+        label="AKF pred.",
+        linestyle="--",
+        color="darkviolet",
+        linewidth=1.2,
+    )
+    plt.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
     plt.text(
         0.9,
         0.125,
@@ -252,6 +282,8 @@ def performance_evaluation():
         BiRNN4ststate.load_state_dict(torch.load(f))
     with open("./dataset/sts/dkf_pred.pkl", "rb") as f:
         dkf_pred = pickle.load(f)
+    with open("./dataset/sts/akf_pred.pkl", "rb") as f:
+        akf_pred = pickle.load(f)
     RNN4ststate.eval()
     BiRNN4ststate.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -274,46 +306,80 @@ def performance_evaluation():
     dkf_pred_disp[:, 0, :] = 0
     dkf_pred_velo[:, 1:, :] = dkf_pred_velo[:, :-1, :]
     dkf_pred_velo[:, 0, :] = 0
+    akf_pred_disp = akf_pred["disp_pred"]
+    akf_pred_velo = akf_pred["velo_pred"]
+    akf_pred_disp[:, 1:, :] = akf_pred_disp[:, :-1, :]
+    akf_pred_disp[:, 0, :] = 0
+    akf_pred_velo[:, 1:, :] = akf_pred_velo[:, :-1, :]
+    akf_pred_velo[:, 0, :] = 0
     err_mtx_rnn = similarity(rnn_state_pred, state_test)
     err_mtx_birnn = similarity(birnn_state_pred, state_test)
     err_mtx_dkf_disp = similarity(dkf_pred_disp, state_test)
     err_mtx_dkf_velo = similarity(dkf_pred_velo, state_test[:, :, 13:])
+    err_mtx_akf_disp = similarity(akf_pred_disp, state_test)
+    err_mtx_akf_velo = similarity(akf_pred_velo, state_test[:, :, 13:])
     mean_err_rnn_disp = np.mean(err_mtx_rnn[:, 0:13])
     mean_err_birnn_disp = np.mean(err_mtx_birnn[:, 0:13])
     mean_err_dkf_disp = np.mean(err_mtx_dkf_disp)
     mean_err_rnn_velo = np.mean(err_mtx_rnn[:, 13:])
     mean_err_birnn_velo = np.mean(err_mtx_birnn[:, 13:])
     mean_err_dkf_velo = np.mean(err_mtx_dkf_velo)
+    mean_err_akf_disp = np.mean(err_mtx_akf_disp)
+    mean_err_akf_velo = np.mean(err_mtx_akf_velo)
     std_err_rnn_disp = np.std(err_mtx_rnn[:, 0:13])
     std_err_birnn_disp = np.std(err_mtx_birnn[:, 0:13])
     std_err_dkf_disp = np.std(err_mtx_dkf_disp)
     std_err_rnn_velo = np.std(err_mtx_rnn[:, 13:])
     std_err_birnn_velo = np.std(err_mtx_birnn[:, 13:])
     std_err_dkf_velo = np.std(err_mtx_dkf_velo)
+    std_err_akf_disp = np.std(err_mtx_akf_disp)
+    std_err_akf_velo = np.std(err_mtx_akf_velo)
     plt.figure(figsize=(10 * cm, 8 * cm))
     plt.bar(
-        np.arange(3),
-        [mean_err_rnn_disp * 100, mean_err_birnn_disp * 100, mean_err_dkf_disp * 100],
-        yerr=[std_err_rnn_disp * 100, std_err_birnn_disp * 100, std_err_dkf_disp * 100],
+        np.arange(4),
+        [
+            mean_err_rnn_disp * 100,
+            mean_err_birnn_disp * 100,
+            mean_err_dkf_disp * 100,
+            mean_err_akf_disp * 100,
+        ],
+        yerr=[
+            std_err_rnn_disp * 100,
+            std_err_birnn_disp * 100,
+            std_err_dkf_disp * 100,
+            std_err_akf_disp * 100,
+        ],
         capsize=5,
         color="b",
     )
     plt.ylim(0, 100)
-    plt.xticks([0, 1, 2], ["RNN", "BiRNN", "DKF"])
+    plt.xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
     plt.ylabel("Similarity (%)")
     plt.title("Displacement")
+    plt.tick_params(which="both", direction="in")
     plt.savefig("./figures/performance_disp.svg", bbox_inches="tight")
     plt.show()
     plt.figure(figsize=(10 * cm, 8 * cm))
     plt.bar(
-        np.arange(3),
-        [mean_err_rnn_velo * 100, mean_err_birnn_velo * 100, mean_err_dkf_velo * 100],
-        yerr=[std_err_rnn_velo * 100, std_err_birnn_velo * 100, std_err_dkf_velo * 100],
+        np.arange(4),
+        [
+            mean_err_rnn_velo * 100,
+            mean_err_birnn_velo * 100,
+            mean_err_dkf_velo * 100,
+            mean_err_akf_velo * 100,
+        ],
+        yerr=[
+            std_err_rnn_velo * 100,
+            std_err_birnn_velo * 100,
+            std_err_dkf_velo * 100,
+            std_err_akf_velo * 100,
+        ],
         capsize=5,
         color="r",
     )
-    plt.xticks([0, 1, 2], ["RNN", "BiRNN", "DKF"])
+    plt.xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
     plt.ylabel("Similarity (%)")
     plt.title("Velocity")
+    plt.tick_params(which="both", direction="in")
     plt.savefig("./figures/performance_velo.svg", bbox_inches="tight")
     plt.show()
