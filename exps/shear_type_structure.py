@@ -424,26 +424,79 @@ def build_rnn():
     plt.show()
 
 
-def _dkf(
-    acc_sensor,
-    data_compression_ratio,
-    num_training_files,
-    num_modes,
-    dkf_params=[1e-20, 1e-2, 3e9],
-    type="test",
-):
-    if type == "test":
-        _, _, state_full, acc_full = training_test_data(
-            acc_sensor, data_compression_ratio, num_training_files
+def _dkf(obs_data, system_mtx, dkf_params):
+    """Dual Kalman Filter for state estimation in structural dynamics
+
+    Args:
+        obs_data (numpy array): observation data, shape (n_sensor, n_t)
+        system_mtx (dict): system matrices, keys: A, B, G, J, where A, B, G, J are numpy arrays
+        akf_params (dict): dual Kalman filter parameters, keys: Q_zeta, R, Q_p, where Q_zeta, R, Q_p are numpy arrays
+
+    Returns:
+        x_mtx (numpy array): stateestimation, shape (n_state, n_t)
+        p_mtx (numpy array): input estimation, shape (n_force, n_t)
+    """
+    steps = obs_data.shape[1]
+    A, B, C, D = system_mtx["A"], system_mtx["B"], system_mtx["C"], system_mtx["D"]
+    num_state = A.shape[1]
+    num_force = B.shape[1]
+    Q_zeta, R, Q_p = dkf_params["Q_zeta"], dkf_params["R"], dkf_params["Q_p"]
+    P_p_mtx = np.zeros((num_force, num_force, steps))
+    P_mtx = np.zeros((num_state, num_state, steps))
+    P_p_mtx[:, :, 0] = Q_p
+    P_mtx[:, :, 0] = Q_zeta
+    x_mtx = np.zeros((num_state, steps))
+    p_mtx = np.zeros((num_force, steps))
+    for i in range(steps - 1):
+        p_k_m = p_mtx[:, i]
+        P_k_pm = P_p_mtx[:, :, i] + Q_p
+        G_k_p = P_k_pm @ D.T @ LA.inv(D @ P_k_pm @ D.T + R)
+        p_mtx[:, i + 1] = p_k_m + G_k_p @ (
+            obs_data[:, i + 1] - C @ x_mtx[:, i] - D @ p_k_m
         )
-    else:
-        state_full, acc_full, _, _ = training_test_data(
-            acc_sensor, data_compression_ratio, num_training_files
-        )
-    state_full = state_full.cpu().numpy()
-    acc_full = acc_full.cpu().numpy()
-    steps = state_full.shape[1]
-    # Define the system
+        P_p_mtx[:, :, i + 1] = P_k_pm - G_k_p @ D @ P_k_pm
+        x_k_m = A @ x_mtx[:, i] + B @ p_mtx[:, i + 1]
+        P_k_m = A @ P_mtx[:, :, i] @ A.T + Q_zeta
+        G_k_zeta = P_k_m @ C.T @ LA.inv(C @ P_k_m @ C.T + R)
+        x_mtx[:, i + 1] = x_k_m + G_k_zeta @ (obs_data[:, i + 1] - C @ x_k_m)
+        P_mtx[:, :, i + 1] = P_k_m - G_k_zeta @ C @ P_k_m
+    return x_mtx, p_mtx
+
+
+def _akf(obs_data, system_mtx, akf_params):
+    """Augmented Kalman Filter for state estimation in structural dynamics
+
+    Args:
+        obs_data (numpy array): observation data, shape (n_sensor, n_t)
+        system_mtx (dict): system matrices, keys: A, B, C, D, where A, B, C, D are numpy arrays
+        akf_params (dict): augmented Kalman filter parameters, keys: Q_zeta, R, Q_p, where Q_zeta, R, Q_p are numpy arrays
+
+    Returns:
+        x_mtx (numpy array): state and input estimation, shape (n_state + num_force, n_t)
+    """
+    steps = obs_data.shape[1]
+    A, B, C, D = system_mtx["A"], system_mtx["B"], system_mtx["C"], system_mtx["D"]
+    num_state = A.shape[1]
+    num_force = B.shape[1]
+    Q_zeta, R, Q_p = akf_params["Q_zeta"], akf_params["R"], akf_params["Q_p"]
+    A_a = np.block([[A, B], [np.zeros((num_force, num_state)), np.eye(num_force)]])
+    C_a = np.hstack([C, D])
+    Q = np.block(
+        [[Q_zeta, np.zeros((A.shape[0], 1))], [np.zeros((num_force, A.shape[0])), Q_p]]
+    )
+    P_mtx = np.zeros((num_state + num_force, num_state + num_force, steps))
+    P_mtx[:, :, 0] = Q
+    x_mtx = np.zeros((num_state + num_force, steps))
+    for i in range(steps - 1):
+        Lk = P_mtx[:, :, i] @ C_a.T @ LA.inv(C_a @ P_mtx[:, :, i] @ C_a.T + R)
+        x_hat = x_mtx[:, i] + Lk @ (obs_data[:, i + 1] - C_a @ x_mtx[:, i])
+        Pkk = P_mtx[:, :, i] - Lk @ C_a @ P_mtx[:, :, i]
+        x_mtx[:, i + 1] = A_a @ x_hat
+        P_mtx[:, :, i + 1] = A_a @ Pkk @ A_a.T + Q
+    return x_mtx
+
+
+def _system_matrices(acc_sensor, num_modes, kwargs=None):
     data_path = "./dataset/sts/model_updating.pkl"
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
@@ -470,176 +523,107 @@ def _dkf(
     parametric_sts.n_s = len(acc_sensor)
     _, modes = parametric_sts.freqs_modes(mode_normalize=True)
     md_mtx = modes[:, 0:num_modes]
-
     # compute the state space matrices
-    A, B, G, J = parametric_sts.truncated_state_space_mtx(
-        truncation=num_modes, type="discrete"
+    A, B, C, D = parametric_sts.truncated_state_space_mtx(
+        truncation=num_modes, type="discrete", kwargs=kwargs
     )
+    system_mtx = {"A": A, "B": B, "C": C, "D": D}
+    return system_mtx, md_mtx
+
+
+def build_dkf(
+    acc_sensor=[0, 1, 2, 3, 4],
+    data_compression_ratio=1,
+    num_training_files=90,
+    num_modes=13,
+    dkf_params=[1e-20, 1e-3, 1],
+    type="test",
+):
+    """Dual Kalman Filter for state estimation using test data
+
+    Args:
+        acc_sensor (list): accele. Defaults to [0, 1, 2, 3, 4].
+        data_compression_ratio (int): _description_. Defaults to 1.
+        num_training_files (int): _description_. Defaults to 90.
+        num_modes (int): _description_. Defaults to 13.
+        dkf_params (list): _description_. Defaults to [1e-20, 1e-3, 1].
+        type (str): _description_. Defaults to "test".
+    """
+    # parameters are tuned via the funtion tune_dkf_params
+    if type == "test":
+        _, _, _, acc_full = training_test_data(
+            acc_sensor, data_compression_ratio, num_training_files
+        )
+    else:
+        _, acc_full, _, _ = training_test_data(
+            acc_sensor, data_compression_ratio, num_training_files
+        )
+    acc_full = acc_full.cpu().numpy()
+    steps = acc_full.shape[1]
+    # Define the system
+    system_mtx, md_mtx = _system_matrices(acc_sensor, num_modes)
     Q_zeta = np.eye(num_modes * 2) * dkf_params[0]
     R = np.eye(len(acc_sensor)) * dkf_params[1]
     Q_p = np.eye(1) * dkf_params[2]
-
-    # initialization
-    load_mtx = np.zeros((1, steps))
-    zeta_mtx = np.zeros((num_modes * 2, steps))
-    P_p_mtx = np.zeros((1, 1, steps))
-    P_mtx = np.zeros((num_modes * 2, num_modes * 2, steps))
-    P_p_mtx[:, :, 0] = Q_p
-    P_mtx[:, :, 0] = Q_zeta
-    disp_list = []
-    velo_list = []
-    if type == "test":
-        it_num = 100 - num_training_files
-    else:
-        it_num = num_training_files
-
-    for j in range(it_num):
-        obs_data = acc_full[j, :, :].T
-        # kalman filter for input and state estimation
-        for i in range(steps - 1):
-            # Prediction stage for the input:
-            # Evolution of the input and prediction of covariance input:
-            p_k_m = load_mtx[:, i]
-            P_k_pm = P_p_mtx[:, :, i] + Q_p
-            # Update stage for the input:
-            # Calculation of Kalman gain for input:
-            G_k_p = P_k_pm @ J.T @ LA.inv(J @ P_k_pm @ J.T + R)
-            # Improve predictions of input using latest observation:
-            load_mtx[:, i + 1] = p_k_m + G_k_p @ (
-                obs_data[:, i + 1] - G @ zeta_mtx[:, i] - J @ p_k_m
-            )
-            P_p_mtx[:, :, i + 1] = P_k_pm - G_k_p @ J @ P_k_pm
-            # Prediction stage for the state:
-            # Evolution of state and prediction of covariance of state:
-            zeta_k_m = A @ zeta_mtx[:, i] + B @ load_mtx[:, i + 1]
-            P_k_m = A @ P_mtx[:, :, i] @ A.T + Q_zeta
-            # Update stage for the state:
-            # Calculation of Kalman gain for state:
-            G_k_zeta = P_k_m @ G.T @ LA.inv(G @ P_k_m @ G.T + R)
-            # Improve predictions of state using latest observation:
-            zeta_mtx[:, i + 1] = zeta_k_m + G_k_zeta @ (
-                obs_data[:, i + 1] - G @ zeta_k_m - J @ load_mtx[:, i + 1]
-            )
-            P_mtx[:, :, i + 1] = P_k_m - G_k_zeta @ G @ P_k_m
-        disp_pred = md_mtx @ zeta_mtx[:num_modes, :]
-        disp_list.append(disp_pred.T)
-        print(
-            "Dual Kalman Filter finished for {order}-th displacement prediction!".format(
-                order=j + 1
-            )
-        )
-        # return disp_pred
-        velo_pred = md_mtx @ zeta_mtx[num_modes:, :]
-        velo_list.append(velo_pred.T)
-        print(
-            "Dual Kalman Filter finished for {order}-th velocity prediction!".format(
-                order=j + 1
-            )
-        )
-        # return vel_pred
-    disp_array = np.array(disp_list)
-    velo_array = np.array(velo_list)
-    return disp_array, velo_array
+    dkf_params = {"Q_zeta": Q_zeta, "R": R, "Q_p": Q_p}
+    disp_pred = np.zeros((acc_full.shape[0], steps, num_modes))
+    velo_pred = np.zeros((acc_full.shape[0], steps, num_modes))
+    for i in range(acc_full.shape[0]):
+        obs_data = acc_full[i, :, :].T
+        x_mtx, _ = _dkf(obs_data, system_mtx, dkf_params)
+        disp_mtx = md_mtx @ x_mtx[:num_modes, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        disp_pred[i, :, :] = disp_mtx.T
+        velo_pred[i, :, :] = velo_mtx.T
+    with open("./dataset/sts/dkf_pred.pkl", "wb") as f:
+        pickle.dump({"disp_pred": disp_pred, "velo_pred": velo_pred}, f)
 
 
-def _akf(
-    acc_sensor,
-    data_compression_ratio,
-    num_training_files,
-    num_modes,
-    akf_params=[1e-20, 1e-2, 3e9],
+def build_akf(
+    acc_sensor=[0, 1, 2, 3, 4],
+    data_compression_ratio=1,
+    num_training_files=90,
+    num_modes=13,
+    akf_params=[1e-20, 1e-3, 1],
     type="test",
 ):
+    """Augumented Kalman Filter for state estimation using test data
+
+    Args:
+        acc_sensor (list, optional): _description_. Defaults to [0, 1, 2, 3, 4].
+        data_compression_ratio (int, optional): _description_. Defaults to 1.
+        num_training_files (int, optional): _description_. Defaults to 90.
+        num_modes (int, optional): _description_. Defaults to 13.
+        akf_params (list, optional): _description_. Defaults to [1e-20, 1e-3, 1].
+        type (str, optional): _description_. Defaults to "test".
+    """
     if type == "test":
-        _, _, state_full, acc_full = training_test_data(
+        _, _, _, acc_full = training_test_data(
             acc_sensor, data_compression_ratio, num_training_files
         )
     else:
-        state_full, acc_full, _, _ = training_test_data(
+        _, acc_full, _, _ = training_test_data(
             acc_sensor, data_compression_ratio, num_training_files
         )
-    state_full = state_full.cpu().numpy()
     acc_full = acc_full.cpu().numpy()
-    steps = state_full.shape[1]
+    steps = acc_full.shape[1]
     # Define the system
-    data_path = "./dataset/sts/model_updating.pkl"
-    with open(data_path, "rb") as f:
-        solution = pickle.load(f)
-    params = solution["params"]
-    nf = solution["nf"]
-    dp = solution["dp"]
-    stiff_factor = 1e2
-    mass_vec = 1 * np.ones(13)
-    stiff_vec = (
-        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
-    )
-    damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
-    time = np.arange(0, 1, 1 / 20)
-    acc_g = np.zeros_like(time)
-    parametric_sts = ShearTypeStructure(
-        mass_vec=mass_vec,
-        stiff_vec=stiff_vec,
-        damp_vec=damp_vec,
-        damp_type="Rayleigh",
-        t=time,
-        acc_g=acc_g,
-    )
-    parametric_sts.resp_dof = acc_sensor
-    parametric_sts.n_s = len(acc_sensor)
-    _, modes = parametric_sts.freqs_modes(mode_normalize=True)
-    md_mtx = modes[:, 0:num_modes]
-
-    # compute the state space matrices
-    A, B, G, J = parametric_sts.truncated_state_space_mtx(
-        truncation=num_modes, type="discrete"
-    )
-    Aa = np.hstack((A, B))
-    Aa_ = np.hstack((np.zeros((1, parametric_sts.DOF * 2)), np.eye(1)))
-    Aa = np.vstack((Aa, Aa_))
-    Ga = np.hstack((G, J))
-    print(Ga.shape)
+    system_mtx, md_mtx = _system_matrices(acc_sensor, num_modes)
     Q_zeta = np.eye(num_modes * 2) * akf_params[0]
     R = np.eye(len(acc_sensor)) * akf_params[1]
     Q_p = np.eye(1) * akf_params[2]
-    Q = np.block(
-        [[Q_zeta, np.zeros((num_modes * 2, 1))], [np.zeros((1, num_modes * 2)), Q_p]]
-    )
-    P_mtx = np.zeros((num_modes * 2 + 1, num_modes * 2 + 1, steps))
-    P_mtx[:, :, 0] = Q
-    # initialization
-    x_mtx = np.zeros((num_modes * 2 + 1, steps))
-    disp_list = []
-    velo_list = []
-    if type == "test":
-        it_num = 100 - num_training_files
-    else:
-        it_num = num_training_files
-    for j in range(it_num):
-        obs_data = acc_full[j, :, :].T
-        # kalman filter for input and state estimation
-        for i in range(steps - 1):
-            Lk = P_mtx[:, :, i] @ Ga.T @ LA.inv(Ga @ P_mtx[:, :, i] @ Ga.T + R)
-            x_hat = x_mtx[:, i] + Lk @ (obs_data[:, i + 1] - Ga @ x_mtx[:, i])
-            Pkk = P_mtx[:, :, i] - Lk @ Ga @ P_mtx[:, :, i]
-            x_mtx[:, i + 1] = Aa @ x_hat
-            P_mtx[:, :, i + 1] = Aa @ Pkk @ Aa.T + Q
-        disp_pred = md_mtx @ x_mtx[:num_modes, :]
-        velo_pred = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
-        disp_list.append(disp_pred.T)
-        print(
-            "Augmented Kalman Filter finished for {order}-th displacement prediction!".format(
-                order=j + 1
-            )
-        )
-        velo_list.append(velo_pred.T)
-        print(
-            "Augmented Kalman Filter finished for {order}-th velocity prediction!".format(
-                order=j + 1
-            )
-        )
-    disp_array = np.array(disp_list)
-    velo_array = np.array(velo_list)
-    return disp_array, velo_array
+    akf_params = {"Q_zeta": Q_zeta, "R": R, "Q_p": Q_p}
+    disp_pred = np.zeros((acc_full.shape[0], steps, num_modes))
+    velo_pred = np.zeros((acc_full.shape[0], steps, num_modes))
+    for i in range(acc_full.shape[0]):
+        obs_data = acc_full[i, :, :].T
+        x_mtx = _akf(obs_data, system_mtx, akf_params)
+        disp_mtx = md_mtx @ x_mtx[:num_modes, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        disp_pred[i, :, :] = disp_mtx.T
+        velo_pred[i, :, :] = velo_mtx.T
+    with open("./dataset/sts/akf_pred.pkl", "wb") as f:
+        pickle.dump({"disp_pred": disp_pred, "velo_pred": velo_pred}, f)
 
 
 def tune_dkf_params():
@@ -666,20 +650,6 @@ def tune_dkf_params():
     results = {"R_values": R_values, "disp_rmse": disp_rmse, "vel_rmse": velo_rmse}
     with open("./dataset/sts/dkf_tune.pkl", "wb") as f:
         pickle.dump(results, f)
-
-
-def dkf():
-    # parameters are tuned via the funtion tune_dkf_params
-    disp_pred, velo_pred = _dkf([0, 1, 2, 3, 4], 1, 90, 13, [1e-20, 1e-3, 1], "test")
-    with open("./dataset/sts/dkf_pred.pkl", "wb") as f:
-        pickle.dump({"disp_pred": disp_pred, "velo_pred": velo_pred}, f)
-
-
-def akf():
-    # parameters are tuned via the funtion tune_akf_params
-    disp_pred, velo_pred = _akf([0, 1, 2, 3, 4], 1, 90, 13, [1e-20, 1e-3, 1], "test")
-    with open("./dataset/sts/akf_pred.pkl", "wb") as f:
-        pickle.dump({"disp_pred": disp_pred, "velo_pred": velo_pred}, f)
 
 
 def generate_seismic_response(acc_sensor, num_seismic, output="all"):
@@ -863,230 +833,141 @@ def rnn_seismic_pred():
             plt.show()
 
 
-def dkf_seismic_pred():
-    acc_sensor = [0, 1, 2, 3, 4]
-    num_seismic = 4
-    num_modes = 13
-    dkf_params = [1e-20, 1e-3, 1]
-    acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
-    # Define the system
-    data_path = "./dataset/sts/model_updating.pkl"
-    with open(data_path, "rb") as f:
-        solution = pickle.load(f)
-    params = solution["params"]
-    nf = solution["nf"]
-    dp = solution["dp"]
-    stiff_factor = 1e2
-    mass_vec = 1 * np.ones(13)
-    stiff_vec = (
-        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
-    )
-    damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
-    time = np.arange(0, 1, 1 / 20)
-    acc_g = np.zeros_like(time)
-    parametric_sts = ShearTypeStructure(
-        mass_vec=mass_vec,
-        stiff_vec=stiff_vec,
-        damp_vec=damp_vec,
-        damp_type="Rayleigh",
-        t=time,
-        acc_g=acc_g,
-    )
-    parametric_sts.resp_dof = acc_sensor
-    parametric_sts.n_s = len(acc_sensor)
-    _, modes = parametric_sts.freqs_modes(mode_normalize=True)
-    md_mtx = modes[:, 0:num_modes]
+def dkf_seismic_pred(
+    acc_sensor=[0, 1, 2, 3, 4],
+    num_modes=13,
+    dkf_params=[1e-20, 1e-3, 1],
+    num_seismic=4,
+):
 
-    # compute the state space matrices
-    A, B, G, J = parametric_sts.truncated_state_space_mtx(
-        truncation=num_modes, type="discrete"
-    )
+    acc_list, _ = generate_seismic_response(acc_sensor, num_seismic)
+    # Define the system
+    system_mtx, md_mtx = _system_matrices(acc_sensor, num_modes)
     Q_zeta = np.eye(num_modes * 2) * dkf_params[0]
     R = np.eye(len(acc_sensor)) * dkf_params[1]
     Q_p = np.eye(1) * dkf_params[2]
+    dkf_params = {"Q_zeta": Q_zeta, "R": R, "Q_p": Q_p}
     disp_list = []
     velo_list = []
-    for j in range(num_seismic):
-        obs_data = acc_list[j].cpu().numpy().T
-        steps = obs_data.shape[1]
-        # initialization
-        load_mtx = np.zeros((1, steps))
-        zeta_mtx = np.zeros((num_modes * 2, steps))
-        P_p_mtx = np.zeros((1, 1, steps))
-        P_mtx = np.zeros((num_modes * 2, num_modes * 2, steps))
-        P_p_mtx[:, :, 0] = Q_p
-        P_mtx[:, :, 0] = Q_zeta
-        # kalman filter for input and state estimation
-        for i in range(steps - 1):
-            # Prediction stage for the input:
-            # Evolution of the input and prediction of covariance input:
-            p_k_m = load_mtx[:, i]
-            P_k_pm = P_p_mtx[:, :, i] + Q_p
-            # Update stage for the input:
-            # Calculation of Kalman gain for input:
-            G_k_p = P_k_pm @ J.T @ LA.inv(J @ P_k_pm @ J.T + R)
-            # Improve predictions of input using latest observation:
-            load_mtx[:, i + 1] = p_k_m + G_k_p @ (
-                obs_data[:, i + 1] - G @ zeta_mtx[:, i] - J @ p_k_m
-            )
-            P_p_mtx[:, :, i + 1] = P_k_pm - G_k_p @ J @ P_k_pm
-            # Prediction stage for the state:
-            # Evolution of state and prediction of covariance of state:
-            zeta_k_m = A @ zeta_mtx[:, i] + B @ load_mtx[:, i + 1]
-            P_k_m = A @ P_mtx[:, :, i] @ A.T + Q_zeta
-            # Update stage for the state:
-            # Calculation of Kalman gain for state:
-            G_k_zeta = P_k_m @ G.T @ LA.inv(G @ P_k_m @ G.T + R)
-            # Improve predictions of state using latest observation:
-            zeta_mtx[:, i + 1] = zeta_k_m + G_k_zeta @ (
-                obs_data[:, i + 1] - G @ zeta_k_m - J @ load_mtx[:, i + 1]
-            )
-            P_mtx[:, :, i + 1] = P_k_m - G_k_zeta @ G @ P_k_m
-            # print progress every 10% for test
-            # progress_percentage = (i + 2) / (steps) * 100
-            # if progress_percentage % 10 == 0:
-            #     print(f"Progress: {progress_percentage:.0f}%")
-        disp_pred = md_mtx @ zeta_mtx[:num_modes, :]
-        disp_list.append(disp_pred.T)
-        print(
-            "Dual Kalman Filter finished for {order}-th displacement prediction!".format(
-                order=j + 1
-            )
-        )
-        # return disp_pred
-        velo_pred = md_mtx @ zeta_mtx[num_modes:, :]
-        velo_list.append(velo_pred.T)
-        print(
-            "Dual Kalman Filter finished for {order}-th velocity prediction!".format(
-                order=j + 1
-            )
-        )
+    for i in range(num_seismic):
+        steps = acc_list[i].shape[0]
+        disp_pred = np.zeros((steps, num_modes))
+        velo_pred = np.zeros((steps, num_modes))
+        obs_data = acc_list[i].cpu().numpy().T
+        x_mtx, _ = _dkf(obs_data, system_mtx, dkf_params)
+        disp_mtx = md_mtx @ x_mtx[:num_modes, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        disp_pred[:, :] = disp_mtx.T
+        velo_pred[:, :] = velo_mtx.T
+        disp_list.append(disp_pred)
+        velo_list.append(velo_pred)
     return disp_list, velo_list
-    # i_th_state_true = state_list[0].cpu().numpy()
-    # i_th_disp_pred = disp_list[0]
-    # i_th_velo_pred = velo_list[0]
-    # plt.plot(i_th_state_true[:, 8], label="Ground truth", linewidth=1.5)
-    # plt.plot(i_th_disp_pred[:, 8], label="Prediction", linestyle="--", linewidth=1.5)
-    # plt.legend()
-    # plt.show()
-    # plt.plot(i_th_state_true[:, 16], label="Ground truth", linewidth=2.5)
-    # plt.plot(i_th_velo_pred[:, 3], label="Prediction", linestyle="--", linewidth=2.5)
-    # plt.legend()
-    # plt.show()
 
 
-def aug_dkf_seismic_pred():
-    acc_sensor = [0, 1, 2, 3, 4]
-    num_seismic = 1
-    num_modes = 13
-    dkf_params = [1e-20, 1e-3, 1]
-    floors = [[2, 3], [5, 6], [8, 9], [4, 5]]
-    acc_list, state_list = generate_seismic_response(acc_sensor, num_seismic)
-    drift_train_list = generate_floor_drift(num_seismic, floors)
+def exp_dkf_seismic_pred(
+    acc_sensor=[0, 1, 2, 3, 4],
+    num_modes=13,
+    dkf_params=[1e-20, 1e-3, 1],
+    num_seismic=4,
+    floors=[[0, 1], [1, 2], [2, 3], [3, 4]],
+):
+    acc_list, _ = generate_seismic_response(acc_sensor, num_seismic)
+    floor_drift = generate_floor_drift(num_seismic, floors)
     # Define the system
-    data_path = "./dataset/sts/model_updating.pkl"
-    with open(data_path, "rb") as f:
-        solution = pickle.load(f)
-    params = solution["params"]
-    nf = solution["nf"]
-    dp = solution["dp"]
-    stiff_factor = 1e2
-    mass_vec = 1 * np.ones(13)
-    stiff_vec = (
-        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
-    )
-    damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
-    time = np.arange(0, 1, 1 / 20)
-    acc_g = np.zeros_like(time)
-    parametric_sts = ShearTypeStructure(
-        mass_vec=mass_vec,
-        stiff_vec=stiff_vec,
-        damp_vec=damp_vec,
-        damp_type="Rayleigh",
-        t=time,
-        acc_g=acc_g,
-    )
-    parametric_sts.resp_dof = acc_sensor
-    parametric_sts.n_s = len(acc_sensor)
-    _, modes = parametric_sts.freqs_modes(mode_normalize=True)
-    md_mtx = modes[:, 0:num_modes]
-
-    # compute the state space matrices
-    A, B, G, J = parametric_sts.truncated_state_space_mtx(
-        truncation=num_modes, type="discrete", kwargs={"floors": floors}
-    )
-    print(G)
-    print(J)
+    kwargs = {"floors": floors}
+    system_mtx, md_mtx = _system_matrices(acc_sensor, num_modes, kwargs=kwargs)
     Q_zeta = np.eye(num_modes * 2) * dkf_params[0]
     R = np.eye(len(acc_sensor) + len(floors)) * dkf_params[1]
     Q_p = np.eye(1) * dkf_params[2]
+    dkf_params = {"Q_zeta": Q_zeta, "R": R, "Q_p": Q_p}
     disp_list = []
     velo_list = []
-    for j in range(num_seismic):
-        obs_acc = acc_list[j].cpu().numpy().T
-        obs_drift = drift_train_list[j].cpu().numpy().T
-        obs_data = np.vstack((obs_drift, obs_acc))
-        steps = obs_data.shape[1]
-        # initialization
-        load_mtx = np.zeros((1, steps))
-        zeta_mtx = np.zeros((num_modes * 2, steps))
-        P_p_mtx = np.zeros((1, 1, steps))
-        P_mtx = np.zeros((num_modes * 2, num_modes * 2, steps))
-        P_p_mtx[:, :, 0] = Q_p
-        P_mtx[:, :, 0] = Q_zeta
-        # kalman filter for input and state estimation
-        for i in range(steps - 1):
-            # Prediction stage for the input:
-            # Evolution of the input and prediction of covariance input:
-            p_k_m = load_mtx[:, i]
-            P_k_pm = P_p_mtx[:, :, i] + Q_p
-            # Update stage for the input:
-            # Calculation of Kalman gain for input:
-            G_k_p = P_k_pm @ J.T @ LA.inv(J @ P_k_pm @ J.T + R)
-            # Improve predictions of input using latest observation:
-            load_mtx[:, i + 1] = p_k_m + G_k_p @ (
-                obs_data[:, i + 1] - G @ zeta_mtx[:, i] - J @ p_k_m
+    for i in range(num_seismic):
+        steps = acc_list[i].shape[0]
+        disp_pred = np.zeros((steps, num_modes))
+        velo_pred = np.zeros((steps, num_modes))
+        obs_data = np.vstack(
+            (
+                floor_drift[i].cpu().numpy().T,
+                acc_list[i].cpu().numpy().T,
             )
-            P_p_mtx[:, :, i + 1] = P_k_pm - G_k_p @ J @ P_k_pm
-            # Prediction stage for the state:
-            # Evolution of state and prediction of covariance of state:
-            zeta_k_m = A @ zeta_mtx[:, i] + B @ load_mtx[:, i + 1]
-            P_k_m = A @ P_mtx[:, :, i] @ A.T + Q_zeta
-            # Update stage for the state:
-            # Calculation of Kalman gain for state:
-            G_k_zeta = P_k_m @ G.T @ LA.inv(G @ P_k_m @ G.T + R)
-            # Improve predictions of state using latest observation:
-            zeta_mtx[:, i + 1] = zeta_k_m + G_k_zeta @ (
-                obs_data[:, i + 1] - G @ zeta_k_m - J @ load_mtx[:, i + 1]
-            )
-            P_mtx[:, :, i + 1] = P_k_m - G_k_zeta @ G @ P_k_m
+        )
+        x_mtx, _ = _dkf(obs_data, system_mtx, dkf_params)
+        disp_mtx = md_mtx @ x_mtx[:num_modes, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        disp_pred[:, :] = disp_mtx.T
+        velo_pred[:, :] = velo_mtx.T
+        disp_list.append(disp_pred)
+        velo_list.append(velo_pred)
+    return disp_list, velo_list
 
-        disp_pred = md_mtx @ zeta_mtx[:num_modes, :]
-        disp_list.append(disp_pred.T)
-        print(
-            "Augmented dual Kalman Filter finished for {order}-th displacement prediction!".format(
-                order=j + 1
+
+def akf_seismic_pred(
+    acc_sensor=[0, 1, 2, 3, 4],
+    num_modes=13,
+    dkf_params=[1e-20, 1e-3, 1],
+    num_seismic=4,
+):
+    acc_list, _ = generate_seismic_response(acc_sensor, num_seismic)
+    # Define the system
+    system_mtx, md_mtx = _system_matrices(acc_sensor, num_modes)
+    Q_zeta = np.eye(num_modes * 2) * dkf_params[0]
+    R = np.eye(len(acc_sensor)) * dkf_params[1]
+    Q_p = np.eye(1) * dkf_params[2]
+    dkf_params = {"Q_zeta": Q_zeta, "R": R, "Q_p": Q_p}
+    disp_list = []
+    velo_list = []
+    for i in range(num_seismic):
+        steps = acc_list[i].shape[0]
+        disp_pred = np.zeros((steps, num_modes))
+        velo_pred = np.zeros((steps, num_modes))
+        obs_data = acc_list[i].cpu().numpy().T
+        x_mtx = _akf(obs_data, system_mtx, dkf_params)
+        disp_mtx = md_mtx @ x_mtx[:num_modes, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        disp_pred[:, :] = disp_mtx.T
+        velo_pred[:, :] = velo_mtx.T
+        disp_list.append(disp_pred)
+        velo_list.append(velo_pred)
+    return disp_list, velo_list
+
+
+def exp_akf_seismic_pred(
+    acc_sensor=[0, 1, 2, 3, 4],
+    num_modes=13,
+    dkf_params=[1e-20, 1e-3, 1],
+    num_seismic=4,
+    floors=[[0, 1], [1, 2], [2, 3], [3, 4]],
+):
+    acc_list, _ = generate_seismic_response(acc_sensor, num_seismic)
+    floor_drift = generate_floor_drift(num_seismic, floors)
+    # Define the system
+    kwargs = {"floors": floors}
+    system_mtx, md_mtx = _system_matrices(acc_sensor, num_modes, kwargs=kwargs)
+    Q_zeta = np.eye(num_modes * 2) * dkf_params[0]
+    R = np.eye(len(acc_sensor) + len(floors)) * dkf_params[1]
+    Q_p = np.eye(1) * dkf_params[2]
+    dkf_params = {"Q_zeta": Q_zeta, "R": R, "Q_p": Q_p}
+    disp_list = []
+    velo_list = []
+    for i in range(num_seismic):
+        steps = acc_list[i].shape[0]
+        disp_pred = np.zeros((steps, num_modes))
+        velo_pred = np.zeros((steps, num_modes))
+        obs_data = np.vstack(
+            (
+                floor_drift[i].cpu().numpy().T,
+                acc_list[i].cpu().numpy().T,
             )
         )
-        # return disp_pred
-        velo_pred = md_mtx @ zeta_mtx[num_modes:, :]
-        velo_list.append(velo_pred.T)
-        print(
-            "Augmented dual Kalman Filter finished for {order}-th velocity prediction!".format(
-                order=j + 1
-            )
-        )
-    i_th_state_true = state_list[0].cpu().numpy()
-    i_th_disp_pred = disp_list[0]
-    i_th_velo_pred = velo_list[0]
-    plt.plot(i_th_state_true[:, 8], label="Ground truth", linewidth=2.5)
-    plt.plot(i_th_disp_pred[:, 8], label="Prediction", linestyle="-.", linewidth=2.5)
-    plt.legend()
-    plt.show()
-    plt.plot(i_th_state_true[:, 16], label="Ground truth", linewidth=2.5)
-    plt.plot(i_th_velo_pred[:, 3], label="Prediction", linestyle="-.", linewidth=2.5)
-    plt.legend()
-    plt.show()
+        x_mtx = _akf(obs_data, system_mtx, dkf_params)
+        disp_mtx = md_mtx @ x_mtx[:num_modes, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        disp_pred[:, :] = disp_mtx.T
+        velo_pred[:, :] = velo_mtx.T
+        disp_list.append(disp_pred)
+        velo_list.append(velo_pred)
+    return disp_list, velo_list
 
 
 def tr_training(

@@ -131,8 +131,8 @@ def disp_rnn_dkf_pred(which=3):
         output4, _ = rnn(acc_tensor, h1)
     output4 = output4.squeeze(0).cpu().numpy()
 
-    output5, _ = shear_type_structure.dkf_seismic_pred()
-    output5 = output5[which]
+    # output5, _ = shear_type_structure.dkf_seismic_pred()
+    # output5 = output5[which]
     time = np.arange(0, output3.shape[0] / 20, 1 / 20)
     fig, ax = plt.subplots(1, 1, figsize=(20 * cm, 8 * cm))
     ax.plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
@@ -152,14 +152,14 @@ def disp_rnn_dkf_pred(which=3):
         linewidth=1.2,
         linestyle="--",
     )
-    ax.plot(
-        time,
-        output5[:, 7] * 100,
-        label="DKF pred.",
-        color="g",
-        linewidth=1.2,
-        linestyle=":",
-    )
+    # ax.plot(
+    #     time,
+    #     output5[:, 7] * 100,
+    #     label="DKF pred.",
+    #     color="g",
+    #     linewidth=1.2,
+    #     linestyle=":",
+    # )
     ax.set_ylim(-15, 60)
     ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=4)
     ax.set_xlim(0, 50)
@@ -172,6 +172,74 @@ def disp_rnn_dkf_pred(which=3):
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Displacement (cm)")
     plt.savefig("./figures/tr_rnn_disp.svg", bbox_inches="tight")
+    plt.show()
+
+
+def disp_kf_pred(which=3):
+    acc_sensor = [0, 1, 2, 3, 4]
+    num_seismic = 4
+    acc_list, state_list = shear_type_structure.generate_seismic_response(
+        acc_sensor, num_seismic
+    )
+
+    state_tensor = state_list[which].squeeze(0)
+    state_tensor = state_tensor.cpu().numpy()
+
+    disp1, _ = shear_type_structure.dkf_seismic_pred()
+    disp1 = disp1[which]
+    disp2, _ = shear_type_structure.exp_dkf_seismic_pred()
+    disp2 = disp2[which]
+    disp3, _ = shear_type_structure.akf_seismic_pred()
+    disp3 = disp3[which]
+    disp4, _ = shear_type_structure.exp_akf_seismic_pred()
+    disp4 = disp4[which]
+    time = np.arange(0, disp1.shape[0] / 20, 1 / 20)
+    fig, ax = plt.subplots(1, 1, figsize=(20 * cm, 8 * cm))
+    plt.plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
+    ax.plot(
+        time,
+        disp1[:, 7] * 100,
+        label="DKF pred.",
+        color="r",
+        linewidth=1.2,
+        linestyle="-.",
+    )
+    ax.plot(
+        time,
+        disp2[:, 7] * 100,
+        label="Exp. DKF pred.",
+        color="b",
+        linewidth=1.2,
+        linestyle="--",
+    )
+    ax.plot(
+        time,
+        disp3[:, 7] * 100,
+        label="AKF pred.",
+        color="g",
+        linewidth=1.2,
+        linestyle=":",
+    )
+    ax.plot(
+        time,
+        disp4[:, 7] * 100,
+        label="Exp. AKF pred.",
+        color="m",
+        linewidth=1.2,
+        linestyle="--",
+    )
+    # ax.set_ylim(-15, 60)
+    ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=5)
+    ax.set_xlim(0, 50)
+    ax.grid(True)
+    ax.tick_params(which="both", direction="in")
+    # ax.set_yticks(np.arange(-15, 61, 15))
+    ax.text(
+        0.1, 0.875, "8th floor", ha="center", va="center", transform=plt.gca().transAxes
+    )
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Displacement (cm)")
+    plt.savefig("./figures/tr_kf_disp.svg", bbox_inches="tight")
     plt.show()
 
 
