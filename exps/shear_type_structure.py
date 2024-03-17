@@ -864,7 +864,7 @@ def dkf_seismic_pred(
     return disp_list, velo_list
 
 
-def exp_dkf_seismic_pred(
+def integr_dkf_seismic_pred(
     acc_sensor=[0, 1, 2, 3, 4],
     num_modes=13,
     dkf_params=[1e-20, 1e-3, 1],
@@ -932,7 +932,7 @@ def akf_seismic_pred(
     return disp_list, velo_list
 
 
-def exp_akf_seismic_pred(
+def integr_akf_seismic_pred(
     acc_sensor=[0, 1, 2, 3, 4],
     num_modes=13,
     dkf_params=[1e-20, 1e-3, 1],
@@ -961,6 +961,7 @@ def exp_akf_seismic_pred(
             )
         )
         x_mtx = _akf(obs_data, system_mtx, dkf_params)
+
         disp_mtx = md_mtx @ x_mtx[:num_modes, :]
         velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
         disp_pred[:, :] = disp_mtx.T
@@ -1064,7 +1065,7 @@ def tr_birnn(output="all"):
     drift_train_list = generate_floor_drift(num_seismic, floors_train)
     drift_test_list = generate_floor_drift(num_seismic, floors_test)
     lr = 1e-5
-    epochs = 5000
+    epochs = 10000
     output_size = 26 if output == "all" else 13
     for i in range(num_seismic):
         RNN4ststate = Rnn(
@@ -1117,7 +1118,7 @@ def tr_rnn():
     drift_train_list = generate_floor_drift(num_seismic, floors_train)
     drift_test_list = generate_floor_drift(num_seismic, floors_test)
     lr = 1e-5
-    epochs = 5000
+    epochs = 10000
     for i in range(num_seismic):
         RNN4ststate = Rnn(
             input_size=len(acc_sensor),
