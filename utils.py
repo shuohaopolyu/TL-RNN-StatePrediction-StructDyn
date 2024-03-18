@@ -28,7 +28,15 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20):
     for i in range(signal_mtx.shape[0]):
         for j in range(signal_mtx.shape[0]):
             w_f_temp, w_acc_temp = signal.csd(
-                signal_mtx[i, :], signal_mtx[j, :], fs=fs, window='hann', nperseg=nperseg_num, axis=0, scaling='density', average='mean')
+                signal_mtx[i, :],
+                signal_mtx[j, :],
+                fs=fs,
+                window="hann",
+                nperseg=nperseg_num,
+                axis=0,
+                scaling="density",
+                average="mean",
+            )
             w_f.append(w_f_temp)
             w_acc.append(w_acc_temp)
     idx = [i for i, v in enumerate(w_f[0]) if v <= f_ub and v >= f_lb]
@@ -42,16 +50,17 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20):
         sv.append(s[0])
         ms.append(np.real(u[:, 0]))
     nf_temp_idx = np.argmax(np.array(sv))
-    nf_idx = idx[0]+nf_temp_idx
+    nf_idx = idx[0] + nf_temp_idx
     nf = w_f[0][nf_idx]
     ms_peak = np.array(ms)[nf_temp_idx, :]
     return ms_peak, nf
 
 
-
 def mac(pred, target):
     # pred and target are both mode shapes
-    return np.abs(np.dot(pred, target))**2 / (np.dot(pred, pred) * np.dot(target, target))
+    return np.abs(np.dot(pred, target)) ** 2 / (
+        np.dot(pred, pred) * np.dot(target, target)
+    )
 
 
 def similarity(pred, target):
@@ -62,6 +71,7 @@ def similarity(pred, target):
             pred_vec = pred[i, :, j]
             target_vec = target[i, :, j]
             mean_target = np.mean(target_vec)
-            error_mtx[i, j] = 1- np.linalg.norm(pred_vec - target_vec) / np.linalg.norm(target_vec - mean_target)
+            error_mtx[i, j] = 1 - np.linalg.norm(
+                pred_vec - target_vec
+            ) / np.linalg.norm(target_vec - mean_target)
     return error_mtx
-    

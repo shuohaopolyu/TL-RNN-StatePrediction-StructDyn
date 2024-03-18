@@ -55,4 +55,5 @@ if __name__ == "__main__":
     # tr_rnn_training.disp_birnn_pred()
     # tr_rnn_training.disp_rnn_pred()
     # tr_rnn_training.disp_kf_pred()
-    tr_rnn_training.loss_curve()
+    # tr_rnn_training.loss_curve()
+    tr_rnn_training.performance_evaluation()

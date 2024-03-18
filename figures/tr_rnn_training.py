@@ -25,9 +25,7 @@ def disp_birnn_pred(which=0):
     acc_tensor = acc_list[which].unsqueeze(0)
     state_tensor = state_list[which].squeeze(0)
     state_tensor = state_tensor.cpu().numpy()
-    print(state_tensor.shape)
     h0 = torch.zeros(2, 1, 30).to(device)
-    h1 = torch.zeros(1, 1, 30).to(device)
     trbirnn = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
@@ -369,8 +367,20 @@ def velo_pred(which=1):
 
 def loss_curve():
     # training loss
-    epoch_list = [[4000, 5000], [7000, 10000], [3800, 6000], [4000, 10000]]
-    # epoch_list = [[-1, -1], [-1, -1], [-1, -1], [-1, -1]]
+    epoch_list = [[4000, 5000], [7000, 10000], [3800, 6000], [6000, 4000]]
+    xlim_max = [5000, 10000, 6000, 6000]
+    x_ticks = [
+        [0, 1000, 2000, 3000, 4000, 5000],
+        [0, 2000, 4000, 6000, 8000, 10000],
+        [0, 1000, 2000, 3000, 4000, 5000, 6000],
+        [0, 1000, 2000, 3000, 4000, 5000, 6000],
+    ]
+    x_ticks_label = [
+        [0, 1, 2, 3, 4, 5],
+        [0, 2, 4, 6, 8, 10],
+        [0, 1, 2, 3, 4, 5, 6],
+        [0, 1, 2, 3, 4, 5, 6],
+    ]
 
     for which in range(4):
         comp_rate = 1
@@ -416,13 +426,18 @@ def loss_curve():
             linewidth=1.5,
         )
         ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=1)
-        # ax.set_xlim(-1, 5000)
+        ax.set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
+        ax.set_xticks(
+            x_ticks[which],
+            x_ticks_label[which],
+        )
+        ax.set_xlabel(r"Epoch ($\times 10^3$)")
         # ax.set_ylim(0, 0.1)
         ax.grid(True)
         ax.tick_params(which="both", direction="in")
-        ax.set_xlabel("Epoch")
         ax.set_ylabel("Loss")
         ax.set_yscale("log")
+
         plt.savefig(
             "./figures/tr_birnn_loss" + str(which) + ".svg", bbox_inches="tight"
         )
@@ -430,4 +445,99 @@ def loss_curve():
 
 
 def performance_evaluation():
-    pass
+    disp_akf, _ = shear_type_structure.integr_akf_seismic_pred()
+    fig, ax = plt.subplots(1, 1, figsize=(14 * cm, 8 * cm))
+
+    for i in range(4):
+        acc_sensor = [0, 1, 2, 3, 4]
+        num_seismic = 4
+        acc_list, state_list = shear_type_structure.generate_seismic_response(
+            acc_sensor, num_seismic
+        )
+        output_size = 26
+        acc_tensor = acc_list[i].unsqueeze(0)
+        state_tensor = state_list[i]
+        state_ref = state_tensor.unsqueeze(0).cpu().numpy()
+        h0 = torch.zeros(2, 1, 30).to(device)
+        h1 = torch.zeros(1, 1, 30).to(device)
+
+        trbirnn = Rnn(
+            input_size=len(acc_sensor),
+            hidden_size=30,
+            output_size=output_size,
+            num_layers=1,
+            bidirectional=True,
+        )
+        with open("./dataset/sts/tr_birnn00" + str(i) + ".pth", "rb") as f:
+            trbirnn.load_state_dict(torch.load(f))
+        trbirnn.eval()
+        with torch.no_grad():
+            disp_trbirnn, _ = trbirnn(acc_tensor, h0)
+        disp_trbirnn = disp_trbirnn.cpu().numpy()
+        trrnn = Rnn(
+            input_size=len(acc_sensor),
+            hidden_size=30,
+            output_size=output_size,
+            num_layers=1,
+            bidirectional=False,
+        )
+        with open("./dataset/sts/tr_rnn00" + str(i) + ".pth", "rb") as f:
+            trrnn.load_state_dict(torch.load(f))
+        trrnn.eval()
+        with torch.no_grad():
+            disp_trrnn, _ = trrnn(acc_tensor, h1)
+        disp_trrnn = disp_trrnn.cpu().numpy()
+
+        disp_akf_i = disp_akf[i]
+        disp_akf_i[1:, :] = disp_akf_i[:-1, :]
+        disp_akf_i[:, 0] = 0
+        disp_akf_i = np.expand_dims(disp_akf_i, axis=0)
+
+        error_trbirnn = similarity(disp_trbirnn, state_ref).T
+        error_trrnn = similarity(disp_trrnn, state_ref).T
+        # error_dkf = similarity(disp_dkf_i, state_ref).T
+        error_akf = similarity(disp_akf_i, state_ref).T
+
+        mean_error_trbirnn = np.mean(error_trbirnn[0:13])
+        mean_error_trrnn = np.mean(error_trrnn[0:13])
+        mean_error_akf = np.mean(error_akf[0:13])
+        std_error_trbirnn = np.std(error_trbirnn[0:13])
+        std_error_trrnn = np.std(error_trrnn[0:13])
+        std_error_akf = np.std(error_akf[0:13])
+
+        color = ["b", "r", "g"]
+
+        ax.bar(
+            [0 + i * 3, 0.6 + i * 3, 1.2 + i * 3],
+            [mean_error_trbirnn * 100, mean_error_trrnn * 100, mean_error_akf * 100],
+            yerr=[
+                std_error_trbirnn * 100,
+                std_error_trrnn * 100,
+                std_error_akf * 100,
+            ],
+            color=color,
+            width=0.6,
+            capsize=3,
+            label = ["TL-BiRNN", "TL-RNN", "Integr. AKF"]
+        )
+        if i == 0:
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax.legend(
+                ["TL-BiRNN", "TL-RNN", "Integr. AKF"],
+                fontsize=10,
+                facecolor="white",
+                edgecolor="black",
+                ncol=1,
+                loc="center left",
+                bbox_to_anchor=(1, 0.5),
+            )
+
+    ax.set_xticks([0.6, 3.6, 6.6, 9.6], ["Kobe", "Kern County", "El Álamo", "Taiwan"])
+
+    ax.set_ylim(0, 100)
+    ax.set_ylabel("Similarity (%)")
+    # ax.set_xlabel("Model")
+    ax.tick_params(which="both", direction="in")
+    plt.savefig("./figures/tr_birnn_performance.svg", bbox_inches="tight")
+    plt.show()
