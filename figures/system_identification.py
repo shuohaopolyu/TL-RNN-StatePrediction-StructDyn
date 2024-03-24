@@ -167,6 +167,7 @@ def base_loads():
         fontsize=10,
         facecolor="white",
         edgecolor="black",
+        framealpha=1,
     )
     plt.grid(True)
     plt.tick_params(axis="both", direction="in")

@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # shear_type_structure.tr_rnn()
 
     # figure plot
-    # system_identification.base_loads()
+    system_identification.base_loads()
     # system_identification.singular_values()
     # system_identification.mode_shape()
     # system_identification.natural_frequency()
@@ -56,4 +56,4 @@ if __name__ == "__main__":
     # tr_rnn_training.disp_rnn_pred()
     # tr_rnn_training.disp_kf_pred()
     # tr_rnn_training.loss_curve()
-    tr_rnn_training.performance_evaluation()
+    # tr_rnn_training.performance_evaluation()
