@@ -147,22 +147,23 @@ def base_loads():
     plt.figure(figsize=(11 * cm, 8 * cm))
     plt.plot(
         time[:2000],
-        base_elastic_force[:2000],
+        base_elastic_force[:2000] * 1.2e2,
         label="Elastic force",
         color="red",
         linewidth=0.8,
     )
     plt.plot(
         time[:2000],
-        base_hysteretic_force[:2000],
+        base_hysteretic_force[:2000] * 1.2e2,
         label="Hysteretic force",
         color="blue",
         linewidth=0.8,
     )
     plt.xlim(0, 100)
-    plt.ylim(-0.09, 0.09)
+    plt.ylim(-10, 10)
+    plt.yticks(np.arange(-10, 11, 5), fontsize=10)
     plt.xlabel("Time (s)")
-    plt.ylabel("Base shear force")
+    plt.ylabel("Base shear force (kN)")
     plt.legend(
         fontsize=10,
         facecolor="white",
@@ -171,9 +172,8 @@ def base_loads():
     )
     plt.grid(True)
     plt.tick_params(axis="both", direction="in")
-    # set scientific notation to y-axis
-    plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     plt.savefig("./figures/base_loads.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_base_loads.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -194,12 +194,13 @@ def singular_values():
     fig.set_size_inches(11 * cm, 8 * cm)
     plt.tick_params(axis="both", direction="in")
     plt.ylim([-80, 10])
-    plt.ylabel("Singular values of cross-spectral matrix (dB)")
+    plt.ylabel("Singular values of \n cross-spectral matrices (dB)")
     plt.xlabel("Frequency (Hz)")
     plt.xticks(fontsize=10)
     plt.yticks(fontsize=10)
     plt.title("")
     plt.savefig("./figures/singular_values.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_singular_values.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -236,6 +237,7 @@ def mode_shape():
             label="Measurements",
             markerfacecolor="None",
         )
+        print(model_ms_i.T @ ms_i / (LA.norm(model_ms_i) * LA.norm(ms_i)))
         axs[i].tick_params(axis="both", direction="in")
         axs[i].set_ylim(-0.5, 12.5)
         axs[i].set_xlim(-1.1, 1.1)
@@ -285,6 +287,7 @@ def natural_frequency():
         edgecolor="black",
     )
     plt.savefig("./figures/natural_frequency.svg", bbox_inches="tight")
+    print((model_nf[:5] - nf[:5]) / nf[:5])
     plt.show()
 
 
@@ -315,7 +318,7 @@ def params():
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
     measured_params = solution["params"]
-    model_params = np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5])
+    model_params = np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * 0.12
     measured_params = model_params * measured_params
     model_params[0] = 0
     x = np.arange(13, dtype=float)
@@ -333,8 +336,9 @@ def params():
         facecolor="white",
         edgecolor="black",
     )
-    ax.set_xlim(0, 13)
-    ax.set_xlabel(r"Stiffness parameter values ($\times10^2$)")
+    ax.set_xlim(0, 1.6)
+    ax.set_xticks(np.arange(0, 1.7, 0.4))
+    ax.set_xlabel(r"Stiffness parameter values ($\times10^5$ kN/m)")
     plt.yticks(x + 1, k_sub, fontsize=10)
 
     plt.savefig("./figures/params.svg", bbox_inches="tight")

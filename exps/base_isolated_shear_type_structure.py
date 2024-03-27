@@ -231,6 +231,7 @@ def ambient_response(save_path="./dataset/bists/"):
     )
     # parametric_bists.print_natural_frequency(10)
     resp_disp, _, acc, z = parametric_bists.run(force_type="ambient excitation")
+    print(acc[12, :].max())
     # plt.plot(time, resp_disp[0, :].T * 1300 * 0.7, label="elastic force")
     # plt.plot(time, z.T * 10 * 0.3, label="damping force")
     # plt.show()

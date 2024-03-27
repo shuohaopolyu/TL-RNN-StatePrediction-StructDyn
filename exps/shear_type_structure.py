@@ -29,6 +29,8 @@ def modal_analysis():
     ms_array = np.real(Pali_ss["FSDD"].result.Phi)
     nf_array = Pali_ss["FSDD"].result.Fn
     dp_array = Pali_ss["FSDD"].result.Xi
+    print(1/nf_array)
+    print(dp_array)
     if save_path is not None:
         file_name = save_path + "modal_analysis.pkl"
         with open(file_name, "wb") as f:

@@ -2,12 +2,14 @@ import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
 from excitations import FlatNoisePSD, PSDExcitationGenerator
+
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Arial"
 # set the font size's default value
 plt.rcParams.update({"font.size": 10})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
+
 
 def compound_envelope(b1, b2, gamma, t_array):
     tmax = t_array[-1]
@@ -23,6 +25,7 @@ def compound_envelope(b1, b2, gamma, t_array):
             envelope[i] = 1
     return envelope
 
+
 def cwt_acc_g():
     # compute the seismic vibration response
     psd_func = FlatNoisePSD(a_v=0.3)
@@ -31,15 +34,15 @@ def cwt_acc_g():
     b1 = np.random.uniform(0.1, 0.2)
     gamma = np.random.uniform(3, 5)
     b2 = np.random.uniform(0.4, 0.6)
-    window_point = compound_envelope(b1, b2,  gamma, time)
+    window_point = compound_envelope(b1, b2, gamma, time)
     acc_g = acc_g * window_point
 
     widths = np.arange(1, 201)
     cwtmatr = signal.cwt(acc_g, signal.ricker, widths)
     cwtmatr_yflip = np.flipud(cwtmatr)
 
-    fig, axs = plt.subplots(1,2, figsize=(22 * cm, 8 * cm))
-    axs[0].plot(time, acc_g/9.8, color="b", linewidth=1.5)
+    fig, axs = plt.subplots(1, 2, figsize=(22 * cm, 8 * cm))
+    axs[0].plot(time, acc_g / 9.8, color="b", linewidth=1.5)
     axs[0].tick_params(which="both", direction="in")
     axs[0].set_xlabel("Time (s)")
     axs[0].set_ylabel("Acceleration (g)", color="b")
@@ -54,14 +57,21 @@ def cwt_acc_g():
     axs[0].grid(True)
     # axs[0].legend(["Ground acceleration"], fontsize=10, facecolor="white", edgecolor="black")
     # ax2.legend(["Window function"], fontsize=10, facecolor="white", edgecolor="black")
-    wv = axs[1].imshow(abs(cwtmatr_yflip), extent=[0, 40, 1/10, 10], cmap='seismic', aspect='auto',
-            vmax=abs(cwtmatr).max(), vmin=0)
+    wv = axs[1].imshow(
+        abs(cwtmatr_yflip),
+        extent=[0, 40, 1 / 10, 10],
+        cmap="seismic",
+        aspect="auto",
+        vmax=abs(cwtmatr).max(),
+        vmin=0,
+    )
     # axs[1].set_yscale('log')
     axs[1].set_xlabel("Time (s)")
     axs[1].set_ylabel("Frequency (Hz)")
     axs[1].tick_params(which="both", direction="in")
-    cbar=fig.colorbar(wv, ax=axs[1], orientation="vertical", extend="both")
+    cbar = fig.colorbar(wv, ax=axs[1], orientation="vertical", extend="both")
     cbar.minorticks_on()
     fig.tight_layout()
     plt.savefig("./figures/cwt_acc_g.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_cwt_acc_g.pdf", bbox_inches="tight")
     plt.show()
