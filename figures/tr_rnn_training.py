@@ -75,17 +75,24 @@ def disp_birnn_pred(which=0):
     )
     ax.set_ylim(-20, 20)
 
-    ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
+    ax.legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+        ncol=3,
+        framealpha=1,
+    )
     ax.set_xlim(0, 40)
     ax.grid(True)
     ax.tick_params(which="both", direction="in")
     ax.set_yticks(np.arange(-20, 20, 10))
     ax.text(
-        0.1, 0.875, "8th floor", ha="center", va="center", transform=plt.gca().transAxes
+        0.1, 0.125, "8th floor", ha="center", va="center", transform=plt.gca().transAxes
     )
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Displacement (cm)")
     plt.savefig("./figures/tr_birnn_disp.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_birnn_disp.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -151,7 +158,13 @@ def disp_rnn_pred(which=0):
     )
 
     ax.set_ylim(-20, 60)
-    ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=4)
+    ax.legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+        ncol=4,
+        framealpha=1,
+    )
     ax.set_xlim(0, 40)
     ax.grid(True)
     ax.tick_params(which="both", direction="in")
@@ -162,6 +175,7 @@ def disp_rnn_pred(which=0):
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Displacement (cm)")
     plt.savefig("./figures/tr_rnn_disp.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_rnn_disp.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -238,6 +252,237 @@ def disp_kf_pred(which=0):
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Displacement (cm)")
     plt.savefig("./figures/tr_kf_disp.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_kf_disp.pdf", bbox_inches="tight")
+    plt.show()
+
+
+def disp_pred(which=0):
+    fig, ax = plt.subplots(3, 1, figsize=(20 * cm, 24 * cm))
+
+    acc_sensor = [0, 1, 2, 3, 4]
+    num_seismic = 4
+    acc_list, state_list = shear_type_structure.generate_seismic_response(
+        acc_sensor, num_seismic
+    )
+    output_size = 26
+    acc_tensor = acc_list[which].unsqueeze(0)
+    state_tensor = state_list[which].squeeze(0)
+    state_tensor = state_tensor.cpu().numpy()
+    h0 = torch.zeros(2, 1, 30).to(device)
+    trbirnn = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=30,
+        output_size=output_size,
+        num_layers=1,
+        bidirectional=True,
+    )
+    birnn = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=30,
+        output_size=output_size,
+        num_layers=1,
+        bidirectional=True,
+    )
+    with open("./dataset/sts/tr_birnn00" + str(which) + ".pth", "rb") as f:
+        trbirnn.load_state_dict(torch.load(f))
+    trbirnn.eval()
+    with torch.no_grad():
+        output, _ = trbirnn(acc_tensor, h0)
+    output = output.squeeze(0).cpu().numpy()
+
+    with open("./dataset/sts/birnn.pth", "rb") as f:
+        birnn.load_state_dict(torch.load(f))
+    birnn.eval()
+    with torch.no_grad():
+        output2, _ = birnn(acc_tensor, h0)
+    output2 = output2.squeeze(0).cpu().numpy()
+
+    time = np.arange(0, output.shape[0] / 20, 1 / 20)
+    ax[0].plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
+    ax[0].plot(
+        time,
+        output[:, 7] * 100,
+        label="TL-BiRNN pred.",
+        color="r",
+        linewidth=1.2,
+        linestyle="-.",
+    )
+    ax[0].plot(
+        time,
+        output2[:, 7] * 100,
+        label="BiRNN pred.",
+        color="b",
+        linewidth=1.2,
+        linestyle="--",
+    )
+    ax[0].set_ylim(-20, 20)
+
+    ax[0].legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+        ncol=3,
+        framealpha=1,
+    )
+    ax[0].set_xlim(0, 40)
+    ax[0].grid(True)
+    ax[0].tick_params(which="both", direction="in")
+    ax[0].set_yticks(np.arange(-20, 20, 10))
+    ax[0].text(
+        0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[0].transAxes
+    )
+    ax[0].set_xlabel("Time (s)")
+    ax[0].set_ylabel("Displacement (cm)")
+
+    acc_sensor = [0, 1, 2, 3, 4]
+    num_seismic = 4
+    acc_list, state_list = shear_type_structure.generate_seismic_response(
+        acc_sensor, num_seismic
+    )
+    output_size = 26
+    acc_tensor = acc_list[which].unsqueeze(0)
+    state_tensor = state_list[which].squeeze(0)
+    state_tensor = state_tensor.cpu().numpy()
+    h1 = torch.zeros(1, 1, 30).to(device)
+    trrnn = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=30,
+        output_size=output_size,
+        num_layers=1,
+        bidirectional=False,
+    )
+    rnn = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=30,
+        output_size=output_size,
+        num_layers=1,
+        bidirectional=False,
+    )
+
+    with open("./dataset/sts/tr_rnn00" + str(which) + ".pth", "rb") as f:
+        trrnn.load_state_dict(torch.load(f))
+    trrnn.eval()
+    with torch.no_grad():
+        output3, _ = trrnn(acc_tensor, h1)
+    output3 = output3.squeeze(0).cpu().numpy()
+    with open("./dataset/sts/rnn.pth", "rb") as f:
+        rnn.load_state_dict(torch.load(f))
+    rnn.eval()
+    with torch.no_grad():
+        output4, _ = rnn(acc_tensor, h1)
+    output4 = output4.squeeze(0).cpu().numpy()
+
+    # output5, _ = shear_type_structure.dkf_seismic_pred()
+    # output5 = output5[which]
+    time = np.arange(0, output3.shape[0] / 20, 1 / 20)
+    ax[1].plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
+    ax[1].plot(
+        time,
+        output3[:, 7] * 100,
+        label="TL-RNN pred.",
+        color="r",
+        linewidth=1.2,
+        linestyle="-.",
+    )
+    ax[1].plot(
+        time,
+        output4[:, 7] * 100,
+        label="RNN pred.",
+        color="b",
+        linewidth=1.2,
+        linestyle="--",
+    )
+
+    ax[1].set_ylim(-20, 60)
+    ax[1].legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+        ncol=4,
+        framealpha=1,
+    )
+    ax[1].set_xlim(0, 40)
+    ax[1].grid(True)
+    ax[1].tick_params(which="both", direction="in")
+    ax[1].set_yticks(np.arange(-20, 61, 20))
+    ax[1].text(
+        0.1, 0.1, "8th floor", ha="center", va="center", transform=ax[1].transAxes
+    )
+    ax[1].set_xlabel("Time (s)")
+    ax[1].set_ylabel("Displacement (cm)")
+
+    acc_sensor = [0, 1, 2, 3, 4]
+    num_seismic = 4
+    _, state_list = shear_type_structure.generate_seismic_response(
+        acc_sensor, num_seismic
+    )
+
+    state_tensor = state_list[which].squeeze(0)
+    state_tensor = state_tensor.cpu().numpy()
+
+    disp1, _ = shear_type_structure.dkf_seismic_pred()
+    disp1 = disp1[which]
+    disp1[1:, :] = disp1[:-1, :]
+    disp1[:, 0] = 0
+    disp2, _ = shear_type_structure.integr_dkf_seismic_pred()
+    disp2 = disp2[which]
+    disp2[1:, :] = disp2[:-1, :]
+    disp2[:, 0] = 0
+    disp3, _ = shear_type_structure.akf_seismic_pred()
+    disp3 = disp3[which]
+    disp3[1:, :] = disp3[:-1, :]
+    disp3[:, 0] = 0
+    disp4, _ = shear_type_structure.integr_akf_seismic_pred()
+    disp4 = disp4[which]
+    disp4[1:, :] = disp4[:-1, :]
+    disp4[:, 0] = 0
+    time = np.arange(0, disp1.shape[0] / 20, 1 / 20)
+    ax[2].plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
+    ax[2].plot(
+        time,
+        disp1[:, 7] * 100,
+        label="DKF pred.",
+        color="r",
+        linewidth=1.2,
+        linestyle="-.",
+    )
+    ax[2].plot(
+        time,
+        disp2[:, 7] * 100,
+        label="Integr. DKF pred.",
+        color="b",
+        linewidth=1.2,
+        linestyle="--",
+    )
+    ax[2].plot(
+        time,
+        disp3[:, 7] * 100,
+        label="AKF pred.",
+        color="lime",
+        linewidth=1.2,
+        linestyle=":",
+    )
+    ax[2].plot(
+        time,
+        disp4[:, 7] * 100,
+        label="Integr. AKF pred.",
+        color="m",
+        linewidth=1.2,
+        linestyle="--",
+    )
+    ax[2].set_ylim(-20, 40)
+    ax[2].legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
+    ax[2].set_xlim(0, 40)
+    ax[2].grid(True)
+    ax[2].tick_params(which="both", direction="in")
+    ax[2].set_yticks(np.arange(-20, 41, 20))
+    ax[2].text(
+        0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[2].transAxes
+    )
+    ax[2].set_xlabel("Time (s)")
+    ax[2].set_ylabel("Displacement (cm)")
+    plt.savefig("./figures/tr_disp.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_disp.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -345,7 +590,13 @@ def velo_pred(which=1):
         linewidth=0.8,
         linestyle="-.",
     )
-    ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
+    ax.legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+        ncol=3,
+        framealpha=1,
+    )
     ax.set_xlim(0, 70)
     ax.set_ylim(-20, 20)
     ax.grid(True)
@@ -362,6 +613,7 @@ def velo_pred(which=1):
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Velocity (cm/s)")
     plt.savefig("./figures/tr_velo.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_velo.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -381,6 +633,8 @@ def loss_curve():
         [0, 1, 2, 3, 4, 5, 6],
         [0, 1, 2, 3, 4, 5, 6],
     ]
+    figidx = ["(a)", "(b)", "(c)", "(d)"]
+    fig, axs = plt.subplots(2, 2, figsize=(22 * cm, 16 * cm))
 
     for which in range(4):
         comp_rate = 1
@@ -400,15 +654,15 @@ def loss_curve():
         rnn_test_loss = tr_rnn_loss[::comp_rate, 1]
         time_birnn = np.arange(0, len(birnn_train_loss) * comp_rate, comp_rate)
         time = np.arange(0, len(rnn_train_loss) * comp_rate, comp_rate)
-        fig, ax = plt.subplots(1, 1, figsize=(10 * cm, 8 * cm))
-        ax.plot(
+        idx = (which // 2, which % 2)
+        axs[idx].plot(
             time_birnn,
             birnn_train_loss,
             label="BiRNN training",
             color="b",
             linewidth=1.5,
         )
-        ax.plot(
+        axs[idx].plot(
             time_birnn,
             birnn_test_loss,
             label="BiRNN test",
@@ -416,8 +670,10 @@ def loss_curve():
             linestyle="--",
             linewidth=1.5,
         )
-        ax.plot(time, rnn_train_loss, label="RNN training", color="r", linewidth=1.5)
-        ax.plot(
+        axs[idx].plot(
+            time, rnn_train_loss, label="RNN training", color="r", linewidth=1.5
+        )
+        axs[idx].plot(
             time,
             rnn_test_loss,
             label="RNN test",
@@ -425,23 +681,41 @@ def loss_curve():
             linestyle="--",
             linewidth=1.5,
         )
-        ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=1)
-        ax.set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
-        ax.set_xticks(
+
+        # axs[idx].legend(fontsize=10, facecolor="white", edgecolor="black", ncol=1)
+        axs[idx].set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
+        axs[idx].set_xticks(
             x_ticks[which],
             x_ticks_label[which],
         )
-        ax.set_xlabel(r"Epoch ($\times 10^3$)")
+        axs[idx].set_xlabel(r"Epoch ($\times 10^3$)", labelpad=0.1)
         # ax.set_ylim(0, 0.1)
-        ax.grid(True)
-        ax.tick_params(which="both", direction="in")
-        ax.set_ylabel("Loss")
-        ax.set_yscale("log")
-
-        plt.savefig(
-            "./figures/tr_birnn_loss" + str(which) + ".svg", bbox_inches="tight"
+        axs[idx].grid(True)
+        axs[idx].tick_params(which="both", direction="in")
+        axs[idx].set_ylabel("Loss")
+        axs[idx].set_yscale("log")
+        axs[idx].text(
+            -0.1,
+            -0.1,
+            figidx[which],
+            ha="center",
+            va="center",
+            transform=axs[idx].transAxes,
         )
-        plt.show()
+        if which == 0:
+            fig.legend(
+                loc="outside upper center",
+                framealpha=1,
+                fontsize=10,
+                facecolor="white",
+                edgecolor="black",
+                ncol=4,
+                bbox_to_anchor=(0.5, 0.95),
+            )
+    # plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/tr_birnn_loss.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_birnn_loss.pdf", bbox_inches="tight")
+    plt.show()
 
 
 def performance_evaluation():
@@ -510,14 +784,14 @@ def performance_evaluation():
         ax.bar(
             [0 + i * 3, 0.6 + i * 3, 1.2 + i * 3],
             [mean_error_trbirnn, mean_error_trrnn, mean_error_akf],
-            yerr=[
-                std_error_trbirnn,
-                std_error_trrnn,
-                std_error_akf,
-            ],
+            # yerr=[
+            #     std_error_trbirnn,
+            #     std_error_trrnn,
+            #     std_error_akf,
+            # ],
             color=color,
             width=0.6,
-            capsize=3,
+            # capsize=3,
             label=["TL-BiRNN", "TL-RNN", "Integr. AKF"],
         )
         if i == 0:
@@ -540,4 +814,5 @@ def performance_evaluation():
     # ax.set_xlabel("Model")
     ax.tick_params(which="both", direction="in")
     plt.savefig("./figures/tr_birnn_performance.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_birnn_performance.pdf", bbox_inches="tight")
     plt.show()

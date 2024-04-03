@@ -79,3 +79,16 @@ def similarity(pred, target):
             )
             # error_mtx[i, j] = np.linalg.norm(pred_vec - target_vec)
     return error_mtx
+
+
+def fft(x):
+    # compute fast fourier transform from scratch
+    N = len(x)
+    if N <= 1:
+        return x
+    even = fft(x[0::2])
+    odd = fft(x[1::2])
+    T = [np.exp(-2j * np.pi * k / N) * odd[k] for k in range(N // 2)]
+    return [even[k] + T[k] for k in range(N // 2)] + [
+        even[k] - T[k] for k in range(N // 2)
+    ]

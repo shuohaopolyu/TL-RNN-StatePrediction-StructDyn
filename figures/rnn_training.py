@@ -319,7 +319,7 @@ def state_pred():
     akf_state_pred[file_idx, 1:] = akf_state_pred[file_idx, :-1]
     akf_state_pred[file_idx, 0] = 0
 
-    fig, axs = plt.subplots(1, 2, figsize=(22 * cm, 10 * cm))
+    fig, axs = plt.subplots(1, 2, figsize=(20 * cm, 10 * cm))
     axs[0].plot(
         time, state_test[file_idx, :] * 100, label="Ref.", color="k", linewidth=1.2
     )
@@ -533,14 +533,14 @@ def performance_evaluation():
     mean_err_dkf_velo = np.mean(err_mtx_dkf_velo)
     mean_err_akf_disp = np.mean(err_mtx_akf_disp)
     mean_err_akf_velo = np.mean(err_mtx_akf_velo)
-    std_err_rnn_disp = np.std(err_mtx_rnn[:, 0:13])
-    std_err_birnn_disp = np.std(err_mtx_birnn[:, 0:13])
-    std_err_dkf_disp = np.std(err_mtx_dkf_disp)
-    std_err_rnn_velo = np.std(err_mtx_rnn[:, 13:])
-    std_err_birnn_velo = np.std(err_mtx_birnn[:, 13:])
-    std_err_dkf_velo = np.std(err_mtx_dkf_velo)
-    std_err_akf_disp = np.std(err_mtx_akf_disp)
-    std_err_akf_velo = np.std(err_mtx_akf_velo)
+    # std_err_rnn_disp = np.std(err_mtx_rnn[:, 0:13])
+    # std_err_birnn_disp = np.std(err_mtx_birnn[:, 0:13])
+    # std_err_dkf_disp = np.std(err_mtx_dkf_disp)
+    # std_err_rnn_velo = np.std(err_mtx_rnn[:, 13:])
+    # std_err_birnn_velo = np.std(err_mtx_birnn[:, 13:])
+    # std_err_dkf_velo = np.std(err_mtx_dkf_velo)
+    # std_err_akf_disp = np.std(err_mtx_akf_disp)
+    # std_err_akf_velo = np.std(err_mtx_akf_velo)
     fig, axs = plt.subplots(1, 2, figsize=(20 * cm, 8 * cm))
     axs[0].bar(
         np.arange(4),
@@ -550,13 +550,13 @@ def performance_evaluation():
             mean_err_dkf_disp,
             mean_err_akf_disp,
         ],
-        yerr=[
-            std_err_rnn_disp,
-            std_err_birnn_disp,
-            std_err_dkf_disp,
-            std_err_akf_disp,
-        ],
-        capsize=5,
+        # yerr=[
+        #     std_err_rnn_disp,
+        #     std_err_birnn_disp,
+        #     std_err_dkf_disp,
+        #     std_err_akf_disp,
+        # ],
+        # capsize=5,
         color="b",
     )
     # axs[0].set_ylim(0, 100)
@@ -581,13 +581,13 @@ def performance_evaluation():
             mean_err_dkf_velo,
             mean_err_akf_velo,
         ],
-        yerr=[
-            std_err_rnn_velo,
-            std_err_birnn_velo,
-            std_err_dkf_velo,
-            std_err_akf_velo,
-        ],
-        capsize=5,
+        # yerr=[
+        #     std_err_rnn_velo,
+        #     std_err_birnn_velo,
+        #     std_err_dkf_velo,
+        #     std_err_akf_velo,
+        # ],
+        # capsize=5,
         color="r",
     )
     axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
