@@ -36,6 +36,7 @@ def loss_curve():
         fontsize=10,
         facecolor="white",
         edgecolor="black",
+        framealpha=1,
     )
     plt.xlim(0, 80000)
     plt.xticks(
@@ -47,6 +48,7 @@ def loss_curve():
     plt.ylabel("Loss")
     plt.grid(True)
     plt.savefig("./figures/loss_curve.svg", bbox_inches="tight")
+    plt.savefig("./figures/loss_curve.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -150,6 +152,7 @@ def disp_pred():
         0.9, 0.125, "9th floor", ha="center", va="center", transform=plt.gca().transAxes
     )
     plt.savefig("./figures/disp_pred.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_disp_pred.pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -258,6 +261,210 @@ def velo_pred():
     plt.xlim(0, 40)
     plt.ylim(-3, 3)
     plt.savefig("./figures/velo_pred.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_velo_pred.pdf", bbox_inches="tight")
+    plt.show()
+
+
+def state_pred():
+    file_idx = 2
+    dof_idx = 8
+    BiRNN4ststate = Rnn(
+        input_size=5,
+        hidden_size=30,
+        output_size=26,
+        num_layers=1,
+        bidirectional=True,
+    )
+    RNN4ststate = Rnn(
+        input_size=5,
+        hidden_size=30,
+        output_size=26,
+        num_layers=1,
+        bidirectional=False,
+    )
+    time = np.arange(0, 40, 1 / 20)
+    with open("./dataset/sts/rnn.pth", "rb") as f:
+        RNN4ststate.load_state_dict(torch.load(f))
+    with open("./dataset/sts/birnn.pth", "rb") as f:
+        BiRNN4ststate.load_state_dict(torch.load(f))
+    with open("./dataset/sts/dkf_pred.pkl", "rb") as f:
+        dkf_pred = pickle.load(f)
+    dkf_pred = dkf_pred["disp_pred"]
+    with open("./dataset/sts/akf_pred.pkl", "rb") as f:
+        akf_pred = pickle.load(f)
+    akf_pred = akf_pred["disp_pred"]
+    RNN4ststate.eval()
+    BiRNN4ststate.eval()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    num_test_files = 10
+    rnn_test_h0 = torch.zeros(1, num_test_files, 30).to(device)
+    birnn_test_h0 = torch.zeros(2, num_test_files, 30).to(device)
+    _, _, state_test, acc_test = shear_type_structure.training_test_data(
+        [0, 1, 2, 3, 4], 1, 90, 100
+    )
+    with torch.no_grad():
+        rnn_state_pred, _ = RNN4ststate(acc_test, rnn_test_h0)
+        birnn_state_pred, _ = BiRNN4ststate(acc_test, birnn_test_h0)
+
+    rnn_state_pred = rnn_state_pred.cpu().numpy()
+    rnn_state_pred = rnn_state_pred[:, :, dof_idx]
+    birnn_state_pred = birnn_state_pred.cpu().numpy()
+    birnn_state_pred = birnn_state_pred[:, :, dof_idx]
+    state_test = state_test.cpu().numpy()
+    state_test = state_test[:, :, dof_idx]
+    dkf_state_pred = dkf_pred[:, :, dof_idx]
+    dkf_state_pred[file_idx, 1:] = dkf_state_pred[file_idx, :-1]
+    dkf_state_pred[file_idx, 0] = 0
+    akf_state_pred = akf_pred[:, :, dof_idx]
+    akf_state_pred[file_idx, 1:] = akf_state_pred[file_idx, :-1]
+    akf_state_pred[file_idx, 0] = 0
+
+    fig, axs = plt.subplots(1, 2, figsize=(22 * cm, 10 * cm))
+    axs[0].plot(
+        time, state_test[file_idx, :] * 100, label="Ref.", color="k", linewidth=1.2
+    )
+    axs[0].plot(
+        time,
+        rnn_state_pred[file_idx, :] * 100,
+        label="RNN pred.",
+        linestyle="-.",
+        color="b",
+        linewidth=1.2,
+    )
+    axs[0].plot(
+        time,
+        birnn_state_pred[file_idx, :] * 100,
+        label="BiRNN pred.",
+        linestyle="--",
+        color="r",
+        linewidth=1.2,
+    )
+    axs[0].plot(
+        time,
+        dkf_state_pred[file_idx, :] * 100,
+        label="DKF pred.",
+        linestyle=":",
+        color="lime",
+        linewidth=1.2,
+    )
+    axs[0].plot(
+        time,
+        akf_state_pred[file_idx, :] * 100,
+        label="AKF pred.",
+        linestyle="--",
+        color="darkviolet",
+        linewidth=1.2,
+    )
+    # axs[0].legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
+    axs[0].text(
+        0.8, 0.125, "9th floor", ha="center", va="center", transform=axs[0].transAxes
+    )
+    axs[0].text(-0.1, -0.1, "(a)", ha="center", va="center", transform=axs[0].transAxes)
+    axs[0].grid(True)
+    axs[0].set_xlabel("Time (s)")
+    axs[0].set_ylabel("Displacement (cm)")
+    axs[0].tick_params(which="both", direction="in")
+    axs[0].set_xlim(0, 40)
+    axs[0].set_ylim(-0.4 * 100, 0.4 * 100)
+    axs[0].set_yticks([-40, -20, 0, 20, 40])
+    axs[0].set_xticks([0, 10, 20, 30, 40])
+    fig.legend(
+        loc="outside upper center",
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+        ncol=5,
+    )
+
+    with open("./dataset/sts/dkf_pred.pkl", "rb") as f:
+        dkf_pred = pickle.load(f)
+    with open("./dataset/sts/akf_pred.pkl", "rb") as f:
+        akf_pred = pickle.load(f)
+
+    _, _, state_test, acc_test = shear_type_structure.training_test_data(
+        [0, 1, 2, 3, 4], 1, 90, 100
+    )
+    with torch.no_grad():
+        rnn_state_pred, _ = RNN4ststate(acc_test, rnn_test_h0)
+        birnn_state_pred, _ = BiRNN4ststate(acc_test, birnn_test_h0)
+    dof_idx = -1
+
+    rnn_state_pred = rnn_state_pred.cpu().numpy()
+    rnn_state_pred = rnn_state_pred[:, :, dof_idx]
+    birnn_state_pred = birnn_state_pred.cpu().numpy()
+    birnn_state_pred = birnn_state_pred[:, :, dof_idx]
+    state_test = state_test.cpu().numpy()
+    state_test = state_test[:, :, dof_idx]
+    dkf_pred = dkf_pred["velo_pred"]
+    dkf_state_pred = dkf_pred[:, :, dof_idx]
+    dkf_state_pred[file_idx, 1:] = dkf_state_pred[file_idx, :-1]
+    dkf_state_pred[file_idx, 0] = 0
+    akf_pred = akf_pred["velo_pred"]
+    akf_state_pred = akf_pred[:, :, dof_idx]
+    akf_state_pred[file_idx, 1:] = akf_state_pred[file_idx, :-1]
+    akf_state_pred[file_idx, 0] = 0
+
+    axs[1].plot(time, state_test[file_idx, :], label="Ref.", color="k", linewidth=1.2)
+    axs[1].plot(
+        time,
+        rnn_state_pred[file_idx, :],
+        label="RNN pred.",
+        linestyle="-.",
+        color="b",
+        linewidth=1.2,
+    )
+    axs[1].plot(
+        time,
+        birnn_state_pred[file_idx, :],
+        label="BiRNN pred.",
+        linestyle="--",
+        color="r",
+        linewidth=1.2,
+    )
+    axs[1].plot(
+        time,
+        dkf_state_pred[file_idx, :],
+        label="DKF pred.",
+        linestyle=":",
+        color="lime",
+        linewidth=1.2,
+    )
+    axs[1].plot(
+        time,
+        akf_state_pred[file_idx, :],
+        label="AKF pred.",
+        linestyle="--",
+        color="darkviolet",
+        linewidth=1.2,
+    )
+
+    axs[1].text(
+        0.8,
+        0.125,
+        "13th floor",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+    )
+    axs[1].text(
+        -0.1,
+        -0.1,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+    )
+    axs[1].grid(True)
+    axs[1].set_xlabel("Time (s)")
+    axs[1].set_ylabel("Velocity (m/s)")
+    axs[1].tick_params(which="both", direction="in")
+    axs[1].set_xlim(0, 40)
+    axs[1].set_ylim(-2, 2)
+    axs[1].set_xticks([0, 10, 20, 30, 40])
+    axs[1].set_yticks([-2, -1, 0, 1, 2])
+    plt.savefig("./figures/state_pred.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_state_pred.pdf", bbox_inches="tight")
+
     plt.show()
 
 
@@ -334,52 +541,69 @@ def performance_evaluation():
     std_err_dkf_velo = np.std(err_mtx_dkf_velo)
     std_err_akf_disp = np.std(err_mtx_akf_disp)
     std_err_akf_velo = np.std(err_mtx_akf_velo)
-    plt.figure(figsize=(10 * cm, 8 * cm))
-    plt.bar(
+    fig, axs = plt.subplots(1, 2, figsize=(20 * cm, 8 * cm))
+    axs[0].bar(
         np.arange(4),
         [
-            mean_err_rnn_disp * 100,
-            mean_err_birnn_disp * 100,
-            mean_err_dkf_disp * 100,
-            mean_err_akf_disp * 100,
+            mean_err_rnn_disp,
+            mean_err_birnn_disp,
+            mean_err_dkf_disp,
+            mean_err_akf_disp,
         ],
         yerr=[
-            std_err_rnn_disp * 100,
-            std_err_birnn_disp * 100,
-            std_err_dkf_disp * 100,
-            std_err_akf_disp * 100,
+            std_err_rnn_disp,
+            std_err_birnn_disp,
+            std_err_dkf_disp,
+            std_err_akf_disp,
         ],
         capsize=5,
         color="b",
     )
-    plt.ylim(0, 100)
-    plt.xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
-    plt.ylabel("Similarity (%)")
-    plt.title("Displacement")
-    plt.tick_params(which="both", direction="in")
-    plt.savefig("./figures/performance_disp.svg", bbox_inches="tight")
-    plt.show()
-    plt.figure(figsize=(10 * cm, 8 * cm))
-    plt.bar(
+    # axs[0].set_ylim(0, 100)
+    axs[0].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
+    axs[0].set_ylabel("NRMSE")
+    axs[0].title.set_text("Displacement")
+    axs[0].tick_params(which="both", direction="in")
+    axs[0].text(
+        -0.1, -0.06, "(a)", ha="center", va="center", transform=axs[0].transAxes
+    )
+    axs[0].set_ylim(0, 0.2)
+    axs[0].set_yticks([0, 0.1, 0.2])
+
+    # axs[0].savefig("./figures/performance_disp.svg", bbox_inches="tight")
+    # plt.show()
+    # plt.figure(figsize=(10 * cm, 8 * cm))
+    axs[1].bar(
         np.arange(4),
         [
-            mean_err_rnn_velo * 100,
-            mean_err_birnn_velo * 100,
-            mean_err_dkf_velo * 100,
-            mean_err_akf_velo * 100,
+            mean_err_rnn_velo,
+            mean_err_birnn_velo,
+            mean_err_dkf_velo,
+            mean_err_akf_velo,
         ],
         yerr=[
-            std_err_rnn_velo * 100,
-            std_err_birnn_velo * 100,
-            std_err_dkf_velo * 100,
-            std_err_akf_velo * 100,
+            std_err_rnn_velo,
+            std_err_birnn_velo,
+            std_err_dkf_velo,
+            std_err_akf_velo,
         ],
         capsize=5,
         color="r",
     )
-    plt.xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
-    plt.ylabel("Similarity (%)")
-    plt.title("Velocity")
-    plt.tick_params(which="both", direction="in")
-    plt.savefig("./figures/performance_velo.svg", bbox_inches="tight")
+    axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
+    axs[1].set_ylabel("NRMSE")
+    axs[1].title.set_text("Velocity")
+    axs[1].tick_params(which="both", direction="in")
+    axs[1].text(
+        -0.1,
+        -0.06,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+    )
+    axs[1].set_ylim(0, 0.3)
+    axs[1].set_yticks([0, 0.1, 0.2, 0.3])
+    plt.savefig("./figures/performance.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_performance.pdf", bbox_inches="tight")
     plt.show()

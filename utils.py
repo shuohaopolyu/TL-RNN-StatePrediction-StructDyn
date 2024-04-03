@@ -71,7 +71,11 @@ def similarity(pred, target):
             pred_vec = pred[i, :, j]
             target_vec = target[i, :, j]
             mean_target = np.mean(target_vec)
-            error_mtx[i, j] = 1 - np.linalg.norm(
-                pred_vec - target_vec
-            ) / np.linalg.norm(target_vec - mean_target)
+            # error_mtx[i, j] = 1 - np.linalg.norm(
+            #     pred_vec - target_vec
+            # ) / np.linalg.norm(target_vec - mean_target)
+            error_mtx[i, j] = np.linalg.norm(pred_vec - target_vec) / np.linalg.norm(
+                target_vec - mean_target
+            )
+            # error_mtx[i, j] = np.linalg.norm(pred_vec - target_vec)
     return error_mtx

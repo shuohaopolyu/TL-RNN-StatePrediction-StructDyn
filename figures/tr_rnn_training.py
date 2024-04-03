@@ -509,16 +509,16 @@ def performance_evaluation():
 
         ax.bar(
             [0 + i * 3, 0.6 + i * 3, 1.2 + i * 3],
-            [mean_error_trbirnn * 100, mean_error_trrnn * 100, mean_error_akf * 100],
+            [mean_error_trbirnn, mean_error_trrnn, mean_error_akf],
             yerr=[
-                std_error_trbirnn * 100,
-                std_error_trrnn * 100,
-                std_error_akf * 100,
+                std_error_trbirnn,
+                std_error_trrnn,
+                std_error_akf,
             ],
             color=color,
             width=0.6,
             capsize=3,
-            label = ["TL-BiRNN", "TL-RNN", "Integr. AKF"]
+            label=["TL-BiRNN", "TL-RNN", "Integr. AKF"],
         )
         if i == 0:
             box = ax.get_position()
@@ -535,8 +535,8 @@ def performance_evaluation():
 
     ax.set_xticks([0.6, 3.6, 6.6, 9.6], ["Kobe", "Kern County", "El Álamo", "Taiwan"])
 
-    ax.set_ylim(0, 100)
-    ax.set_ylabel("Similarity (%)")
+    # ax.set_ylim(0, 100)
+    ax.set_ylabel("NRMSE")
     # ax.set_xlabel("Model")
     ax.tick_params(which="both", direction="in")
     plt.savefig("./figures/tr_birnn_performance.svg", bbox_inches="tight")
