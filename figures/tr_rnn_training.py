@@ -488,7 +488,7 @@ def disp_pred(which=0):
     plt.show()
 
 
-def velo_pred(which=0):
+def velo_pred(which=1):
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
     acc_list, state_list = shear_type_structure.generate_seismic_response(
