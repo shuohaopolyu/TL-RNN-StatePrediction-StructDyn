@@ -331,6 +331,7 @@ def disp_pred(which=0):
     ax[0].text(
         0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[0].transAxes
     )
+    ax[0].text(-0.05, -0.1, "(a)", ha="center", va="center", transform=ax[0].transAxes)
     ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Displacement (cm)")
 
@@ -410,7 +411,7 @@ def disp_pred(which=0):
     )
     ax[1].set_xlabel("Time (s)")
     ax[1].set_ylabel("Displacement (cm)")
-
+    ax[1].text(-0.05, -0.1, "(b)", ha="center", va="center", transform=ax[1].transAxes)
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
     _, state_list = shear_type_structure.generate_seismic_response(
@@ -481,12 +482,13 @@ def disp_pred(which=0):
     )
     ax[2].set_xlabel("Time (s)")
     ax[2].set_ylabel("Displacement (cm)")
+    ax[2].text(-0.05, -0.1, "(c)", ha="center", va="center", transform=ax[2].transAxes)
     plt.savefig("./figures/tr_disp.svg", bbox_inches="tight")
     plt.savefig("./figures/F_tr_disp.pdf", bbox_inches="tight")
     plt.show()
 
 
-def velo_pred(which=1):
+def velo_pred(which=0):
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
     acc_list, state_list = shear_type_structure.generate_seismic_response(
