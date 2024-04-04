@@ -472,7 +472,13 @@ def disp_pred(which=0):
         linestyle="--",
     )
     ax[2].set_ylim(-20, 40)
-    ax[2].legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
+    ax[2].legend(
+        fontsize=10,
+        facecolor="white",
+        edgecolor="black",
+        ncol=3,
+        framealpha=1,
+    )
     ax[2].set_xlim(0, 40)
     ax[2].grid(True)
     ax[2].tick_params(which="both", direction="in")

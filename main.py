@@ -36,8 +36,8 @@ if __name__ == "__main__":
     # shear_type_structure.integr_dkf_seismic_pred()
     # shear_type_structure.akf_seismic_pred()
     # shear_type_structure.integr_akf_seismic_pred()
-    # shear_type_structure.tr_birnn()
-    # shear_type_structure.tr_rnn()
+    shear_type_structure.tr_birnn()
+    shear_type_structure.tr_rnn()
 
     # figure plot
     # system_identification.base_loads()
@@ -50,8 +50,8 @@ if __name__ == "__main__":
     # rnn_training.state_pred()
     # rnn_training.performance_evaluation()
     # strong_ground_motion.plot_ground_motion()
-    tr_rnn_training.velo_pred()
-    # tr_rnn_training.disp_pred()
+    # tr_rnn_training.velo_pred()
+    tr_rnn_training.disp_pred()
     # tr_rnn_training.disp_birnn_pred()
     # tr_rnn_training.disp_rnn_pred()
     # tr_rnn_training.disp_kf_pred()

@@ -42,10 +42,11 @@ def loss_curve():
     plt.xticks(
         [0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000],
         ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+        fontsize=10,
     )
     plt.yscale("log")
-    plt.xlabel(r"Epoch ($\times 10^4$)")
-    plt.ylabel("Loss")
+    plt.xlabel(r"Epoch ($\times 10^4$)", fontsize=10)
+    plt.ylabel("Loss", fontsize=10)
     plt.grid(True)
     plt.savefig("./figures/loss_curve.svg", bbox_inches="tight")
     plt.savefig("./figures/loss_curve.pdf", bbox_inches="tight")
