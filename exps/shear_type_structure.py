@@ -29,7 +29,7 @@ def modal_analysis():
     ms_array = np.real(Pali_ss["FSDD"].result.Phi)
     nf_array = Pali_ss["FSDD"].result.Fn
     dp_array = Pali_ss["FSDD"].result.Xi
-    print(1/nf_array)
+    print(1 / nf_array)
     print(dp_array)
     if save_path is not None:
         file_name = save_path + "modal_analysis.pkl"
@@ -348,12 +348,15 @@ def _rnn(
 
 
 def build_birnn(output="all"):
+    import time
+
     dr = 1
     ntf = 90
     nf = 100
     acc_sensor = [0, 1, 2, 3, 4]
     output_size = 26 if output == "all" else 13
     epochs = 60000 if output == "all" else 40000
+    time_start = time.time()
     _, _ = _birnn(
         acc_sensor,
         data_compression_ratio=dr,
@@ -364,6 +367,8 @@ def build_birnn(output="all"):
         weight_decay=0.0,
         output=output,
     )
+    time_end = time.time()
+    print("Time cost: ", time_end - time_start)
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
@@ -390,10 +395,13 @@ def build_birnn(output="all"):
 
 
 def build_rnn():
+    import time
+
     dr = 1
     ntf = 90
     nf = 100
     acc_sensor = [0, 1, 2, 3, 4]
+    time_start = time.time()
     _, _ = _rnn(
         acc_sensor,
         data_compression_ratio=dr,
@@ -402,6 +410,8 @@ def build_rnn():
         epochs=80000,
         lr=1e-5,
     )
+    time_end = time.time()
+    print("Time cost: ", time_end - time_start)
     RNN4ststate = Rnn(
         input_size=len(acc_sensor),
         hidden_size=30,
@@ -1054,6 +1064,10 @@ def tr_training(
 
 
 def tr_birnn(output="all"):
+    import time
+
+    epoch_list = [5000, 10000, 6000, 4000]
+
     # transfer learning of birnn
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
@@ -1070,6 +1084,7 @@ def tr_birnn(output="all"):
     epochs = 10000
     output_size = 26 if output == "all" else 13
     for i in range(num_seismic):
+        time_start = time.time()
         RNN4ststate = Rnn(
             input_size=len(acc_sensor),
             hidden_size=30,
@@ -1090,23 +1105,29 @@ def tr_birnn(output="all"):
             measured_drift_train,
             measured_drift_test,
             lr,
-            epochs,
+            epoch_list[i],
             unfrozen_params=[0, 1, 2, 3],
             output=output,
             num=i,
             save_path="./dataset/sts/tr_birnn" + format(i, "03") + ".pth",
         )
-        with open("./dataset/sts/tr_birnn" + format(i, "03") + ".pkl", "wb") as f:
-            pickle.dump(loss_history, f)
-        loss_history = np.array(loss_history)
-        plt.plot(loss_history[:, 0], label="Training Loss")
-        plt.plot(loss_history[:, 1], label="Test Loss")
-        plt.yscale("log")
-        plt.legend()
-        plt.show()
+        time_end = time.time()
+        print("Time cost: ", time_end - time_start)
+        # with open("./dataset/sts/tr_birnn" + format(i, "03") + ".pkl", "wb") as f:
+        #     pickle.dump(loss_history, f)
+        # loss_history = np.array(loss_history)
+        # plt.plot(loss_history[:, 0], label="Training Loss")
+        # plt.plot(loss_history[:, 1], label="Test Loss")
+        # plt.yscale("log")
+        # plt.legend()
+        # plt.show()
 
 
 def tr_rnn():
+    import time
+
+    # epoch_list = [4000, 7000, 3800, 6000]
+
     # transfer learning for rnn
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
@@ -1122,6 +1143,7 @@ def tr_rnn():
     lr = 1e-5
     epochs = 10000
     for i in range(num_seismic):
+        time_start = time.time()
         RNN4ststate = Rnn(
             input_size=len(acc_sensor),
             hidden_size=30,
@@ -1148,6 +1170,8 @@ def tr_rnn():
             num=i,
             save_path="./dataset/sts/tr_rnn" + format(i, "03") + ".pth",
         )
+        time_end = time.time()
+        print("Time cost: ", time_end - time_start)
         with open("./dataset/sts/tr_rnn" + format(i, "03") + ".pkl", "wb") as f:
             pickle.dump(loss_history, f)
         loss_history = np.array(loss_history)
