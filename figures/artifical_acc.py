@@ -35,6 +35,7 @@ def cwt_acc_g():
     gamma = np.random.uniform(3, 5)
     b2 = np.random.uniform(0.4, 0.6)
     window_point = compound_envelope(b1, b2, gamma, time)
+    print(np.std(acc_g))
     acc_g = acc_g * window_point
 
     widths = np.arange(1, 201)
