@@ -1,6 +1,7 @@
 from exps import (
     shear_type_structure,
     base_isolated_shear_type_structure,
+    continuous_beam,
 )
 import os
 import random
@@ -38,6 +39,8 @@ if __name__ == "__main__":
     # shear_type_structure.integr_akf_seismic_pred()
     # shear_type_structure.tr_birnn()
     # shear_type_structure.tr_rnn()
+    continuous_beam.random_vibration()
+    continuous_beam.plot_solution()
 
     # figure plot
     # system_identification.base_loads()
@@ -45,7 +48,7 @@ if __name__ == "__main__":
     # system_identification.mode_shape()
     # system_identification.natural_frequency()
     # system_identification.params()
-    artifical_acc.cwt_acc_g()
+    # artifical_acc.cwt_acc_g()
     # rnn_training.loss_curve()
     # rnn_training.state_pred()
     # rnn_training.performance_evaluation()
