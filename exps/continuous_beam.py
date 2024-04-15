@@ -3,6 +3,11 @@ import pickle
 from systems import ContinuousBeam01
 from excitations import PSDExcitationGenerator, BandPassPSD
 import matplotlib.pyplot as plt
+from models import Rnn
+import torch
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.manual_seed(0)
 
 
 def random_vibration():
@@ -29,3 +34,66 @@ def plot_solution():
     plt.plot(solution["time"], solution["displacement"][:, 0])
     plt.plot(solution["time"], solution["displacement"][:, 36])
     plt.show()
+    plt.plot(solution["time"], solution["force"][:, 0])
+    plt.show()
+
+
+def training_test_data(acc_sensor, percent_train):
+    filename = "./dataset/csb/solution000.pkl"
+    with open(filename, "rb") as f:
+        solution = pickle.load(f)
+    total_time_step = solution["time"].shape[0]
+    train_time_step = int(total_time_step * percent_train)
+    state_train = torch.tensor(
+        np.hstack(
+            solution["displacement"][:train_time_step, :],
+            solution["velocity"][:train_time_step, :],
+        )
+    ).to(device)
+    state_test = torch.tensor(
+        np.hstack(
+            solution["displacement"][train_time_step:, :],
+            solution["velocity"][train_time_step:, :],
+        )
+    ).to(device)
+    acc_train = torch.tensor(solution["acceleration"][:train_time_step, acc_sensor]).to(
+        device
+    )
+    acc_test = torch.tensor(solution["acceleration"][train_time_step:, acc_sensor]).to(
+        device
+    )
+    return state_train, acc_train, state_test, acc_test
+
+
+def _rnn(acc_sensor, percent_train, epochs, lr, weight_decay=0.0):
+    state_train, acc_train, state_test, acc_test = training_test_data(
+        acc_sensor, percent_train
+    )
+    train_set = {"X": acc_train, "Y": state_train}
+    test_set = {"X": acc_test, "Y": state_test}
+
+    rnn = Rnn(
+        input_size=len(acc_sensor),
+        hidden_size=512,
+        num_layers=1,
+        output_size=258,
+        bidirectional=False,
+    )
+    train_h0 = torch.zeros(1, 1, 512).to(device)
+    train_h0 = torch.zeros(1, 1, 512).to(device)
+    model_save_path = f"./dataset/csb/rnn.pth"
+    loss_save_path = f"./dataset/csb/rnn.pkl"
+    rnn.train(state_train, acc_train)
+    train_loss_list, test_loss_list = rnn.train_RNN(
+        train_set,
+        test_set,
+        train_h0,
+        train_h0,
+        epochs,
+        lr,
+        model_save_path,
+        loss_save_path,
+        train_msg=True,
+        weight_decay=weight_decay,
+    )
+    return train_loss_list, test_loss_list

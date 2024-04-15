@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # shear_type_structure.integr_akf_seismic_pred()
     # shear_type_structure.tr_birnn()
     # shear_type_structure.tr_rnn()
-    continuous_beam.random_vibration()
+    # continuous_beam.random_vibration()
     continuous_beam.plot_solution()
 
     # figure plot
