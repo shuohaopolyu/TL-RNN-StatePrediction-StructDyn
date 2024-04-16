@@ -5,6 +5,7 @@ The beam is modelled as a Bernoulli-Euler beam.
 
 import numpy as np
 from systems.lsds import MultiDOF
+import scipy.integrate as spi
 
 
 class ContinuousBeam01(MultiDOF):
@@ -115,3 +116,80 @@ class ContinuousBeam01(MultiDOF):
         if type == "stiff":
             global_matrix = self._add_support_rotational_stiffness(global_matrix)
         return global_matrix
+
+    def _newmark_beta_int(self, delta, varp):
+        M = self.mass_mtx
+        C = self.damp_mtx
+        K = self.stiff_mtx
+        f_mtx = self.f_mtx()
+        inv_M = np.linalg.inv(M)
+        C = inv_M @ C
+        K = inv_M @ K
+        r = np.zeros((self.dof_number, 1))
+        r[self.f_dof, 0] = 1
+        r = inv_M @ r
+        f = r * f_mtx[0, 0]
+        f = f.reshape(-1)
+        dt = self.t_eval[1] - self.t_eval[0]
+        dt2 = dt**2
+        inv_ICK_mtx = np.linalg.inv(
+            np.eye(self.dof_number) + varp * dt * C + delta * dt2 * K
+        )
+        resp_disp = np.zeros((self.dof_number, self.n_t))
+        resp_velo = np.zeros((self.dof_number, self.n_t))
+        resp_acc = np.zeros((self.dof_number, self.n_t))
+        resp_disp[:, 0] = self.init_cond[: self.dof_number]
+        resp_velo[:, 0] = self.init_cond[self.dof_number :]
+        resp_acc[:, 0] = f - C @ resp_velo[:, 0] - K @ resp_disp[:, 0]
+        const_mtx_1 = C + dt * K
+        const_mtx_2 = (varp - 1) * dt * C + (delta - 0.5) * dt2 * K
+
+        for i in range(1, self.n_t):
+            f = r * f_mtx[0, i]
+            f = f.reshape(-1)
+            resp_acc[:, i] = inv_ICK_mtx @ (
+                -K @ resp_disp[:, i - 1]
+                - const_mtx_1 @ resp_velo[:, i - 1]
+                + const_mtx_2 @ resp_acc[:, i - 1]
+                + f
+            )
+            resp_disp[:, i] = (
+                resp_disp[:, i - 1]
+                + dt * resp_velo[:, i - 1]
+                + 0.5 * dt2 * resp_acc[:, i - 1]
+                + delta * dt2 * (resp_acc[:, i] - resp_acc[:, i - 1])
+            )
+            resp_velo[:, i] = (
+                resp_velo[:, i - 1]
+                + dt * resp_acc[:, i - 1]
+                + varp * dt * (resp_acc[:, i] - resp_acc[:, i - 1])
+            )
+
+        return resp_disp, resp_velo, resp_acc
+
+    def run(self, delta=1 / 4, varp=0.5):
+        # using newmark-beta method to solve the equation of motion
+        resp_disp, resp_velo, resp_acc = self._newmark_beta_int(delta, varp)
+        force = self.f_mtx()
+        t_interp = np.linspace(0, self.t_eval[-1], int(1000 * self.t_eval[-1]) + 1)
+        resp_disp = resp_disp
+        resp_velo = resp_velo
+        resp_acc = resp_acc
+        force = force.flatten()
+        t_interp = t_interp.flatten()
+        resp_disp_reduceed = np.zeros((self.dof_number, len(t_interp)))
+        resp_velo_reduceed = np.zeros((self.dof_number, len(t_interp)))
+        resp_acc_reduceed = np.zeros((self.dof_number, len(t_interp)))
+        self.t_eval = self.t_eval.flatten()
+        for i in range(self.dof_number):
+            resp_disp_reduceed[i, :] = np.interp(t_interp, self.t_eval, resp_disp[i, :])
+            resp_velo_reduceed[i, :] = np.interp(t_interp, self.t_eval, resp_velo[i, :])
+            resp_acc_reduceed[i, :] = np.interp(t_interp, self.t_eval, resp_acc[i, :])
+        force = np.interp(t_interp, self.t_eval, force)
+        return {
+            "displacement": resp_disp_reduceed,
+            "velocity": resp_velo_reduceed,
+            "acceleration": resp_acc_reduceed,
+            "force": force,
+            "time": t_interp,
+        }

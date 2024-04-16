@@ -1,3 +1,4 @@
-archive/
+archive/*
 *.pyc 
 __pycache__/
+csb/*.pkl

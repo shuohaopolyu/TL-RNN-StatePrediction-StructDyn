@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -105,6 +106,111 @@ class Rnn(nn.Module):
                         loss_save_path,
                     )
                     print(f"Loss saved to {loss_save_path}")
+        return train_loss_list, test_loss_list
+
+
+class Rnn02(nn.Module):
+    def __init__(
+        self,
+        input_size=2,
+        hidden_size=10,
+        output_size=6,
+        num_layers=1,
+        bidirectional=False,
+    ):
+        super(Rnn02, self).__init__()
+        self.rnn = nn.RNN(
+            input_size,
+            hidden_size,
+            num_layers,
+            bidirectional=bidirectional,
+            batch_first=True,
+            bias=False,
+        ).to(device)
+        self.bidirectional = bidirectional
+        self.hidden_size = hidden_size
+        if bidirectional:
+            self.linear = nn.Linear(2 * hidden_size, output_size, bias=False).to(device)
+        else:
+            self.linear = nn.Linear(hidden_size, output_size, bias=False).to(device)
+        self.relu = nn.ReLU()
+        self.tanh = nn.Tanh()
+        self.linear2 = nn.Linear(output_size, output_size, bias=False).to(device)
+        self.linear3 = nn.Linear(output_size, output_size, bias=False).to(device)
+        self.linear4 = nn.Linear(output_size, output_size, bias=False).to(device)
+        self.linear5 = nn.Linear(output_size, output_size, bias=False).to(device)
+
+    def forward(self, u, h0):
+        y, hn = self.rnn(u, h0)
+        y = self.linear(y)
+        y = self.tanh(y)
+        y = self.linear2(y)
+        return y, hn
+
+    def train_RNN(
+        self,
+        train_set,
+        test_set,
+        train_h0,
+        test_h0,
+        epochs,
+        learning_rate,
+        model_save_path,
+        loss_save_path,
+        train_msg=True,
+        weight_decay=0.0,
+    ):
+        # Define the loss function
+        loss_fn = nn.MSELoss(reduction="mean")
+        # Define the optimizer
+        optimizer = torch.optim.Adam(
+            self.parameters(), lr=learning_rate, weight_decay=weight_decay
+        )
+        # Define the loss list
+        train_loss_list = []
+        test_loss_list = []
+        # Start training
+        for epoch in range(epochs):
+            self.train()
+            # Train the model
+            output_train, _ = self.forward(train_set["X"], train_h0)
+            loss_train = loss_fn(output_train, train_set["Y"])
+            optimizer.zero_grad()
+            loss_train.backward(retain_graph=True)
+            optimizer.step()
+            if (epoch + 1) % 100 == 0:
+                train_loss_list.append(loss_train.item())
+                # Test the model
+                self.eval()
+                with torch.no_grad():
+                    hn = test_h0
+                    output_test, _ = self.forward(test_set["X"], hn)
+                loss_test = loss_fn(output_test, test_set["Y"])
+                test_loss_list.append(loss_test.item())
+                if train_msg:
+                    print(
+                        "Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e"
+                        % (epoch + 1, epochs, loss_train.item(), loss_test.item())
+                    )
+                # Save the model
+                if model_save_path is not None:
+                    torch.save(self.state_dict(), model_save_path)
+                    print(f"Model saved to {model_save_path}")
+
+                if loss_save_path is not None:
+                    torch.save(
+                        {
+                            "train_loss_list": train_loss_list,
+                            "test_loss_list": test_loss_list,
+                        },
+                        loss_save_path,
+                    )
+                    print(f"Loss saved to {loss_save_path}")
+            if (epoch + 1) % 20000 == 0:
+                plt.plot(output_test.detach().cpu().numpy()[0, :, 34], label="train")
+                plt.plot(test_set["Y"].detach().cpu().numpy()[0, :, 34], label="test")
+                plt.legend()
+                plt.show()
         return train_loss_list, test_loss_list
 
 
