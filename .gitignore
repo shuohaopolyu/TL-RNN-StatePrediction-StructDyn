@@ -1,4 +1,4 @@
-archive/*
-*.pyc 
+archive/
+*.pyc
 __pycache__/
-csb/*.pkl
+dataset/csb/*.pkl
