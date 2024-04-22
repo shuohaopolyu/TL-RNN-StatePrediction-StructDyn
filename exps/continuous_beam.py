@@ -16,7 +16,7 @@ def random_vibration(num=100):
         print(f"Generating solution {i}...")
         start_time = time.time()
         psd = BandPassPSD(a_v=2.25, f_1=10.0, f_2=410.0)
-        force = PSDExcitationGenerator(psd, tmax=100, fmax=2000)
+        force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
         print("Force" + " generated.")
         force = force()
         sampling_freq = 10000
@@ -42,6 +42,27 @@ def random_vibration(num=100):
         print("File " + file_name + " saved.")
         end_time = time.time()
         print(f"Time elapsed: {end_time - start_time:.2f} s")
+
+
+def waveform_generator():
+    psd = BandPassPSD(a_v=0.0045, f_1=10.0, f_2=410.0)
+    force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
+    time = np.linspace(0, 10, 10001)
+    force_func = force()
+    force_data = force_func(time)
+    with open("./dataset/csb/force_10.csv", "wb") as f:
+        np.savetxt(f, force_data, delimiter=",")
+    plt.plot(time, force_data)
+    plt.show()
+    psd = BandPassPSD(a_v=0.001, f_1=10.0, f_2=410.0)
+    force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
+    time = np.linspace(0, 10, 10001)
+    force_func = force()
+    force_data = force_func(time)
+    with open("./dataset/csb/force_4.csv", "wb") as f:
+        np.savetxt(f, force_data, delimiter=",")
+    plt.plot(time, force_data)
+    plt.show()
 
 
 def plot_solution():
