@@ -45,20 +45,22 @@ def random_vibration(num=100):
 
 
 def waveform_generator():
-    psd = BandPassPSD(a_v=0.0045, f_1=10.0, f_2=410.0)
+    psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
     force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
     time = np.linspace(0, 10, 10001)
     force_func = force()
     force_data = force_func(time)
+    force_data = 4.9 * force_data / np.max(np.abs(force_data))
     with open("./dataset/csb/force_10.csv", "wb") as f:
         np.savetxt(f, force_data, delimiter=",")
     plt.plot(time, force_data)
     plt.show()
-    psd = BandPassPSD(a_v=0.001, f_1=10.0, f_2=410.0)
+    psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
     force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
     time = np.linspace(0, 10, 10001)
     force_func = force()
     force_data = force_func(time)
+    force_data = 1.9 * force_data / np.max(np.abs(force_data))
     with open("./dataset/csb/force_4.csv", "wb") as f:
         np.savetxt(f, force_data, delimiter=",")
     plt.plot(time, force_data)
