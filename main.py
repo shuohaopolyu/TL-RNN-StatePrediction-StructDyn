@@ -15,6 +15,7 @@ from figures import (
     strong_ground_motion,
     tr_rnn_training,
 )
+from utils import waveform_generator
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -40,9 +41,9 @@ if __name__ == "__main__":
     # shear_type_structure.tr_birnn()
     # shear_type_structure.tr_rnn()
     # continuous_beam.random_vibration(num=40)
-    continuous_beam.waveform_generator()
     # continuous_beam.plot_solution()
     # continuous_beam.build_rnn()
+    waveform_generator()
 
     # figure plot
     # system_identification.base_loads()

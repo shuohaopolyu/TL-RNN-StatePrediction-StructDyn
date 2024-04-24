@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from scipy import signal
 import numpy.linalg as LA
+from excitations import PSDExcitationGenerator, BandPassPSD
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -92,3 +94,35 @@ def fft(x):
     return [even[k] + T[k] for k in range(N // 2)] + [
         even[k] - T[k] for k in range(N // 2)
     ]
+
+
+def waveform_generator():
+    # generate the voltage waveform for the experiment
+    # waveform 1: white noise from -5 to 5
+    psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
+    force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
+    time = np.linspace(0, 10, 10001)
+    force_func = force()
+    force_data = force_func(time)
+    force_data = 4.9 * force_data / np.max(np.abs(force_data))
+    with open("./dataset/csb/force_10.csv", "wb") as f:
+        np.savetxt(f, force_data, delimiter=",")
+    plt.plot(time, force_data)
+    plt.show()
+    # waveform 2: white noise from -2 to 2
+    psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
+    force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
+    force_func = force()
+    force_data = force_func(time)
+    force_data = 1.9 * force_data / np.max(np.abs(force_data))
+    with open("./dataset/csb/force_4.csv", "wb") as f:
+        np.savetxt(f, force_data, delimiter=",")
+    plt.plot(time, force_data)
+    plt.show()
+    # waveform 3: frequency-swept cosine wave
+    time = np.linspace(0, 10, 100001)
+    force_data = signal.chirp(time, f0=10, f1=500, t1=10, method="linear")
+    with open("./dataset/csb/force_chirp.csv", "wb") as f:
+        np.savetxt(f, force_data, delimiter=",")
+    plt.plot(time, force_data)
+    plt.show()
