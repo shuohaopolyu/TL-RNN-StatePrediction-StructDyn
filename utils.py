@@ -83,19 +83,6 @@ def similarity(pred, target):
     return error_mtx
 
 
-def fft(x):
-    # compute fast fourier transform from scratch
-    N = len(x)
-    if N <= 1:
-        return x
-    even = fft(x[0::2])
-    odd = fft(x[1::2])
-    T = [np.exp(-2j * np.pi * k / N) * odd[k] for k in range(N // 2)]
-    return [even[k] + T[k] for k in range(N // 2)] + [
-        even[k] - T[k] for k in range(N // 2)
-    ]
-
-
 def waveform_generator():
     # generate the voltage waveform for the experiment
     # waveform 1: white noise from -5 to 5
@@ -119,9 +106,9 @@ def waveform_generator():
         np.savetxt(f, force_data, delimiter=",")
     plt.plot(time, force_data)
     plt.show()
-    # waveform 3: frequency-swept cosine wave
+    # waveform 3: frequency-swept sine wave
     time = np.linspace(0, 10, 100001)
-    force_data = signal.chirp(time, f0=10, f1=500, t1=10, method="linear")
+    force_data = signal.chirp(time, f0=10, f1=500, t1=10, method="linear", phi=90)
     with open("./dataset/csb/force_chirp.csv", "wb") as f:
         np.savetxt(f, force_data, delimiter=",")
     plt.plot(time, force_data)
