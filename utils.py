@@ -88,12 +88,31 @@ def waveform_generator():
     # waveform 1: white noise from -5 to 5
     psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
     force = PSDExcitationGenerator(psd, tmax=10, fmax=2000)
-    time = np.linspace(0, 10, 10001)
+    time = np.linspace(0, 5, 5001)
     force_func = force()
     force_data = force_func(time)
     force_data = 4.9 * force_data / np.max(np.abs(force_data))
+    force_data = np.round(force_data, 4)
+    time_force = [
+        ["RIGOL:DG8:CSV DATA FILE", ""],
+        ["TYPE:Arb", ""],
+        ["AMP:10.0000 Vpp", ""],
+        ["PERIOD:50.00 S", ""],
+        ["DOTS:5000", ""],
+        ["MODE:INSERT", ""],
+        ["Sample Rate:100.00", ""],
+        ["AWG N:0", ""],
+        ["x", "y[V]"],
+    ]
+    # aug_time_force = ["x", "y"] + [time_force]
+    for i in range(len(time)):
+        if i != 0:
+            # time_force.append([time[i], force_data[i]])
+            time_force.append(["", force_data[i]])
+
     with open("./dataset/csb/force_10.csv", "wb") as f:
-        np.savetxt(f, force_data, delimiter=",")
+        # np.savetxt(f, force_data, delimiter=",")
+        np.savetxt(f, time_force, delimiter=",", fmt="%s")
     plt.plot(time, force_data)
     plt.show()
     # waveform 2: white noise from -2 to 2
@@ -102,14 +121,31 @@ def waveform_generator():
     force_func = force()
     force_data = force_func(time)
     force_data = 1.9 * force_data / np.max(np.abs(force_data))
+    force_data = np.round(force_data, 4)
+    time_force = [
+        ["RIGOL:DG8:CSV DATA FILE", ""],
+        ["TYPE:Arb", ""],
+        ["AMP:4.0 Vpp", ""],
+        ["PERIOD:50.0 S", ""],
+        ["DOTS:5000", ""],
+        ["MODE:INSERT", ""],
+        ["Sample Rate:100.0", ""],
+        ["AWG N:0", ""],
+        ["x", "y[V]"],
+    ]
+    for i in range(len(time)):
+        if i != 0:
+            # time_force.append([time[i], force_data[i]])
+            time_force.append(["", force_data[i]])
+
     with open("./dataset/csb/force_4.csv", "wb") as f:
-        np.savetxt(f, force_data, delimiter=",")
+        np.savetxt(f, time_force, delimiter=",", fmt="%s")
     plt.plot(time, force_data)
     plt.show()
     # waveform 3: frequency-swept sine wave
-    time = np.linspace(0, 10, 100001)
-    force_data = signal.chirp(time, f0=10, f1=500, t1=10, method="linear", phi=90)
-    with open("./dataset/csb/force_chirp.csv", "wb") as f:
-        np.savetxt(f, force_data, delimiter=",")
-    plt.plot(time, force_data)
-    plt.show()
+    # time = np.linspace(0, 10, 100001)
+    # force_data = signal.chirp(time, f0=10, f1=500, t1=10, method="linear", phi=90)
+    # with open("./dataset/csb/force_chirp.csv", "wb") as f:
+    #     np.savetxt(f, force_data, delimiter=",")
+    # plt.plot(time, force_data)
+    # plt.show()
