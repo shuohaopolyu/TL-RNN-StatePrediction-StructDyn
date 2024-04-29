@@ -47,7 +47,8 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20):
     sv = []
     ms = []
     for i in range(tru_w_acc.shape[1]):
-        G_yy = tru_w_acc[:, i].reshape(signal_mtx.shape[0], signal_mtx.shape[0])
+        G_yy = tru_w_acc[:, i].reshape(
+            signal_mtx.shape[0], signal_mtx.shape[0])
         u, s, _ = LA.svd(G_yy, full_matrices=True)
         sv.append(s[0])
         ms.append(np.real(u[:, 0]))
@@ -142,10 +143,25 @@ def waveform_generator():
         np.savetxt(f, time_force, delimiter=",", fmt="%s")
     plt.plot(time, force_data)
     plt.show()
-    # waveform 3: frequency-swept sine wave
-    # time = np.linspace(0, 10, 100001)
-    # force_data = signal.chirp(time, f0=10, f1=500, t1=10, method="linear", phi=90)
-    # with open("./dataset/csb/force_chirp.csv", "wb") as f:
-    #     np.savetxt(f, force_data, delimiter=",")
-    # plt.plot(time, force_data)
-    # plt.show()
+
+
+def import_fbg_data(dir="./dataset/experiment/fbg/noise.txt"):
+    # import the fbg data
+    with open(dir, "r") as f:
+        data = f.readlines()
+    fbg_data = []
+    time_data = []
+    for i in range(45, len(data)):
+        temp = data[i].split("	")
+        time_temp = temp[0]
+        data_temp = temp[-4:]
+        data_temp[-1] = data_temp[-1].replace("\n", "")
+        fbg_data.append(data_temp)
+        time_data.append(time_temp)
+    fbg_data = np.array(fbg_data).astype(float)
+    plt.plot(fbg_data[:, 0])
+    plt.plot(fbg_data[:, 1])
+    plt.plot(fbg_data[:, 2])
+    plt.plot(fbg_data[:, 3])
+    plt.show()
+    return time_data, fbg_data

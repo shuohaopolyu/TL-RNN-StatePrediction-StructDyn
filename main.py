@@ -15,7 +15,7 @@ from figures import (
     strong_ground_motion,
     tr_rnn_training,
 )
-from utils import waveform_generator
+from utils import waveform_generator, import_fbg_data
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -43,7 +43,8 @@ if __name__ == "__main__":
     # continuous_beam.random_vibration(num=40)
     # continuous_beam.plot_solution()
     # continuous_beam.build_rnn()
-    waveform_generator()
+    # waveform_generator()
+    import_fbg_data()
 
     # figure plot
     # system_identification.base_loads()

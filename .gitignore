@@ -2,3 +2,4 @@ archive/
 *.pyc
 __pycache__/
 dataset/csb/*.pkl
+dataset/experiment
