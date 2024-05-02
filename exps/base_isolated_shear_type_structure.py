@@ -91,13 +91,16 @@ def seismic_response():
         _, _, _, time, inp_acc = processNGAfile(acc_file_i)
         acc_g = inp_acc * 9.81 * factors[i]
         interp_time = np.linspace(0, time[-1], 20000)
-        interp_acc_g = interpolate.interp1d(time, acc_g, kind="cubic")(interp_time)
+        interp_acc_g = interpolate.interp1d(
+            time, acc_g, kind="cubic")(interp_time)
         stiff_factor = 1e2
         damp_factor = 3
         mass_vec = 1 * np.ones(12)
-        stiff_vec = np.array([12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
+        stiff_vec = np.array(
+            [12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
         damp_vec = (
-            np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
+            np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8,
+                     0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
             * damp_factor
         )
         parametric_bists = BaseIsolatedStructure(
@@ -202,9 +205,11 @@ def ambient_response(save_path="./dataset/bists/"):
     stiff_factor = 1e2
     damp_factor = 3
     mass_vec = 1 * np.ones(12)
-    stiff_vec = np.array([12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
+    stiff_vec = np.array(
+        [12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor
     damp_vec = (
-        np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8, 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
+        np.array([1.0, 1.0, 1.0, 0.8, 0.8, 0.8,
+                 0.8, 0.80, 0.50, 0.50, 0.50, 0.50])
         * damp_factor
     )
     parametric_bists = BaseIsolatedStructure(
@@ -230,7 +235,8 @@ def ambient_response(save_path="./dataset/bists/"):
         ambient_excitation=ext_all,
     )
     # parametric_bists.print_natural_frequency(10)
-    resp_disp, _, acc, z = parametric_bists.run(force_type="ambient excitation")
+    resp_disp, _, acc, z = parametric_bists.run(
+        force_type="ambient excitation")
     print(acc[12, :].max())
     # plt.plot(time, resp_disp[0, :].T * 1300 * 0.7, label="elastic force")
     # plt.plot(time, z.T * 10 * 0.3, label="damping force")
@@ -282,10 +288,12 @@ def compute_floor_acceleration_bists(acc_bists, acc_sensor):
     if acc_sensor[0] == 0:
         acc_bists_new[:, :, 0] = acc_bists[:, :, 0]
         for i in range(1, len(acc_sensor)):
-            acc_bists_new[:, :, i] = acc_bists[:, :, acc_sensor[i]] + acc_bists[:, :, 0]
+            acc_bists_new[:, :, i] = acc_bists[:, :,
+                                               acc_sensor[i]] + acc_bists[:, :, 0]
     else:
         for i in range(len(acc_sensor)):
-            acc_bists_new[:, :, i] = acc_bists[:, :, acc_sensor[i]] + acc_bists[:, :, 0]
+            acc_bists_new[:, :, i] = acc_bists[:, :,
+                                               acc_sensor[i]] + acc_bists[:, :, 0]
     return acc_bists_new
 
 
@@ -301,17 +309,20 @@ def compute_floor_drift_sts(disp_sts, drift_sensor):
     # disp_sts is a 3D tensor with shape (num_files, num_time_steps, num_dofs)
     # drift_sensor is a list of integers with ascending order
     num_files, num_time_steps, _ = disp_sts.shape
-    drift_sts = torch.zeros(num_files, num_time_steps, len(drift_sensor)).to(device)
+    drift_sts = torch.zeros(num_files, num_time_steps,
+                            len(drift_sensor)).to(device)
     if drift_sensor[0] == 0:
         drift_sts[:, :, 0] = disp_sts[:, :, 0]
         for i in range(1, len(drift_sensor)):
             drift_sts[:, :, i] = (
-                disp_sts[:, :, drift_sensor[i]] - disp_sts[:, :, drift_sensor[i - 1]]
+                disp_sts[:, :, drift_sensor[i]] -
+                disp_sts[:, :, drift_sensor[i - 1]]
             )
     else:
         for i in range(len(drift_sensor)):
             drift_sts[:, :, i] = (
-                disp_sts[:, :, drift_sensor[i]] - disp_sts[:, :, drift_sensor[i - 1]]
+                disp_sts[:, :, drift_sensor[i]] -
+                disp_sts[:, :, drift_sensor[i - 1]]
             )
     return drift_sts
 
@@ -391,13 +402,15 @@ def _tr_rnn(
     disp_train = []
     for i in range(num_training_files):
         filename = (
-            "./dataset/base_isolated_structure/solution" + format(i + 1, "03") + ".pkl"
+            "./dataset/base_isolated_structure/solution" +
+            format(i + 1, "03") + ".pkl"
         )
         with open(filename, "rb") as f:
             solution = pickle.load(f)
         acc_train.append(solution["acc"][:, ::data_compression_ratio].T)
         disp_train.append(solution["disp"][:, ::data_compression_ratio].T)
-    acc_train = compute_floor_acceleration_bists(np.array(acc_train), acc_sensor)
+    acc_train = compute_floor_acceleration_bists(
+        np.array(acc_train), acc_sensor)
     drift_train = compute_floor_drift_bists(np.array(disp_train), drift_sensor)
     disp_train = compute_floor_disp_bists(np.array(disp_train))
     acc_train = torch.tensor(acc_train, dtype=torch.float32).to(device)
@@ -468,7 +481,8 @@ def build_tr_rnn():
     disp_test = []
     for i in range(50):
         filename = (
-            "./dataset/base_isolated_structure/solution" + format(i + 1, "03") + ".pkl"
+            "./dataset/base_isolated_structure/solution" +
+            format(i + 1, "03") + ".pkl"
         )
         with open(filename, "rb") as f:
             solution = pickle.load(f)

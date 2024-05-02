@@ -15,7 +15,7 @@ from figures import (
     strong_ground_motion,
     tr_rnn_training,
 )
-from utils import waveform_generator, import_fbg_data
+from utils import waveform_generator, process_fbg_data, process_dewe_data, combine_data
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -40,11 +40,13 @@ if __name__ == "__main__":
     # shear_type_structure.integr_akf_seismic_pred()
     # shear_type_structure.tr_birnn()
     # shear_type_structure.tr_rnn()
-    # continuous_beam.random_vibration(num=40)
+    # continuous_beam.modal_analysis()
+    # continuous_beam.modal_properties(6)
+    # continuous_beam.random_vibration(num=30)
     # continuous_beam.plot_solution()
     # continuous_beam.build_rnn()
-    # waveform_generator()
-    import_fbg_data()
+    # continuous_beam.rnn_pred()
+    continuous_beam.tr_rnn()
 
     # figure plot
     # system_identification.base_loads()
@@ -64,3 +66,9 @@ if __name__ == "__main__":
     # tr_rnn_training.disp_kf_pred()
     # tr_rnn_training.loss_curve()
     # tr_rnn_training.performance_evaluation()
+
+    # experiment utils
+    # waveform_generator()
+    # process_fbg_data()
+    # process_dewe_data()
+    # combine_data()

@@ -4,6 +4,7 @@ from scipy import signal
 import numpy.linalg as LA
 from excitations import PSDExcitationGenerator, BandPassPSD
 import matplotlib.pyplot as plt
+import scipy.io as sio
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -47,8 +48,7 @@ def fdd(signal_mtx, f_lb=0.3, f_ub=0.8, nperseg_num=1000, fs=20):
     sv = []
     ms = []
     for i in range(tru_w_acc.shape[1]):
-        G_yy = tru_w_acc[:, i].reshape(
-            signal_mtx.shape[0], signal_mtx.shape[0])
+        G_yy = tru_w_acc[:, i].reshape(signal_mtx.shape[0], signal_mtx.shape[0])
         u, s, _ = LA.svd(G_yy, full_matrices=True)
         sv.append(s[0])
         ms.append(np.real(u[:, 0]))
@@ -145,7 +145,7 @@ def waveform_generator():
     plt.show()
 
 
-def import_fbg_data(dir="./dataset/experiment/fbg/noise.txt"):
+def process_fbg_data(dir="./dataset/experiment/fbg/Peaks.20240429161002.txt"):
     # import the fbg data
     with open(dir, "r") as f:
         data = f.readlines()
@@ -157,11 +157,112 @@ def import_fbg_data(dir="./dataset/experiment/fbg/noise.txt"):
         data_temp = temp[-4:]
         data_temp[-1] = data_temp[-1].replace("\n", "")
         fbg_data.append(data_temp)
-        time_data.append(time_temp)
+        time_data.append(convert_fbg_time_to_num(time_temp))
     fbg_data = np.array(fbg_data).astype(float)
-    plt.plot(fbg_data[:, 0])
-    plt.plot(fbg_data[:, 1])
-    plt.plot(fbg_data[:, 2])
-    plt.plot(fbg_data[:, 3])
-    plt.show()
+    time_data = np.array(time_data).reshape(-1, 1)
     return time_data, fbg_data
+
+
+def convert_num_to_time(num):
+    import datetime
+
+    time = datetime.timedelta(days=num)
+    return time
+
+
+def convert_fbg_time_to_num(time_string):
+    hour = time_string[10:12]
+    minute = time_string[13:15]
+    second = time_string[16:25]
+    days = int(hour) / 24 + int(minute) / 1440 + float(second) / 86400
+    return days
+
+
+def convert_dewe_time_to_num(time_num):
+    return time_num - 739371
+
+
+def process_dewe_data(dir="./dataset/experiment/dewe_mat/noise_exp_1.mat"):
+    # import the dewe data
+
+    data = sio.loadmat(dir)
+    acc1 = data["Data1_AI_1"]
+    acc2 = data["Data1_AI_2"]
+    acc3 = data["Data1_AI_3"]
+    acc4 = data["Data1_AI_4"]
+    force1 = data["Data1_AI_5"]
+    disp1 = data["Data1_AI_6"]
+    disp1_ini = np.mean(disp1[:400])
+    disp1 = disp1 - disp1_ini
+    time_data = data["Data1_time_AI_1"]
+    time_list = []
+    for i in range(time_data.shape[0]):
+        time_list.append(str(convert_num_to_time(time_data[i, 0]))[13:])
+        time_data[i, 0] = convert_dewe_time_to_num(time_data[i, 0])
+    return time_data, time_list, acc1, acc2, acc3, acc4, force1, disp1
+
+
+def combine_data():
+    dewe_mat_paths = [
+        "./dataset/experiment/dewe_mat/noise_exp_1.mat",
+        "./dataset/experiment/dewe_mat/noise_exp_2.mat",
+        "./dataset/experiment/dewe_mat/noise_exp_3.mat",
+        "./dataset/experiment/dewe_mat/noise_exp_4.mat",
+        "./dataset/experiment/dewe_mat/noise_exp_5.mat",
+        "./dataset/experiment/dewe_mat/noise_exp_6.mat",
+    ]
+    fbg_paths = [
+        "./dataset/experiment/fbg/Peaks.20240429155934.txt",
+        "./dataset/experiment/fbg/Peaks.20240429160225.txt",
+        "./dataset/experiment/fbg/Peaks.20240429160640.txt",
+        "./dataset/experiment/fbg/Peaks.20240429161002.txt",
+    ]
+    for i, dewe_mat in enumerate(dewe_mat_paths):
+        dewe_time, _, acc1, acc2, acc3, acc4, force1, disp1 = process_dewe_data(
+            dewe_mat
+        )
+        ini_time = dewe_time[0]
+        for j, fbg in enumerate(fbg_paths):
+            fbg_time, fbg_data = process_fbg_data(fbg)
+            if max(fbg_time) > ini_time:
+                file_idx = j
+                break
+        fbg_time, fbg_data = process_fbg_data(fbg_paths[file_idx])
+        time_deviation = fbg_time - ini_time
+        for k, v in enumerate(time_deviation):
+            if v > 0:
+                temp_idx = k
+                break
+        fbg_time = fbg_time[temp_idx - 100 : temp_idx + 20100, :]
+        fbg_data = fbg_data[temp_idx - 100 : temp_idx + 20100, :]
+        fbg_data_interp = np.zeros((20000, 4))
+        for q in range(4):
+            fbg_data_interp[:, q] = np.interp(
+                dewe_time[:20000, 0], fbg_time[:, 0], fbg_data[:, q]
+            )
+        fbg_data_interp = np.round(fbg_data_interp, 4)
+        fbg1 = fbg_data_interp[:, 0].reshape(-1, 1)
+        fbg2 = fbg_data_interp[:, 1].reshape(-1, 1)
+        fbg3 = fbg_data_interp[:, 2].reshape(-1, 1)
+        fbg4 = fbg_data_interp[:, 3].reshape(-1, 1)
+        fbg1_ini = np.mean(fbg1[:400])
+        fbg2_ini = np.mean(fbg2[:400])
+        fbg3_ini = np.mean(fbg3[:400])
+        fbg4_ini = np.mean(fbg4[:400])
+        mdict = {
+            "acc1": acc1[:20000, :],
+            "acc2": acc2[:20000, :],
+            "acc3": acc3[:20000, :],
+            "acc4": acc4[:20000, :],
+            "force1": force1[:20000, :],
+            "disp1": disp1[:20000, :],
+            "fbg1": fbg1,
+            "fbg2": fbg2,
+            "fbg3": fbg3,
+            "fbg4": fbg4,
+            "fbg1_ini": fbg1_ini,
+            "fbg2_ini": fbg2_ini,
+            "fbg3_ini": fbg3_ini,
+            "fbg4_ini": fbg4_ini,
+        }
+        sio.savemat("./dataset/csb/exp_{}.mat".format(i + 1), mdict)

@@ -25,7 +25,8 @@ def modal_analysis():
     fsdd = FSDD_algo(name="FSDD", nxseg=1200, method_SD="per", pov=0.5)
     Pali_ss.add_algorithms(fsdd)
     Pali_ss.run_by_name("FSDD")
-    Pali_ss.MPE("FSDD", sel_freq=[0.56, 1.49, 2.41, 3.28, 4.02, 4.78], MAClim=0.95)
+    Pali_ss.MPE("FSDD", sel_freq=[0.56, 1.49,
+                2.41, 3.28, 4.02, 4.78], MAClim=0.95)
     ms_array = np.real(Pali_ss["FSDD"].result.Phi)
     nf_array = Pali_ss["FSDD"].result.Fn
     dp_array = Pali_ss["FSDD"].result.Xi
@@ -42,7 +43,8 @@ def model_modal_properties(params):
     stiff_factor = 1e2
     mass_vec = 1 * np.ones(13)
     stiff_vec = (
-        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
+        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) *
+        stiff_factor * params
     )
     # damping ratio set to be 0 here, it has nothing to do with the natural frequencies and mode shapes
     damp_vec = np.zeros_like(mass_vec)
@@ -70,7 +72,8 @@ def loss_function(params, number_of_modes):
     ms = solution["ms"][:, 0:number_of_modes]
     loss = 0
     for i in range(number_of_modes):
-        loss += (1 - model_nf[i] / nf[i]) ** 2 + (1 - mac(model_ms[:, i], ms[:, i]))
+        loss += (1 - model_nf[i] / nf[i]) ** 2 + \
+            (1 - mac(model_ms[:, i], ms[:, i]))
     return loss
 
 
@@ -79,7 +82,7 @@ def model_updating(num_modes=5, method="L-BFGS-B"):
     from scipy.optimize import minimize
 
     x0 = np.ones(13)
-    obj_func = lambda x: loss_function(x, num_modes)
+    def obj_func(x): return loss_function(x, num_modes)
     res = minimize(obj_func, x0, method=method, options={"disp": True})
     data_path = "./dataset/sts/modal_analysis.pkl"
     model_nf, model_ms = model_modal_properties(res.x)
@@ -137,7 +140,8 @@ def seismic_response(
     stiff_factor = 1e2
     mass_vec = 1 * np.ones(13)
     stiff_vec = (
-        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
+        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) *
+        stiff_factor * params
     )
     damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
     for i_th in range(num):
@@ -240,7 +244,8 @@ def training_test_data(
             state_test.append(disp_test)
         elif output == "velo":
             state_test.append(velo_test)
-        acc_test.append(solution["acc"][acc_sensor, ::data_compression_ratio].T)
+        acc_test.append(solution["acc"][acc_sensor,
+                        ::data_compression_ratio].T)
     state = np.array(state)
     state_test = np.array(state_test)
     acc = np.array(acc)
@@ -279,7 +284,8 @@ def _birnn(
         num_layers=1,
         bidirectional=True,
     )
-    train_h0 = torch.zeros(2, num_training_files, RNN_model_disp.hidden_size).to(device)
+    train_h0 = torch.zeros(2, num_training_files,
+                           RNN_model_disp.hidden_size).to(device)
     test_h0 = torch.zeros(
         2, num_files - num_training_files, RNN_model_disp.hidden_size
     ).to(device)
@@ -326,7 +332,8 @@ def _rnn(
         num_layers=1,
         bidirectional=False,
     )
-    train_h0 = torch.zeros(1, num_training_files, RNN_model_disp.hidden_size).to(device)
+    train_h0 = torch.zeros(1, num_training_files,
+                           RNN_model_disp.hidden_size).to(device)
     test_h0 = torch.zeros(
         1, num_files - num_training_files, RNN_model_disp.hidden_size
     ).to(device)
@@ -381,7 +388,8 @@ def build_birnn(output="all"):
 
     RNN4ststate.eval()
     test_h0 = torch.zeros(2, nf - ntf, 30).to(device)
-    _, _, state_test, acc_test = training_test_data(acc_sensor, dr, ntf, nf, output)
+    _, _, state_test, acc_test = training_test_data(
+        acc_sensor, dr, ntf, nf, output)
     with torch.no_grad():
         state_pred, _ = RNN4ststate(acc_test, test_h0)
     state_pred = state_pred.cpu().numpy()
@@ -491,10 +499,12 @@ def _akf(obs_data, system_mtx, akf_params):
     num_state = A.shape[1]
     num_force = B.shape[1]
     Q_zeta, R, Q_p = akf_params["Q_zeta"], akf_params["R"], akf_params["Q_p"]
-    A_a = np.block([[A, B], [np.zeros((num_force, num_state)), np.eye(num_force)]])
+    A_a = np.block(
+        [[A, B], [np.zeros((num_force, num_state)), np.eye(num_force)]])
     C_a = np.hstack([C, D])
     Q = np.block(
-        [[Q_zeta, np.zeros((A.shape[0], 1))], [np.zeros((num_force, A.shape[0])), Q_p]]
+        [[Q_zeta, np.zeros((A.shape[0], 1))], [
+            np.zeros((num_force, A.shape[0])), Q_p]]
     )
     P_mtx = np.zeros((num_state + num_force, num_state + num_force, steps))
     P_mtx[:, :, 0] = Q
@@ -518,7 +528,8 @@ def _system_matrices(acc_sensor, num_modes, kwargs=None):
     stiff_factor = 1e2
     mass_vec = 1 * np.ones(13)
     stiff_vec = (
-        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) * stiff_factor * params
+        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) *
+        stiff_factor * params
     )
     damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
     time = np.arange(0, 1, 1 / 20)
@@ -584,7 +595,7 @@ def build_dkf(
         obs_data = acc_full[i, :, :].T
         x_mtx, _ = _dkf(obs_data, system_mtx, dkf_params)
         disp_mtx = md_mtx @ x_mtx[:num_modes, :]
-        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes: num_modes * 2, :]
         disp_pred[i, :, :] = disp_mtx.T
         velo_pred[i, :, :] = velo_mtx.T
     with open("./dataset/sts/dkf_pred.pkl", "wb") as f:
@@ -631,7 +642,7 @@ def build_akf(
         obs_data = acc_full[i, :, :].T
         x_mtx = _akf(obs_data, system_mtx, akf_params)
         disp_mtx = md_mtx @ x_mtx[:num_modes, :]
-        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes: num_modes * 2, :]
         disp_pred[i, :, :] = disp_mtx.T
         velo_pred[i, :, :] = velo_mtx.T
     with open("./dataset/sts/akf_pred.pkl", "wb") as f:
@@ -659,7 +670,8 @@ def tune_dkf_params():
     plt.plot(velo_pred[0, :, 8], label="Prediction")
     plt.plot(velo[0, :, 8], label="Ground truth")
     plt.show()
-    results = {"R_values": R_values, "disp_rmse": disp_rmse, "vel_rmse": velo_rmse}
+    results = {"R_values": R_values,
+               "disp_rmse": disp_rmse, "vel_rmse": velo_rmse}
     with open("./dataset/sts/dkf_tune.pkl", "wb") as f:
         pickle.dump(results, f)
 
@@ -706,9 +718,11 @@ def generate_seismic_response(acc_sensor, num_seismic, output="all"):
         acc_interpolated = np.zeros((len(time_interpolated), acc.shape[1]))
         state_interpolated = np.zeros((len(time_interpolated), state.shape[1]))
         for j in range(acc.shape[1]):
-            acc_interpolated[:, j] = np.interp(time_interpolated, time, acc[:, j])
+            acc_interpolated[:, j] = np.interp(
+                time_interpolated, time, acc[:, j])
         for j in range(state.shape[1]):
-            state_interpolated[:, j] = np.interp(time_interpolated, time, state[:, j])
+            state_interpolated[:, j] = np.interp(
+                time_interpolated, time, state[:, j])
         acc_interpolated = torch.tensor(acc_interpolated, dtype=torch.float32).to(
             device
         )
@@ -746,11 +760,13 @@ def generate_floor_drift(num_seismic, floors):
         time_interpolated = np.arange(time[0], time[-1], 1 / 20)
         disp_interpolated = np.zeros((len(time_interpolated), disp.shape[1]))
         for j in range(disp.shape[1]):
-            disp_interpolated[:, j] = np.interp(time_interpolated, time, disp[:, j])
+            disp_interpolated[:, j] = np.interp(
+                time_interpolated, time, disp[:, j])
         drift_mtx = np.zeros((len(time_interpolated), len(floors)))
         for j in range(len(floors)):
             drift_mtx[:, j] = (
-                disp_interpolated[:, floors[j][1]] - disp_interpolated[:, floors[j][0]]
+                disp_interpolated[:, floors[j][1]] -
+                disp_interpolated[:, floors[j][0]]
             )
         drift_tensor = torch.tensor(drift_mtx, dtype=torch.float32).to(device)
         drift_list.append(drift_tensor)
@@ -777,7 +793,8 @@ def floor_drift_pred(RNN4ststate, acc_tensor, floors):
     disp_pred = state_pred[:, 0:13]
     drift_pred = torch.zeros(disp_pred.shape[0], len(floors)).to(device)
     for i in range(len(floors)):
-        drift_pred[:, i] = disp_pred[:, floors[i][1]] - disp_pred[:, floors[i][0]]
+        drift_pred[:, i] = disp_pred[:, floors[i][1]] - \
+            disp_pred[:, floors[i][0]]
     return drift_pred
 
 
@@ -868,7 +885,7 @@ def dkf_seismic_pred(
         obs_data = acc_list[i].cpu().numpy().T
         x_mtx, _ = _dkf(obs_data, system_mtx, dkf_params)
         disp_mtx = md_mtx @ x_mtx[:num_modes, :]
-        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes: num_modes * 2, :]
         disp_pred[:, :] = disp_mtx.T
         velo_pred[:, :] = velo_mtx.T
         disp_list.append(disp_pred)
@@ -906,7 +923,7 @@ def integr_dkf_seismic_pred(
         )
         x_mtx, _ = _dkf(obs_data, system_mtx, dkf_params)
         disp_mtx = md_mtx @ x_mtx[:num_modes, :]
-        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes: num_modes * 2, :]
         disp_pred[:, :] = disp_mtx.T
         velo_pred[:, :] = velo_mtx.T
         disp_list.append(disp_pred)
@@ -936,7 +953,7 @@ def akf_seismic_pred(
         obs_data = acc_list[i].cpu().numpy().T
         x_mtx = _akf(obs_data, system_mtx, dkf_params)
         disp_mtx = md_mtx @ x_mtx[:num_modes, :]
-        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes: num_modes * 2, :]
         disp_pred[:, :] = disp_mtx.T
         velo_pred[:, :] = velo_mtx.T
         disp_list.append(disp_pred)
@@ -975,7 +992,7 @@ def integr_akf_seismic_pred(
         x_mtx = _akf(obs_data, system_mtx, dkf_params)
 
         disp_mtx = md_mtx @ x_mtx[:num_modes, :]
-        velo_mtx = md_mtx @ x_mtx[num_modes : num_modes * 2, :]
+        velo_mtx = md_mtx @ x_mtx[num_modes: num_modes * 2, :]
         disp_pred[:, :] = disp_mtx.T
         velo_pred[:, :] = velo_mtx.T
         disp_list.append(disp_pred)
@@ -1031,7 +1048,8 @@ def tr_training(
             )
             plt.legend()
         optimizer.zero_grad()
-        drift_pred_train = floor_drift_pred(RNN4ststate, acc_tensor, floor_train)
+        drift_pred_train = floor_drift_pred(
+            RNN4ststate, acc_tensor, floor_train)
         RNN4ststate.train()
         loss = loss_fun(drift_pred_train, measured_drift_train)
         loss.backward()
