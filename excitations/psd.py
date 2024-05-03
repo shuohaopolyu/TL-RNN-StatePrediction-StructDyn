@@ -49,8 +49,8 @@ class BandPassPSD(PSD):
         self.f_2 = f_2
 
     def __call__(self, f):
-        return self.a_v * np.where(
-            (f >= self.f_1) & (f <= self.f_2),
-            np.ones_like(f),
-            np.zeros_like(f),
-        )
+        psd = np.zeros_like(f)
+        for i, freq in enumerate(f):
+            if freq >= self.f_1 and freq <= self.f_2:
+                psd[i] = self.a_v
+        return psd

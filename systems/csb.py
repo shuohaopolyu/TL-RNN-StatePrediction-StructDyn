@@ -6,6 +6,7 @@ The beam is modelled as a Bernoulli-Euler beam.
 import numpy as np
 from systems.lsds import MultiDOF
 import scipy.integrate as spi
+import matplotlib.pyplot as plt
 
 
 class ContinuousBeam01(MultiDOF):
@@ -14,14 +15,17 @@ class ContinuousBeam01(MultiDOF):
         material_properties={
             "elastic_modulus": 70e9,
             "density": 2.7e3,
-            "support_rotational_stiffness": 1e4,
+            "mid_support_rotational_stiffness": 1e2,
+            "mid_support_transversal_stiffness": 2e4,
+            "end_support_rotational_stiffness_1": 1e5,
+            "end_support_rotational_stiffness_2": 1e5,
         },
         geometry_properties={"b": 0.03, "h": 0.005, "l_1": 0.84, "l_2": 0.42},
         element_length=0.02,
-        damping_params=(0, 5, 0.03),
+        damping_params=(0, 1, 0.03),
         f_loc=0.54,
         resp_dof="full",
-        t_eval=np.linspace(0, 10 - 1 / 1000, 10000),
+        t_eval=np.linspace(0, 1 - 1 / 1000, 1000),
         f_t=None,
         init_cond=None,
     ):
@@ -30,7 +34,10 @@ class ContinuousBeam01(MultiDOF):
         self.I = 1 / 12 * geometry_properties["b"] * geometry_properties["h"] ** 3
         self.A = geometry_properties["b"] * geometry_properties["h"]
         self.L = element_length
-        self.k_theta = material_properties["support_rotational_stiffness"]
+        self.k_theta = material_properties["mid_support_rotational_stiffness"]
+        self.k_t = material_properties["mid_support_transversal_stiffness"]
+        self.k_theta_1 = material_properties["end_support_rotational_stiffness_1"]
+        self.k_theta_2 = material_properties["end_support_rotational_stiffness_2"]
         self.element_number = int(
             (geometry_properties["l_1"] + geometry_properties["l_2"]) / self.L
         )
@@ -39,17 +46,23 @@ class ContinuousBeam01(MultiDOF):
         self.f_dof = [int(f_loc / self.L * 2)]
         self.fixed_dof = [
             0,
-            1,
-            int(geometry_properties["l_1"] / self.L * 2),
-            self.dof_number - 1,
+            # 1,
+            # int(geometry_properties["l_1"] / self.L * 2),
+            # self.dof_number - 1,
             self.dof_number - 2,
         ]
+        self.support_transversal_dof = [int(geometry_properties["l_1"] / self.L * 2)]
         self.support_rotational_dof = [int(geometry_properties["l_1"] / self.L * 2 + 1)]
+        self.end_support_rotational_dof_1 = [1]
+        self.end_support_rotational_dof_2 = [self.dof_number - 1]
         if init_cond is None:
             init_cond = np.zeros(self.dof_number * 2)
+        self.mass_mtx = self._assemble_global_matrix(type="mass")
+        self.stiff_mtx = self._assemble_global_matrix(type="stiff")
+
         super().__init__(
-            mass_mtx=self._assemble_global_matrix(type="mass"),
-            stiff_mtx=self._assemble_global_matrix(type="stiff"),
+            mass_mtx=self.mass_mtx,
+            stiff_mtx=self.stiff_mtx,
             damp_type="Rayleigh",
             damp_params=damping_params,
             f_dof=self.f_dof,
@@ -91,26 +104,32 @@ class ContinuousBeam01(MultiDOF):
         return M
 
     def _apply_support_conditions(self, matrix):
-        subs_num = np.std(np.diag(matrix))
+        std_const = np.std(matrix)
         for dof in self.fixed_dof:
             matrix[dof, :] = 0
             matrix[:, dof] = 0
-            matrix[dof, dof] = 1
+            matrix[dof, dof] = std_const
         return matrix
 
     def _add_support_rotational_stiffness(self, matrix):
         for dof in self.support_rotational_dof:
             matrix[dof, dof] += self.k_theta
+        for dof in self.end_support_rotational_dof_1:
+            matrix[dof, dof] += self.k_theta_1
+        for dof in self.end_support_rotational_dof_2:
+            matrix[dof, dof] += self.k_theta_2
+        for dof in self.support_transversal_dof:
+            matrix[dof, dof] += self.k_t
         return matrix
 
     def _assemble_global_matrix(self, type="stiff"):
         global_matrix = np.zeros((self.dof_number, self.dof_number))
         for i in range(self.element_number):
-            element_matrix = (
-                self._element_stiffness_matrix()
-                if type == "stiff"
-                else self._element_mass_matrix()
-            )
+            if type == "stiff":
+                element_matrix = self._element_stiffness_matrix()
+            else:
+                element_matrix = self._element_mass_matrix()
+
             global_matrix[2 * i : 2 * i + 4, 2 * i : 2 * i + 4] += element_matrix
         global_matrix = self._apply_support_conditions(global_matrix)
         if type == "stiff":
@@ -193,3 +212,15 @@ class ContinuousBeam01(MultiDOF):
             "force": force,
             "time": t_interp,
         }
+
+    def frf(self):
+        force_dof = [54]
+        resp_dof = [24, 44, 64, 98]
+        omega = np.linspace(0, 200, 201) * 2 * np.pi
+        omega = omega.reshape(-1, 1)
+        omegasq = omega**2
+        omega_mtx = np.repeat(omegasq, len(resp_dof), axis=1)
+        frf_mtx = self.frf_mtx(resp_dof, force_dof, omega)
+        frf_mtx = frf_mtx * omega_mtx
+        frf_mtx = frf_mtx[10:200]
+        return frf_mtx

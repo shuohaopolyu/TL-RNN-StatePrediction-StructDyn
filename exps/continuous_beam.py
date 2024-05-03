@@ -7,22 +7,183 @@ from models import Rnn02
 import torch
 import time
 import scipy.io
+import sdypy as sd
+from scipy.optimize import minimize
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(0)
 
 
+def _measured_strain(filename=f"./dataset/csb/exp_1.mat"):
+    k = 0.78
+    # measured strain data for training
+    exp_data = scipy.io.loadmat(filename)
+    fbg1_ini = exp_data["fbg1_ini"]
+    fbg2_ini = exp_data["fbg2_ini"]
+    fbg3_ini = exp_data["fbg3_ini"]
+    fbg4_ini = exp_data["fbg4_ini"]
+    strain1 = (exp_data["fbg1"][::5] - fbg1_ini) / (fbg1_ini * k)
+    strain2 = (exp_data["fbg2"][::5] - fbg2_ini) / (fbg2_ini * k)
+    strain3 = (exp_data["fbg3"][::5] - fbg3_ini) / (fbg3_ini * k)
+    strain4 = (exp_data["fbg4"][::5] - fbg4_ini) / (fbg4_ini * k)
+    strain = np.hstack((strain1, strain2, strain3, strain4))
+    strain = torch.tensor(strain, dtype=torch.float32).to(device) * 1e6
+    return strain
+
+
+def _measured_acc(filename=f"./dataset/csb/exp_1.mat", acc_scale=0.01):
+    exp_data = scipy.io.loadmat(filename)
+    # print(exp_data.keys())
+    acc1 = exp_data["acc1"][::5] * 9.8 * acc_scale
+    acc2 = exp_data["acc2"][::5] * 9.8 * acc_scale
+    acc3 = exp_data["acc3"][::5] * 9.8 * acc_scale
+    acc4 = exp_data["acc4"][::5] * 9.8 * acc_scale
+    acc_tensor = torch.tensor(
+        -np.hstack((acc4, acc3, acc2, acc1)), dtype=torch.float32
+    ).to(device)
+    # acc_tensor = torch.tensor(
+    #     np.hstack((acc1, acc2, acc3, acc4)), dtype=torch.float32
+    # ).to(device)
+    # plt.plot(acc_tensor.detach().cpu().numpy())
+    # plt.show()
+    return acc_tensor
+
+
+def _measured_disp(filename=f"./dataset/csb/exp_1.mat", disp_scale=10000):
+    # the measured displacement data, unit: mm
+    exp_data = scipy.io.loadmat(filename)
+    disp = exp_data["disp1"][::5]
+    disp = torch.tensor(disp, dtype=torch.float32).to(device) * disp_scale
+    return disp
+
+
+def _measured_force(filename=f"./dataset/csb/exp_1.mat"):
+    # the measured force data, unit: N
+    exp_data = scipy.io.loadmat(filename)
+    force = exp_data["force1"][::5]
+    force = torch.tensor(force, dtype=torch.float32).to(device)
+    return force
+
+
+def modal_analysis_ema(acc_scale=0.01):
+    save_path = "./dataset/csb/ema.pkl"
+    data_path = "./dataset/csb/exp_4.mat"
+    acc_tensor = _measured_acc(filename=data_path)
+    acc_mtx1 = acc_tensor.detach().cpu().numpy().T
+    force_tensor = _measured_force(filename=data_path)
+    force_mtx1 = force_tensor.detach().cpu().numpy().T
+    data_path = "./dataset/csb/exp_5.mat"
+    acc_tensor = _measured_acc(filename=data_path)
+    acc_mtx2 = acc_tensor.detach().cpu().numpy().T
+    force_tensor = _measured_force(filename=data_path)
+    force_mtx2 = force_tensor.detach().cpu().numpy().T
+    data_path = "./dataset/csb/exp_6.mat"
+    acc_tensor = _measured_acc(filename=data_path)
+    acc_mtx3 = acc_tensor.detach().cpu().numpy().T
+    force_tensor = _measured_force(filename=data_path)
+    force_mtx3 = force_tensor.detach().cpu().numpy().T
+    acc_mtx = np.array(
+        [acc_mtx1 / acc_scale, acc_mtx2 / acc_scale, acc_mtx3 / acc_scale]
+    )
+    force_mtx = np.array([force_mtx1, force_mtx2, force_mtx3])
+    frf_obj = sd.FRF.FRF(
+        1000,
+        force_mtx,
+        acc_mtx,
+        window="hann",
+        nperseg=1000,
+        noverlap=500,
+    )
+    frf = frf_obj.get_FRF(type="default", form="accelerance")
+    frf = frf.squeeze()
+    frf = frf[:, ::4]
+    freq = np.linspace(0, 500, 501)
+    plt.plot(freq, np.abs(frf.T))
+    plt.legend(["1", "2", "3", "4"])
+    plt.yscale("log")
+    plt.xlim([10, 200])
+    plt.show()
+    frf = frf[:, 10:200].T
+    with open(save_path, "wb") as f:
+        pickle.dump(frf, f)
+    print(f"EMA data saved to {save_path}")
+
+
+def modal_properties(i=5):
+    cb = ContinuousBeam01(
+        t_eval=np.linspace(0, 10, 10001),
+        f_t=[0],
+    )
+    u, v = cb.freqs_modes()
+    v = v[::2, :]
+    frf_mtx = cb.frf()
+    print(frf_mtx.shape)
+
+
+def compute_frf(log_k_theta, log_k_theta_1, log_k_theta_2, log_k_t):
+    k_theta = 10**log_k_theta
+    k_theta_1 = 10**log_k_theta_1
+    k_theta_2 = 10**log_k_theta_2
+    k_t = 10**log_k_t
+    material_properties = {
+        "elastic_modulus": 70e9,
+        "density": 2.7e3,
+        "mid_support_rotational_stiffness": k_theta,
+        "mid_support_transversal_stiffness": k_t,
+        "end_support_rotational_stiffness_1": k_theta_1,
+        "end_support_rotational_stiffness_2": k_theta_2,
+    }
+
+    cb = ContinuousBeam01(
+        t_eval=np.linspace(0, 10, 1001),
+        f_t=[0],
+        material_properties=material_properties,
+    )
+    frf_mtx = cb.frf()
+    return frf_mtx
+
+
+def loss_func(params, frf_data):
+    log_k_theta, log_k_theta_1, log_k_theta_2, log_k_t = params
+    frf_mtx = compute_frf(log_k_theta, log_k_theta_1, log_k_theta_2, log_k_t)
+    loss = np.sum((np.log(np.abs(frf_mtx)) - np.log(np.abs(frf_data))) ** 2) / (
+        frf_mtx.shape[0] * frf_mtx.shape[1]
+    )
+    # plt.plot(np.log(np.abs(frf_mtx)))
+    # plt.plot(np.log(np.abs(frf_data)))
+    # plt.show()
+    return loss
+
+
+def model_updating():
+    with open("./dataset/csb/ema.pkl", "rb") as f:
+        frf_data = pickle.load(f)
+    # Initial guess for parameters
+    initial_guess = [2, 4.2, 5, 5]
+    # Minimize the loss function
+    result = minimize(
+        loss_func,  # function to minimize
+        x0=initial_guess,  # initial guess
+        args=(frf_data,),  # additional arguments passed to loss_func
+        method="L-BFGS-B",  # optimization method
+        options={"disp": True},
+    )
+    print(result)
+
+
 def random_vibration(num=30):
     for i in range(num):
         print(f"Generating solution {i}...")
         start_time = time.time()
-        psd = BandPassPSD(a_v=0.04, f_1=10.0, f_2=410.0)
-        force = PSDExcitationGenerator(psd, tmax=5, fmax=2000)
+        psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
+        force = PSDExcitationGenerator(
+            psd, tmax=5, fmax=2000, normalize=True, normalize_factor=5.0
+        )
         # force.plot()
         print("Force" + " generated.")
         force = force()
-        sampling_freq = 10000
+        sampling_freq = 3000
         samping_period = 5.0
         cb = ContinuousBeam01(
             t_eval=np.linspace(
@@ -51,11 +212,11 @@ def plot_solution():
     with open("./dataset/csb/solution000.pkl", "rb") as f:
         solution = pickle.load(f)
     print(solution["time"])
-    plt.plot(solution["time"], solution["displacement"][:, 0] * 1000)
-    plt.plot(solution["time"], solution["displacement"][:, 36] * 1000)
+    plt.plot(solution["time"], solution["displacement"][:, 0])
+    plt.plot(solution["time"], solution["displacement"][:, 36])
     plt.show()
-    plt.plot(solution["time"], solution["acceleration"][:, 22] / 100)
-    plt.plot(solution["time"], solution["acceleration"][:, 44] / 100)
+    plt.plot(solution["time"], solution["acceleration"][:, 22])
+    plt.plot(solution["time"], solution["acceleration"][:, 44])
     plt.show()
     plt.plot(solution["time"], solution["velocity"][:, 3])
     plt.plot(solution["time"], solution["velocity"][:, 36])
@@ -64,49 +225,14 @@ def plot_solution():
     plt.show()
 
 
-def modal_analysis():
-    from pyoma2.algorithm import FSDD_algo
-    from pyoma2.OMA import SingleSetup
-
-    data_path = "./dataset/csb/exp_1.mat"
-    save_path = "./dataset/csb/"
-    acc_tensor = _measured_acc(filename=data_path)
-    acc_mtx = acc_tensor.detach().cpu().numpy()
-    Pali_ss = SingleSetup(acc_mtx, fs=5000)
-    fig, ax = Pali_ss.plot_data()
-    fig, ax = Pali_ss.plot_ch_info(ch_idx=[-1])
-
-    fsdd = FSDD_algo(name="FSDD", nxseg=2000, method_SD="per", pov=0.5)
-    Pali_ss.add_algorithms(fsdd)
-    Pali_ss.run_by_name("FSDD")
-    fsdd.plot_CMIF(freqlim=(0, 500))
-    plt.show()
-    Pali_ss.MPE("FSDD", sel_freq=[63.3, 93.1], MAClim=0.95)
-    ms_array = np.real(Pali_ss["FSDD"].result.Phi)
-    nf_array = Pali_ss["FSDD"].result.Fn
-    dp_array = Pali_ss["FSDD"].result.Xi
-    print(1 / nf_array)
-    print(dp_array)
-    if save_path is not None:
-        file_name = save_path + "modal_analysis.pkl"
-        with open(file_name, "wb") as f:
-            pickle.dump({"ms": ms_array, "nf": nf_array, "dp": dp_array}, f)
-        print("File " + file_name + " saved.")
-
-
-def modal_properties(i=5):
-    cb = ContinuousBeam01(
-        t_eval=np.linspace(0, 10, 10001),
-        f_t=None,
-    )
-    u, v = cb.freqs_modes()
-    v = v[::2, :]
-    print(u)
-    plt.plot(v[:, i])
-    plt.show()
-
-
-def training_test_data(acc_sensor, num_train_files, num_test_files):
+def training_test_data(
+    acc_sensor,
+    num_train_files,
+    num_test_files,
+    disp_scale=10000,
+    velo_scale=100,
+    acc_scale=0.01,
+):
     for i in range(num_train_files):
         filename = f"./dataset/csb/solution" + format(i, "03") + ".pkl"
         with open(filename, "rb") as f:
@@ -120,14 +246,14 @@ def training_test_data(acc_sensor, num_train_files, num_test_files):
         state_train[i, :, :] = torch.tensor(
             np.hstack(
                 (
-                    solution["displacement"] * 1000,
-                    solution["velocity"] * 10,
+                    solution["displacement"] * disp_scale,
+                    solution["velocity"] * velo_scale,
                 )
             ),
             dtype=torch.float32,
         ).to(device)
         acc_train[i, :, :] = torch.tensor(
-            solution["acceleration"][:, acc_sensor] / 100, dtype=torch.float32
+            solution["acceleration"][:, acc_sensor] * acc_scale, dtype=torch.float32
         ).to(device)
     for i in range(num_test_files):
         filename = (
@@ -144,14 +270,14 @@ def training_test_data(acc_sensor, num_train_files, num_test_files):
         state_test[i, :, :] = torch.tensor(
             np.hstack(
                 (
-                    solution["displacement"] * 1000,
-                    solution["velocity"] * 10,
+                    solution["displacement"] * disp_scale,
+                    solution["velocity"] * velo_scale,
                 )
             ),
             dtype=torch.float32,
         ).to(device)
         acc_test[i, :, :] = torch.tensor(
-            solution["acceleration"][:, acc_sensor] / 100, dtype=torch.float32
+            solution["acceleration"][:, acc_sensor] * acc_scale, dtype=torch.float32
         ).to(device)
     return state_train, acc_train, state_test, acc_test
 
@@ -218,19 +344,17 @@ def rnn_pred(path="./dataset/csb/rnn.pth"):
     rnn.load_state_dict(torch.load(path))
     rnn.to(device)
     # load the experimental data in .mat format
-    acc_tensor = _measured_acc(filename=f"./dataset/csb/exp_3.mat")
-    disp_tensor = _measured_disp(filename=f"./dataset/csb/exp_3.mat")
-    print(acc_tensor.shape)
+    acc_tensor = _measured_acc(filename=f"./dataset/csb/exp_4.mat")
+    disp_tensor = _measured_disp(filename=f"./dataset/csb/exp_4.mat")
     disp = disp_tensor.detach().cpu().numpy()
     train_h0 = torch.zeros(1, rnn.hidden_size, dtype=torch.float32).to(device)
     state_pred, _ = rnn(acc_tensor, train_h0)
     state_pred = state_pred.detach().cpu().numpy()
-    print(state_pred.shape)
     plt.plot(state_pred[:, 34])
     plt.plot(disp)
     plt.show()
-    plt.plot(state_pred[:, 34], disp, "o")
-    plt.show()
+    # plt.plot(state_pred[:, 34], disp, "o")
+    # plt.show()
 
 
 def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
@@ -244,7 +368,7 @@ def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
     for i, loc in enumerate(loc_fbg):
         ele_num = int(loc / L)
         dofs = [2 * ele_num, 2 * ele_num + 1, 2 * ele_num + 2, 2 * ele_num + 3]
-        disp = nodal_disp[:, dofs] / 1000
+        disp = nodal_disp[:, dofs] * 1e-4
         x = loc - ele_num * L
         B_mtx = (
             y
@@ -261,44 +385,6 @@ def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
         )
         strain[:, i] = (disp @ B_mtx).squeeze() * 1e6
     return strain
-
-
-def _measured_strain(filename=f"./dataset/csb/exp_1.mat"):
-    k = 0.78
-    # measured strain data for training
-    exp_data = scipy.io.loadmat(filename)
-    fbg1_ini = exp_data["fbg1_ini"]
-    fbg2_ini = exp_data["fbg2_ini"]
-    fbg3_ini = exp_data["fbg3_ini"]
-    fbg4_ini = exp_data["fbg4_ini"]
-    strain1 = (exp_data["fbg1"][::5] - fbg1_ini) / (fbg1_ini * k)
-    strain2 = (exp_data["fbg2"][::5] - fbg2_ini) / (fbg2_ini * k)
-    strain3 = (exp_data["fbg3"][::5] - fbg3_ini) / (fbg3_ini * k)
-    strain4 = (exp_data["fbg4"][::5] - fbg4_ini) / (fbg4_ini * k)
-    strain = np.hstack((strain1, strain2, strain3, strain4))
-    strain = torch.tensor(strain, dtype=torch.float32).to(device) * 1e6
-    return strain
-
-
-def _measured_acc(filename=f"./dataset/csb/exp_1.mat"):
-    exp_data = scipy.io.loadmat(filename)
-    # print(exp_data.keys())
-    acc1 = exp_data["acc1"][::5] * 9.8 / 100
-    acc2 = exp_data["acc2"][::5] * 9.8 / 100
-    acc3 = exp_data["acc3"][::5] * 9.8 / 100
-    acc4 = exp_data["acc4"][::5] * 9.8 / 100
-    acc_tensor = torch.tensor(
-        -np.hstack((acc4, acc3, acc2, acc1)), dtype=torch.float32
-    ).to(device)
-    return acc_tensor
-
-
-def _measured_disp(filename=f"./dataset/csb/exp_1.mat"):
-    # the measured displacement data, unit: mm
-    exp_data = scipy.io.loadmat(filename)
-    disp = exp_data["disp1"][::5]
-    disp = torch.tensor(disp, dtype=torch.float32).to(device) * 1000
-    return disp
 
 
 def tr_training(
