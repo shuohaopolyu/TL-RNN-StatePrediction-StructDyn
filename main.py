@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # shear_type_structure.tr_rnn()
 
     # continuous_beam.modal_analysis_ema()
-    # continuous_beam.modal_properties()
+    # continuous_beam.ema_freq_sweep()
     continuous_beam.model_updating()
     # continuous_beam.random_vibration(num=30)
     # continuous_beam.build_rnn()
