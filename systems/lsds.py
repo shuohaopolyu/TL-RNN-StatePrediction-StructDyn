@@ -111,6 +111,8 @@ class MultiDOF:
             self.damp_mtx = alpha * self.mass_mtx + beta * self.stiff_mtx
         elif self.damp_type == "d_mtx":
             self.damp_mtx = args
+        elif self.damp_type == "Proportional":
+            raise NotImplementedError("Proportional damping not implemented yet")
         else:
             raise ValueError("Damping type not supported")
 

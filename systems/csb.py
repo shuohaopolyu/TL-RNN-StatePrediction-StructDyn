@@ -22,7 +22,7 @@ class ContinuousBeam01(MultiDOF):
         },
         geometry_properties={"b": 0.03, "h": 0.005, "l_1": 0.84, "l_2": 0.42},
         element_length=0.02,
-        damping_params=(0, 1, 0.05),
+        damping_params=(0, 1, 0.03),
         f_loc=0.54,
         resp_dof="full",
         t_eval=np.linspace(0, 1 - 1 / 1000, 1000),
@@ -215,7 +215,7 @@ class ContinuousBeam01(MultiDOF):
 
     def frf(self):
         force_dof = [54]
-        resp_dof = [24, 44, 64, 98]
+        resp_dof = [24, 44, 64]
         omega = np.linspace(0, 200, 201) * 2 * np.pi
         omega = omega.reshape(-1, 1)
         omegasq = omega**2
