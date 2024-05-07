@@ -99,15 +99,28 @@ class MultiDOF:
         """
         if self.damp_type == "Rayleigh":
             omega = self.freqs_modes()[0] * 2 * np.pi
-            lower_index, upper_index, damping_ratio = args
-            alpha = (
-                2
-                * damping_ratio
-                * omega[lower_index]
-                * omega[upper_index]
-                / (omega[lower_index] + omega[upper_index])
-            )
-            beta = 2 * damping_ratio / (omega[lower_index] + omega[upper_index])
+            if len(args) == 3:
+                lower_index, upper_index, damping_ratio = args
+                alpha = (
+                    2
+                    * damping_ratio
+                    * omega[lower_index]
+                    * omega[upper_index]
+                    / (omega[lower_index] + omega[upper_index])
+                )
+                beta = 2 * damping_ratio / (omega[lower_index] + omega[upper_index])
+            elif len(args) == 4:
+                lower_index, upper_index, damping_ratio_1, damping_ratio_2 = args
+                temp_mtx = np.array(
+                    [
+                        [0.5 * omega[lower_index], 0.5 / omega[lower_index]],
+                        [0.5 * omega[upper_index], 0.5 / omega[upper_index]],
+                    ]
+                )
+                damping_ratio = np.array([damping_ratio_1, damping_ratio_2])
+                temp_vector = np.linalg.inv(temp_mtx) @ damping_ratio
+                alpha = temp_vector[0]
+                beta = temp_vector[1]
             self.damp_mtx = alpha * self.mass_mtx + beta * self.stiff_mtx
         elif self.damp_type == "d_mtx":
             self.damp_mtx = args

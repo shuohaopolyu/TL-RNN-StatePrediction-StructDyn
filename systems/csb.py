@@ -188,9 +188,10 @@ class ContinuousBeam01(MultiDOF):
 
     def run(self, delta=1 / 4, varp=0.5):
         # using newmark-beta method to solve the equation of motion
+        fq = 5000
         resp_disp, resp_velo, resp_acc = self._newmark_beta_int(delta, varp)
         force = self.f_mtx()
-        t_interp = np.linspace(0, self.t_eval[-1], int(1000 * self.t_eval[-1]) + 1)
+        t_interp = np.linspace(0, self.t_eval[-1], int(fq * self.t_eval[-1]) + 1)
         resp_disp = resp_disp
         resp_velo = resp_velo
         resp_acc = resp_acc

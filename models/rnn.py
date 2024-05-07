@@ -178,7 +178,7 @@ class Rnn02(nn.Module):
             optimizer.zero_grad()
             loss_train.backward(retain_graph=True)
             optimizer.step()
-            if (epoch + 1) % 100 == 0:
+            if (epoch + 1) % 1000 == 0:
                 train_loss_list.append(loss_train.item())
                 # Test the model
                 self.eval()

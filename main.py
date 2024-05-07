@@ -42,15 +42,14 @@ if __name__ == "__main__":
     # shear_type_structure.tr_rnn()
 
     # continuous_beam.ema_freq_sweep()
-    continuous_beam.model_updating()
-    # continuous_beam.random_vibration(num=30)
+    # continuous_beam.model_updating()
+    # continuous_beam.random_vibration(num=15)
     # continuous_beam.plot_solution()
     # continuous_beam.test_model()
-
     # continuous_beam.build_rnn()
     # continuous_beam.test_rnn()
     # continuous_beam.rnn_pred()
-    # continuous_beam.tr_rnn()
+    continuous_beam.tr_rnn()
 
     # figure plot
     # system_identification.base_loads()
