@@ -45,16 +45,13 @@ def _measured_acc(
     acc1 = exp_data["acc1"][::compress_ratio] * 9.8 * acc_scale
     acc2 = exp_data["acc2"][::compress_ratio] * 9.8 * acc_scale
     acc3 = exp_data["acc3"][::compress_ratio] * 9.8 * acc_scale
-    acc4 = exp_data["acc4"][::compress_ratio] * 9.8 * acc_scale
-    acc_tensor = torch.tensor(
-        np.hstack((acc4, acc3, acc2, acc1)), dtype=torch.float32
-    ).to(device)
+    acc_tensor = torch.tensor(np.hstack((acc1, acc2, acc3)), dtype=torch.float32).to(
+        device
+    )
     return acc_tensor
 
 
-def _measured_disp(
-    filename=f"./dataset/csb/exp_1.mat", disp_scale=1000, compress_ratio=1
-):
+def _measured_disp(filename=f"./dataset/csb/exp_1.mat", disp_scale=1, compress_ratio=1):
     # the measured displacement data, unit: mm
     exp_data = scipy.io.loadmat(filename)
     disp = exp_data["disp1"][::compress_ratio]
@@ -207,18 +204,22 @@ def random_vibration(num=30):
         start_time = time.time()
         psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
         force = PSDExcitationGenerator(
-            psd, tmax=4, fmax=2000, normalize=True, normalize_factor=1.2
+            psd, tmax=4, fmax=2000, normalize=True, normalize_factor=0.4
         )
         # force.plot()
         print("Force" + " generated.")
         force = force()
         sampling_freq = 5000
         samping_period = 1.0
-        k_theta = 100 * k_theta_2_factor
+        k_theta_1 = 300000 * k_theta_1_factor
+        k_theta_2 = 100 * k_theta_2_factor
+        k_theta_3 = 300000 * k_theta_3_factor
         material_properties = {
             "elastic_modulus": 68.5e9 * E_factor,
             "density": 2.7e3 * rho_factor,
-            "mid_support_rotational_stiffness": k_theta,
+            "left_support_rotational_stiffness": k_theta_1,
+            "mid_support_rotational_stiffness": k_theta_2,
+            "right_support_rotational_stiffness": k_theta_3,
         }
 
         cb = ContinuousBeam01(
@@ -231,7 +232,6 @@ def random_vibration(num=30):
             material_properties=material_properties,
             damping_params=(0, 1, damp),
         )
-        # print(cb.mass_mtx, cb.stiff_mtx, cb.damp_mtx)
         full_data = cb.run()
         solution = {}
         solution["displacement"] = full_data["displacement"].T
@@ -239,7 +239,9 @@ def random_vibration(num=30):
         solution["velocity"] = full_data["velocity"].T
         solution["force"] = full_data["force"].T
         solution["time"] = full_data["time"]
-        file_name = f"./dataset/csb/solution" + format(i, "03") + ".pkl"
+        file_name = (
+            f"./dataset/csb/training_test_data/solution" + format(i, "03") + ".pkl"
+        )
         with open(file_name, "wb") as f:
             pickle.dump(solution, f)
         print("File " + file_name + " saved.")
@@ -248,7 +250,7 @@ def random_vibration(num=30):
 
 
 def plot_solution():
-    with open("./dataset/csb/solution000.pkl", "rb") as f:
+    with open("./dataset/csb/training_test_data/solution000.pkl", "rb") as f:
         solution = pickle.load(f)
     print(solution["time"])
     plt.plot(solution["time"], solution["displacement"][:, 0])
@@ -277,7 +279,9 @@ def training_test_data(
     acc_scale=0.01,
 ):
     for i in range(num_train_files):
-        filename = f"./dataset/csb/solution" + format(i, "03") + ".pkl"
+        filename = (
+            f"./dataset/csb/training_test_data/solution" + format(i, "03") + ".pkl"
+        )
         with open(filename, "rb") as f:
             solution = pickle.load(f)
         if i == 0:
@@ -306,7 +310,9 @@ def training_test_data(
         # plt.show()
     for i in range(num_test_files):
         filename = (
-            f"./dataset/csb/solution" + format(i + num_train_files, "03") + ".pkl"
+            f"./dataset/csb/training_test_data/solution"
+            + format(i + num_train_files, "03")
+            + ".pkl"
         )
         with open(filename, "rb") as f:
             solution = pickle.load(f)
@@ -382,10 +388,10 @@ def _rnn(
 
 
 def build_rnn():
-    acc_sensor = [24, 44, 64, 98]
+    acc_sensor = [24, 44, 98]
     epochs = 10000
     lr = 3e-4
-    train_loss_list, test_loss_list = _rnn(acc_sensor, 10, 5, epochs, lr, 0.03)
+    train_loss_list, test_loss_list = _rnn(acc_sensor, 10, 5, epochs, lr, 0.02)
     plt.plot(train_loss_list, label="train loss")
     plt.plot(test_loss_list, label="test loss")
     plt.legend()
@@ -393,8 +399,8 @@ def build_rnn():
 
 
 def test_rnn():
-    acc_sensor = [24, 44, 64, 98]
-    _, _, state_test, acc_test = training_test_data(acc_sensor, 20, 10)
+    acc_sensor = [24, 44, 98]
+    _, _, state_test, acc_test = training_test_data(acc_sensor, 10, 5, 0.02)
     test_set = {"X": acc_test, "Y": state_test}
     rnn = Rnn02(
         input_size=len(acc_sensor),
@@ -406,7 +412,7 @@ def test_rnn():
     path = "./dataset/csb/rnn.pth"
     rnn.load_state_dict(torch.load(path))
     rnn.to(device)
-    test_h0 = torch.zeros(1, 10, rnn.hidden_size, dtype=torch.float32).to(device)
+    test_h0 = torch.zeros(1, 5, rnn.hidden_size, dtype=torch.float32).to(device)
     state_pred, _ = rnn(test_set["X"], test_h0)
     state_pred = state_pred.detach().cpu().numpy()
     state_test = test_set["Y"].detach().cpu().numpy()
@@ -418,8 +424,7 @@ def test_rnn():
 
 
 def rnn_pred(path="./dataset/csb/rnn.pth"):
-    # path = f"./dataset/csb/tr_rnn.pth"
-    acc_sensor = [24, 44, 64, 98]
+    acc_sensor = [24, 44, 98]
     rnn = Rnn02(
         input_size=len(acc_sensor),
         hidden_size=12,
@@ -430,25 +435,21 @@ def rnn_pred(path="./dataset/csb/rnn.pth"):
     rnn.load_state_dict(torch.load(path))
     rnn.to(device)
     # load the experimental data in .mat format
-    filename = f"./dataset/csb/exp_" + str(3) + ".mat"
+    filename = f"./dataset/csb/exp_" + str(1) + ".mat"
     acc_tensor = _measured_acc(filename)
     disp_tensor = _measured_disp(filename)
     disp_tensor = disp_tensor[:]
-    acc_tensor = acc_tensor[2000:, :]
-    # plt.plot(acc_tensor.detach().cpu().numpy())
-    # plt.show()
+    acc_tensor = acc_tensor[:, :]
     disp = disp_tensor.detach().cpu().numpy()
     train_h0 = torch.zeros(1, rnn.hidden_size, dtype=torch.float32).to(device)
     state_pred, _ = rnn(acc_tensor, train_h0)
     state_pred = state_pred.detach().cpu().numpy()
     disp_pred = state_pred[:, 34]
     # filter the predicted displacement using a low-pass filter
-    sos = signal.butter(2, 40, "lowpass", output="sos", fs=5000)
+    sos = signal.butter(2, 20, "lowpass", output="sos", fs=5000)
     disp_pred_filtered = signal.sosfilt(sos, disp_pred)
-    # plt.plot(disp_pred[50:])
     plt.plot(disp_pred_filtered[:], label="predicted")
-    plt.plot(-disp[2030:], linestyle="--")
-    # plt.plot(disp_pred_filtered[:] + disp[2000])
+    plt.plot(-disp[:], linestyle="--")
     plt.show(block=True)
 
 
@@ -464,7 +465,6 @@ def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
         ele_num = int(loc / L)
         dofs = [2 * ele_num, 2 * ele_num + 1, 2 * ele_num + 2, 2 * ele_num + 3]
         disp = nodal_disp[:, dofs]
-
         B_mtx = y * torch.tensor(
             [
                 [-6 / L**2],
@@ -479,7 +479,6 @@ def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
         # plt.plot(disp[:, 2].detach().cpu().numpy())
         # plt.plot(disp[:, 3].detach().cpu().numpy())
         # plt.show()
-
         strain[:, i] = (disp @ B_mtx).squeeze() * 1e3
         # plt.plot(strain[:, i].detach().cpu().numpy())
         # disp[:, 3] = 0
@@ -487,7 +486,6 @@ def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
         # strain[:, i] = (disp @ B_mtx).squeeze() * 1e3
         # plt.plot(strain[:, i].detach().cpu().numpy())
         # plt.show()
-
     return strain
 
 
@@ -542,7 +540,7 @@ def tr_training(
             )
             torch.save(RNN4state.state_dict(), save_path)
 
-        if i % 1000 == 0:
+        if i % 500 == 0:
             rnn_pred(path=save_path)
             plt.plot(
                 measured_strain_test[:, 0].detach().cpu().numpy(), label="measured"
@@ -561,7 +559,7 @@ def tr_training(
 
 
 def tr_rnn():
-    acc_sensor = [24, 44, 64, 98]
+    acc_sensor = [24, 44, 98]
     # transfer learning of recurrent neural networks
     rnn = Rnn02(
         input_size=len(acc_sensor),
@@ -570,22 +568,22 @@ def tr_rnn():
         output_size=256,
         bidirectional=False,
     )
-    rnn.load_state_dict(torch.load(f"./dataset/csb/rnn.pth"))
+    rnn.load_state_dict(torch.load(f"./dataset/csb/tr_rnn.pth"))
     rnn.to(device)
     unfrozen_params = [0, 1]
-    lr = 1e-4
+    lr = 1e-5
     epochs = 5000
-    measured_strain = _measured_strain(f"./dataset/csb/exp_3.mat")
-    measured_strain_train = measured_strain[2000:20000, [0, 1, 3]]
-    measured_strain_test = measured_strain[2000:20000, [2]]
-    loc_fbg_train = [0.5 + 1e-7, 0.3 + 1e-7, 1.0 + 1e-7]
-    loc_fbg_test = [0.64 + 1e-7]
-    # measured_strain_train = measured_strain[2000:20000, [0, 2, 3]]
-    # measured_strain_test = measured_strain[2000:20000, [1]]
-    # loc_fbg_train = [0.5, 0.64, 1.0]
-    # loc_fbg_test = [0.3]
-    acc_tensor = _measured_acc(f"./dataset/csb/exp_3.mat")
-    acc_tensor = acc_tensor[2000:20000, :]
+    measured_strain = _measured_strain(f"./dataset/csb/exp_1.mat")
+    measured_strain_train = measured_strain[:-15, [0, 2]]
+    measured_strain_test = measured_strain[:-15, [3]]
+    loc_fbg_train = [
+        0.3 + 1e-7,
+        0.64 + 1e-7,
+    ]
+    loc_fbg_test = [1.0 + 1e-7]
+
+    acc_tensor = _measured_acc(f"./dataset/csb/exp_1.mat")
+    acc_tensor = acc_tensor[15:, :]
     train_loss_list, test_loss_list = tr_training(
         rnn,
         acc_tensor,

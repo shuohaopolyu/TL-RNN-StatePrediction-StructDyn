@@ -1,5 +1,5 @@
 archive/
 *.pyc
 __pycache__/
-dataset/csb/*.pkl
+dataset/csb/training_test_data
 dataset/experiment

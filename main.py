@@ -50,14 +50,12 @@ if __name__ == "__main__":
     # continuous_beam.ema()
     # continuous_beam.initial_comparsion()
     # continuous_beam.model_updating()
-
     # continuous_beam.random_vibration(num=15)
     # continuous_beam.plot_solution()
-    # continuous_beam.test_model()
     # continuous_beam.build_rnn()
     # continuous_beam.test_rnn()
-    # continuous_beam.rnn_pred()
-    # continuous_beam.tr_rnn()
+    continuous_beam.rnn_pred()
+    continuous_beam.tr_rnn()
 
     # figure plot
     # system_identification.base_loads()
@@ -81,4 +79,4 @@ if __name__ == "__main__":
     # experiment utils
     # waveform_generator_1()
     # waveform_generator_2()
-    combine_data()
+    # combine_data()
