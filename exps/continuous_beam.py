@@ -70,109 +70,57 @@ def _measured_force(filename=f"./dataset/csb/exp_1.mat"):
     return force
 
 
-def ema_freq_sweep():
+def ema():
     save_path = "./dataset/csb/ema.pkl"
-    data_path = "./dataset/csb/sweep.mat"
+    data_path = "./dataset/csb/noise_for_ema_2.mat"
     exp_data = scipy.io.loadmat(data_path)
-    # acc1 = exp_data["Data1_AI_1"][::5, 0].reshape(-1, 1) * 9.8
-    acc2 = exp_data["Data1_AI_2"][::5, 0].reshape(-1, 1) * 9.8
-    acc3 = exp_data["Data1_AI_3"][::5, 0].reshape(-1, 1) * 9.8
-    acc4 = exp_data["Data1_AI_4"][::5, 0].reshape(-1, 1) * 9.8
-    # acc_mtx = -np.hstack((acc4, acc3, acc2, acc1))
-    acc_mtx = -np.hstack((acc4, acc3, acc2))
+    acc1 = exp_data["Data1_AI_1_AI_1"][::5, 0].reshape(-1, 1) * 9.8
+    acc2 = exp_data["Data1_AI_2_AI_2"][::5, 0].reshape(-1, 1) * 9.8
+    acc3 = exp_data["Data1_AI_3_AI_3"][::5, 0].reshape(-1, 1) * 9.8
+    acc_mtx = np.hstack((acc1, acc2, acc3))
     acc_mtx = np.array([acc_mtx.T], dtype=np.float32)
     print(acc_mtx.shape)
-    force = exp_data["Data1_AI_5"][::5, 0].reshape(-1, 1)
+    force = exp_data["Data1_AI_4_AI_4"][::5, 0].reshape(-1, 1)
     force_mtx = np.array([force.T], dtype=np.float32)
     frf_obj = sd.FRF.FRF(
         1000,
         force_mtx,
         acc_mtx,
         window="hann",
-        fft_len=1000,
-        nperseg=1000,
+        fft_len=5000,
+        nperseg=5000,
     )
+    df = 0.2
+    freq = np.arange(0, 500 + 0.2, df)
     frf = frf_obj.get_FRF(type="default", form="accelerance")
     frf = frf.squeeze()
-    plt.plot(np.abs(frf.T))
+    plt.plot(freq, np.abs(frf.T))
     plt.legend(["acc1", "acc2", "acc3"])
     plt.yscale("log")
     plt.show()
-    frf = frf[:, 10:200].T
+    # save frf data from 10 hertz to 100 hertz
+    idx_low = 50
+    idx_high = 500
+    print(freq[idx_low], freq[idx_high])
+    frf = frf[:, idx_low:idx_high].T
     with open(save_path, "wb") as f:
         pickle.dump(frf, f)
     print(f"EMA data saved to {save_path}")
 
 
-def modal_analysis_ema(acc_scale=0.01):
-    save_path = "./dataset/csb/ema.pkl"
-    data_path = "./dataset/csb/exp_1.mat"
-    acc_tensor = _measured_acc(filename=data_path)
-    acc_mtx1 = acc_tensor.detach().cpu().numpy().T
-    force_tensor = _measured_force(filename=data_path)
-    force_mtx1 = force_tensor.detach().cpu().numpy().T
-    data_path = "./dataset/csb/exp_2.mat"
-    acc_tensor = _measured_acc(filename=data_path)
-    acc_mtx2 = acc_tensor.detach().cpu().numpy().T
-    force_tensor = _measured_force(filename=data_path)
-    force_mtx2 = force_tensor.detach().cpu().numpy().T
-    data_path = "./dataset/csb/exp_3.mat"
-    acc_tensor = _measured_acc(filename=data_path)
-    acc_mtx3 = acc_tensor.detach().cpu().numpy().T
-    force_tensor = _measured_force(filename=data_path)
-    force_mtx3 = force_tensor.detach().cpu().numpy().T
-    acc_mtx = np.array(
-        [acc_mtx1 / acc_scale, acc_mtx2 / acc_scale, acc_mtx3 / acc_scale]
-    )
-    force_mtx = np.array([force_mtx1, force_mtx2, force_mtx3])
-    frf_obj = sd.FRF.FRF(
-        1000,
-        force_mtx,
-        acc_mtx,
-        window="hann",
-        nperseg=1000,
-    )
-    frf = frf_obj.get_FRF(type="default", form="accelerance")
-    # frf = frf_obj.get_Hv()
-    frf = frf.squeeze()
-    frf = frf[:, ::4]
-    freq = np.linspace(0, 500, 501)
-    plt.plot(freq, np.abs(frf.T))
-    plt.legend(["1", "2", "3", "4"])
-    plt.yscale("log")
-    plt.xlim([10, 200])
-    plt.show()
-    frf = frf[:, 10:200].T
-    with open(save_path, "wb") as f:
-        pickle.dump(frf, f)
-    print(f"EMA data saved to {save_path}")
-
-
-def modal_properties(i=5):
-    cb = ContinuousBeam01(
-        t_eval=np.linspace(0, 10, 10001),
-        f_t=[0],
-    )
-    u, v = cb.freqs_modes()
-    v = v[::2, :]
-    frf_mtx = cb.frf()
-    print(frf_mtx.shape)
-
-
-def compute_frf(log_k_theta, log_k_t, rho_factor, E_factor, damp):
-    k_theta = 10**log_k_theta
-    k_theta_1 = 10**7
-    k_theta_2 = 10**7
-    k_t = 10**log_k_t
+def compute_frf(
+    k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp
+):
+    k_theta_1 = 300000 * k_theta_1_factor
+    k_theta_2 = 100 * k_theta_2_factor
+    k_theta_3 = 300000 * k_theta_3_factor
     material_properties = {
         "elastic_modulus": 68.5e9 * E_factor,
         "density": 2.7e3 * rho_factor,
-        "mid_support_rotational_stiffness": k_theta,
-        "mid_support_transversal_stiffness": k_t,
-        "end_support_rotational_stiffness_1": k_theta_1,
-        "end_support_rotational_stiffness_2": k_theta_2,
+        "left_support_rotational_stiffness": k_theta_1,
+        "mid_support_rotational_stiffness": k_theta_2,
+        "right_support_rotational_stiffness": k_theta_3,
     }
-
     cb = ContinuousBeam01(
         t_eval=np.linspace(0, 10, 1001),
         f_t=[1],
@@ -184,44 +132,62 @@ def compute_frf(log_k_theta, log_k_t, rho_factor, E_factor, damp):
 
 
 def loss_func(params, frf_data):
-    log_k_theta, log_k_t, rho_factor, E_factor, damp = params
-    frf_mtx = compute_frf(log_k_theta, log_k_t, rho_factor, E_factor, damp)
-    # loss = np.sum(
-    #     (np.exp(np.log(np.abs(frf_data))) * np.log(np.abs(frf_data - frf_mtx))) ** 2
-    # )
-    loss = np.sum((np.log(np.abs(frf_data - frf_mtx))) ** 2)
+
+    frf_mtx = compute_frf(*params)
+    loss = np.sum((np.log(np.abs(frf_data)) - np.log(np.abs(frf_mtx))) ** 2)
+    loss = loss / (frf_data.shape[0] * frf_data.shape[1])
     return loss
 
 
 def compare_frf(result, frf_data):
-    log_k_theta, log_k_t, rho_factor, E_factor, damp = result.x
-    frf_mtx = compute_frf(log_k_theta, log_k_t, rho_factor, E_factor, damp)
-    fig, ax = plt.subplots(3, 1, figsize=(8, 6))
+    k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp = (
+        result.x
+    )
+    frf_mtx = compute_frf(
+        k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp
+    )
+    freq = np.linspace(10, 100, 450)
+    _, ax = plt.subplots(3, 1, figsize=(8, 6))
     for i in range(3):
-        ax[i].plot(np.abs(frf_mtx[:, i]))
-        ax[i].plot(np.abs(frf_data[:, i]))
+        ax[i].plot(freq, np.abs(frf_mtx[:, i]))
+        ax[i].plot(freq, np.abs(frf_data[:, i]))
         ax[i].set_yscale("log")
 
     plt.legend(["Model", "Data"])
-    # plt.yscale("log")
     plt.show()
+
+
+def initial_comparsion():
+    import types
+
+    result = types.SimpleNamespace()
+    result.x = [1.0, 1.0, 1.0, 1.5, 1.0, 0.01]
+    with open("./dataset/csb/ema.pkl", "rb") as f:
+        frf_data = pickle.load(f)
+    compare_frf(result, frf_data)
 
 
 def model_updating():
     with open("./dataset/csb/ema.pkl", "rb") as f:
         frf_data = pickle.load(f)
     # Initial guess for parameters
-    initial_guess = [2.0, 6, 1.2, 1, 0.03]
+    initial_guess = [1.0, 1.0, 1.0, 1.5, 1.0, 0.01]
     # Minimize the loss function
     result = minimize(
         loss_func,  # function to minimize
         x0=initial_guess,  # initial guess
         args=(frf_data,),  # additional arguments passed to loss_func
-        method="Nelder-Mead",  # optimization method
+        method="L-BFGS-B",  # optimization method
         options={"disp": True},
-        bounds=[(1, 6), (4, 8), (0.5, 2.0), (0.5, 1.5), (0.01, 0.08)],
+        bounds=[
+            (0.2, 2.0),
+            (0.0, 2.0),
+            (0.2, 2.0),
+            (0.2, 2.0),
+            (0.2, 2.0),
+            (0.005, 0.03),
+        ],
     )
-    print(result)
     compare_frf(result, frf_data)
     save_path = "./dataset/csb/model_updating.pkl"
     with open(save_path, "wb") as f:
@@ -232,7 +198,9 @@ def random_vibration(num=30):
     result_path = "./dataset/csb/model_updating.pkl"
     with open(result_path, "rb") as f:
         result = pickle.load(f)
-    log_k_theta, log_k_t, rho_factor, E_factor, damp = result.x
+    k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp = (
+        result.x
+    )
     print(f"Model updating result: {result.x}")
     for i in range(num):
         print(f"Generating solution {i}...")
@@ -246,17 +214,11 @@ def random_vibration(num=30):
         force = force()
         sampling_freq = 5000
         samping_period = 1.0
-        k_theta = 10**log_k_theta
-        k_theta_1 = 10**7
-        k_theta_2 = 10**7
-        k_t = 10**log_k_t
+        k_theta = 100 * k_theta_2_factor
         material_properties = {
             "elastic_modulus": 68.5e9 * E_factor,
             "density": 2.7e3 * rho_factor,
             "mid_support_rotational_stiffness": k_theta,
-            "mid_support_transversal_stiffness": k_t,
-            "end_support_rotational_stiffness_1": k_theta_1,
-            "end_support_rotational_stiffness_2": k_theta_2,
         }
 
         cb = ContinuousBeam01(

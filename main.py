@@ -15,7 +15,13 @@ from figures import (
     strong_ground_motion,
     tr_rnn_training,
 )
-from utils import waveform_generator, process_fbg_data, process_dewe_data, combine_data
+from utils import (
+    waveform_generator_1,
+    waveform_generator_2,
+    process_fbg_data,
+    process_dewe_data,
+    combine_data,
+)
 
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -41,15 +47,17 @@ if __name__ == "__main__":
     # shear_type_structure.tr_birnn()
     # shear_type_structure.tr_rnn()
 
-    # continuous_beam.ema_freq_sweep()
+    # continuous_beam.ema()
+    # continuous_beam.initial_comparsion()
     # continuous_beam.model_updating()
+
     # continuous_beam.random_vibration(num=15)
     # continuous_beam.plot_solution()
     # continuous_beam.test_model()
     # continuous_beam.build_rnn()
     # continuous_beam.test_rnn()
     # continuous_beam.rnn_pred()
-    continuous_beam.tr_rnn()
+    # continuous_beam.tr_rnn()
 
     # figure plot
     # system_identification.base_loads()
@@ -71,7 +79,6 @@ if __name__ == "__main__":
     # tr_rnn_training.performance_evaluation()
 
     # experiment utils
-    # waveform_generator()
-    # process_fbg_data()
-    # process_dewe_data()
-    # combine_data()
+    # waveform_generator_1()
+    # waveform_generator_2()
+    combine_data()

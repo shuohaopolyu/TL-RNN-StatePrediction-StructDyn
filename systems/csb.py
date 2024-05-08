@@ -16,9 +16,6 @@ class ContinuousBeam01(MultiDOF):
             "elastic_modulus": 70e9,
             "density": 2.7e3,
             "mid_support_rotational_stiffness": 1e2,
-            "mid_support_transversal_stiffness": 2e4,
-            "end_support_rotational_stiffness_1": 1e5,
-            "end_support_rotational_stiffness_2": 1e5,
         },
         geometry_properties={"b": 0.03, "h": 0.005, "l_1": 0.84, "l_2": 0.42},
         element_length=0.02,
@@ -34,10 +31,10 @@ class ContinuousBeam01(MultiDOF):
         self.I = 1 / 12 * geometry_properties["b"] * geometry_properties["h"] ** 3
         self.A = geometry_properties["b"] * geometry_properties["h"]
         self.L = element_length
-        self.k_theta = material_properties["mid_support_rotational_stiffness"]
-        self.k_t = material_properties["mid_support_transversal_stiffness"]
-        self.k_theta_1 = material_properties["end_support_rotational_stiffness_1"]
-        self.k_theta_2 = material_properties["end_support_rotational_stiffness_2"]
+        self.k_theta_1 = material_properties["left_support_rotational_stiffness"]
+        self.k_theta_2 = material_properties["mid_support_rotational_stiffness"]
+        self.k_theta_3 = material_properties["right_support_rotational_stiffness"]
+        self.k_theta = [self.k_theta_1, self.k_theta_2, self.k_theta_3]
         self.element_number = int(
             (geometry_properties["l_1"] + geometry_properties["l_2"]) / self.L
         )
@@ -46,15 +43,14 @@ class ContinuousBeam01(MultiDOF):
         self.f_dof = [int(f_loc / self.L * 2)]
         self.fixed_dof = [
             0,
-            # 1,
-            # int(geometry_properties["l_1"] / self.L * 2),
-            # self.dof_number - 1,
+            int(geometry_properties["l_1"] / self.L * 2),
+            self.dof_number - 1,
+        ]
+        self.support_rotational_dof = [
+            1,
+            int(geometry_properties["l_1"] / self.L * 2 + 1),
             self.dof_number - 2,
         ]
-        self.support_transversal_dof = [int(geometry_properties["l_1"] / self.L * 2)]
-        self.support_rotational_dof = [int(geometry_properties["l_1"] / self.L * 2 + 1)]
-        self.end_support_rotational_dof_1 = [1]
-        self.end_support_rotational_dof_2 = [self.dof_number - 1]
         if init_cond is None:
             init_cond = np.zeros(self.dof_number * 2)
         self.mass_mtx = self._assemble_global_matrix(type="mass")
@@ -112,14 +108,8 @@ class ContinuousBeam01(MultiDOF):
         return matrix
 
     def _add_support_rotational_stiffness(self, matrix):
-        for dof in self.support_rotational_dof:
-            matrix[dof, dof] += self.k_theta
-        for dof in self.end_support_rotational_dof_1:
-            matrix[dof, dof] += self.k_theta_1
-        for dof in self.end_support_rotational_dof_2:
-            matrix[dof, dof] += self.k_theta_2
-        for dof in self.support_transversal_dof:
-            matrix[dof, dof] += self.k_t
+        for i, dof in enumerate(self.support_rotational_dof):
+            matrix[dof, dof] += self.k_theta[i]
         return matrix
 
     def _assemble_global_matrix(self, type="stiff"):
@@ -129,7 +119,6 @@ class ContinuousBeam01(MultiDOF):
                 element_matrix = self._element_stiffness_matrix()
             else:
                 element_matrix = self._element_mass_matrix()
-
             global_matrix[2 * i : 2 * i + 4, 2 * i : 2 * i + 4] += element_matrix
         global_matrix = self._apply_support_conditions(global_matrix)
         if type == "stiff":
@@ -216,12 +205,11 @@ class ContinuousBeam01(MultiDOF):
 
     def frf(self):
         force_dof = [54]
-        resp_dof = [24, 44, 64]
-        omega = np.linspace(0, 200, 201) * 2 * np.pi
+        resp_dof = [24, 44, 98]
+        omega = np.linspace(10, 100, 450) * 2 * np.pi
         omega = omega.reshape(-1, 1)
         omegasq = omega**2
         omega_mtx = np.repeat(omegasq, len(resp_dof), axis=1)
         frf_mtx = self.frf_mtx(resp_dof, force_dof, omega)
-        frf_mtx = frf_mtx * omega_mtx
-        frf_mtx = frf_mtx[10:200]
+        frf_mtx = frf_mtx * omega_mtx * 2  # single sided frequency response
         return frf_mtx
