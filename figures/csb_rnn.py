@@ -27,42 +27,48 @@ def model_updating():
     amp_mtx = np.abs(frf_model)
     freq = np.linspace(10, 100, 450)
     figidx = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
-    fig, axs = plt.subplots(3, 2, figsize=(18 * cm, 12 * cm))
-    axs[0, 0].plot(freq, amp_data[:, 0], color="red")
-    axs[0, 0].plot(freq, amp_mtx[:, 0], color="blue", linestyle="--")
+    fig, axs = plt.subplots(2, 3, figsize=(18 * cm, 10 * cm))
+    axs[0, 0].plot(freq, amp_data[:, 0], color="red", linewidth=1.2)
+    axs[0, 0].plot(freq, amp_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2)
     axs[0, 0].set_yscale("log")
     axs[0, 0].set_ylabel(
         r"Magnitude (m/s$^2$/N)",
     )
-    axs[0, 1].plot(freq, phase_data[:, 0], color="red", linewidth=1.2)
-    axs[0, 1].plot(freq, phase_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2)
-    axs[0, 1].set_ylabel("Phase (rad)")
-    axs[1, 0].plot(freq, amp_data[:, 1], color="red", linewidth=1.2)
-    axs[1, 0].plot(freq, amp_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2)
-    axs[1, 0].set_yscale("log")
-    axs[1, 0].set_ylabel(r"Magnitude (m/s$^2$/N)")
+
+    axs[1, 0].plot(freq, phase_data[:, 0], color="red", linewidth=1.2)
+    axs[1, 0].plot(freq, phase_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2)
+    axs[1, 0].set_ylabel("Phase (rad)", labelpad=10)
+    axs[0, 1].plot(
+        freq, amp_data[:, 1], color="red", linewidth=1.2, label="Measurements"
+    )
+    axs[0, 1].plot(
+        freq, amp_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2, label="Model"
+    )
+    axs[0, 1].set_yscale("log")
+    # axs[0, 1].set_ylabel(r"Magnitude (m/s$^2$/N)")
     axs[1, 1].plot(freq, phase_data[:, 1], color="red", linewidth=1.2)
     axs[1, 1].plot(freq, phase_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2)
-    axs[1, 1].set_ylabel("Phase (rad)")
-    axs[2, 0].plot(freq, amp_data[:, 2], color="red", linewidth=1.2)
-    axs[2, 0].plot(freq, amp_mtx[:, 2], color="blue", linestyle="--", linewidth=1.2)
-    axs[2, 0].set_yscale("log")
-    axs[2, 0].set_ylabel(r"Magnitude (m/s$^2$/N)")
-    axs[2, 1].plot(freq, phase_data[:, 2], color="red", linewidth=1.2)
-    axs[2, 1].plot(freq, phase_mtx[:, 2], color="blue", linestyle="--", linewidth=1.2)
-    axs[2, 1].set_ylabel("Phase (rad)")
-    for i in range(3):
-        for j in range(2):
+    # axs[1, 1].set_ylabel("Phase (rad)")
+    axs[0, 2].plot(freq, amp_data[:, 2], color="red", linewidth=1.2)
+    axs[0, 2].plot(freq, amp_mtx[:, 2], color="blue", linestyle="--", linewidth=1.2)
+    axs[0, 2].set_yscale("log")
+    # axs[0, 2].set_ylabel(r"Magnitude (m/s$^2$/N)")
+    axs[1, 2].plot(freq, phase_data[:, 2], color="red", linewidth=1.2)
+    axs[1, 2].plot(freq, phase_mtx[:, 2], color="blue", linestyle="--", linewidth=1.2)
+    # axs[1, 2].set_ylabel("Phase (rad)")
+    axs[1, 1].set_xlabel("Frequency (Hz)")
+
+    for j in range(3):
+        for i in range(2):
             axs[i, j].tick_params(axis="y", direction="in", which="both")
             axs[i, j].set_xlim(10, 100)
-            axs[i, 1].set_ylim(0, 3.15)
+            axs[1, i].set_ylim(0, 3.15)
             # axs[i, 0].set_ylim(1, 1000)
             axs[i, j].grid(True)
-            axs[2, j].set_xlabel("Frequency (Hz)")
             axs[i, j].text(
-                -0.06,
                 -0.1,
-                figidx[i * 2 + j],
+                -0.1,
+                figidx[i * 3 + j],
                 ha="center",
                 va="center",
                 transform=axs[i, j].transAxes,
@@ -70,6 +76,16 @@ def model_updating():
             axs[i, j].tick_params(axis="x", direction="in", which="both")
             axs[i, j].set_xticks([10, 20, 40, 60, 80, 100])
             axs[i, j].set_xticklabels(["10", "20", "40", "60", "80", "100"])
+        # let legend outside the plot
+    axs[0, 1].legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.2),
+        fontsize=8,
+        facecolor="white",
+        edgecolor="black",
+        ncol=2,
+    )
     plt.tight_layout()
+
     plt.savefig("./figures/F_csb_model_updating.pdf", bbox_inches="tight")
     plt.show()
