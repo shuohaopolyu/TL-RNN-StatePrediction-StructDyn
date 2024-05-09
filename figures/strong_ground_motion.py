@@ -9,10 +9,10 @@ from scipy import interpolate
 import os
 
 # set the fonttype to be Arial
-plt.rcParams["font.family"] = "Arial"
+plt.rcParams["font.family"] = "Times New Roman"
 # set the font size's default value
-plt.rcParams.update({"font.size": 10})
-# ts = {"fontname": "Times New Roman"}
+plt.rcParams.update({"font.size": 8})
+ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
 
 
@@ -90,7 +90,7 @@ def plot_ground_motion():
 
     text_desc = ["Kobe", "Kern County", "El Álamo", "Taiwan"]
     factors = [1, 1, 6, 2, 2, 2]
-    fig, axs = plt.subplots(2, 2, figsize=(20 * cm, 10 * cm))
+    fig, axs = plt.subplots(2, 2, figsize=(18 * cm, 8 * cm))
     for i, acc_file_i in enumerate(acc_file_name_list):
         desc, _, _, time, inp_acc = processNGAfile(acc_file_i)
         print(desc)
@@ -111,11 +111,11 @@ def plot_ground_motion():
             ha="center",
             va="center",
             transform=axs[i // 2, i % 2].transAxes,
-            fontsize=10,
+            fontsize=8,
         )
 
-    fig.supxlabel("Time (s)", fontsize=10)
-    fig.supylabel("Acceleration (g)", position=(0.05, 0.5), fontsize=10)
+    fig.supxlabel("Time (s)", fontsize=8)
+    fig.supylabel("Acceleration (g)", position=(0.05, 0.5), fontsize=8)
     plt.savefig("./figures/strong_ground_motion.svg", bbox_inches="tight")
     plt.savefig("./figures/F_strong_ground_motion.pdf", bbox_inches="tight")
     plt.show()

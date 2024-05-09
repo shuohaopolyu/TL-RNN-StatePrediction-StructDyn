@@ -4,4 +4,5 @@ from figures import (
     artifical_acc,
     strong_ground_motion,
     tr_rnn_training,
+    csb_rnn,
 )

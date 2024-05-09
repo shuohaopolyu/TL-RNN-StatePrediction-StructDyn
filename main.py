@@ -14,6 +14,7 @@ from figures import (
     artifical_acc,
     strong_ground_motion,
     tr_rnn_training,
+    csb_rnn,
 )
 from utils import (
     waveform_generator_1,
@@ -48,21 +49,18 @@ if __name__ == "__main__":
     # shear_type_structure.tr_rnn()
 
     # continuous_beam.ema()
-    # continuous_beam.initial_comparsion()
     # continuous_beam.model_updating()
     # continuous_beam.random_vibration(num=15)
-    # continuous_beam.plot_solution()
+    continuous_beam.plot_solution()
     # continuous_beam.build_rnn()
     # continuous_beam.test_rnn()
-    continuous_beam.rnn_pred()
-    continuous_beam.tr_rnn()
+    # continuous_beam.rnn_pred()
+    # continuous_beam.tr_rnn()
 
     # figure plot
     # system_identification.base_loads()
     # system_identification.singular_values()
-    # system_identification.mode_shape()
-    # system_identification.natural_frequency()
-    # system_identification.params()
+    # system_identification.model_updating()
     # artifical_acc.cwt_acc_g()
     # rnn_training.loss_curve()
     # rnn_training.state_pred()
@@ -70,11 +68,9 @@ if __name__ == "__main__":
     # strong_ground_motion.plot_ground_motion()
     # tr_rnn_training.velo_pred()
     # tr_rnn_training.disp_pred()
-    # tr_rnn_training.disp_birnn_pred()
-    # tr_rnn_training.disp_rnn_pred()
-    # tr_rnn_training.disp_kf_pred()
     # tr_rnn_training.loss_curve()
     # tr_rnn_training.performance_evaluation()
+    # csb_rnn.model_updating()
 
     # experiment utils
     # waveform_generator_1()

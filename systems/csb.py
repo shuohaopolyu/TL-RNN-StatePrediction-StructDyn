@@ -44,12 +44,12 @@ class ContinuousBeam01(MultiDOF):
         self.fixed_dof = [
             0,
             int(geometry_properties["l_1"] / self.L * 2),
-            self.dof_number - 1,
+            -2,
         ]
         self.support_rotational_dof = [
             1,
             int(geometry_properties["l_1"] / self.L * 2 + 1),
-            self.dof_number - 2,
+            -1,
         ]
         if init_cond is None:
             init_cond = np.zeros(self.dof_number * 2)
@@ -203,10 +203,13 @@ class ContinuousBeam01(MultiDOF):
             "time": t_interp,
         }
 
-    def frf(self):
+    def frf(self, resized=True):
         force_dof = [54]
         resp_dof = [24, 44, 98]
         omega = np.linspace(10, 100, 450) * 2 * np.pi
+        if resized:
+            idx = [*range(50, 100)] + [*range(300, 350)]
+            omega = omega[idx]
         omega = omega.reshape(-1, 1)
         omegasq = omega**2
         omega_mtx = np.repeat(omegasq, len(resp_dof), axis=1)

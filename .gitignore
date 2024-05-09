@@ -2,4 +2,3 @@ archive/
 *.pyc
 __pycache__/
 dataset/csb/training_test_data
-dataset/experiment

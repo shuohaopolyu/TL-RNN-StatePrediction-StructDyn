@@ -7,9 +7,9 @@ import pickle
 from utils import similarity
 
 # set the fonttype to be Arial
-plt.rcParams["font.family"] = "Arial"
+plt.rcParams["font.family"] = "Times New Roman"
 # set the font size's default value
-plt.rcParams.update({"font.size": 10})
+plt.rcParams.update({"font.size": 8})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -76,7 +76,7 @@ def disp_birnn_pred(which=0):
     ax.set_ylim(-20, 20)
 
     ax.legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
         ncol=3,
@@ -159,7 +159,7 @@ def disp_rnn_pred(which=0):
 
     ax.set_ylim(-20, 60)
     ax.legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
         ncol=4,
@@ -241,7 +241,7 @@ def disp_kf_pred(which=0):
         linestyle="--",
     )
     ax.set_ylim(-20, 40)
-    ax.legend(fontsize=10, facecolor="white", edgecolor="black", ncol=3)
+    ax.legend(fontsize=8, facecolor="white", edgecolor="black", ncol=3)
     ax.set_xlim(0, 40)
     ax.grid(True)
     ax.tick_params(which="both", direction="in")
@@ -257,7 +257,7 @@ def disp_kf_pred(which=0):
 
 
 def disp_pred(which=0):
-    fig, ax = plt.subplots(3, 1, figsize=(20 * cm, 24 * cm))
+    fig, ax = plt.subplots(3, 1, figsize=(18 * cm, 18 * cm))
 
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
@@ -318,7 +318,7 @@ def disp_pred(which=0):
     ax[0].set_ylim(-20, 20)
 
     ax[0].legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
         ncol=3,
@@ -396,7 +396,7 @@ def disp_pred(which=0):
 
     ax[1].set_ylim(-20, 60)
     ax[1].legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
         ncol=4,
@@ -473,7 +473,7 @@ def disp_pred(which=0):
     )
     ax[2].set_ylim(-20, 40)
     ax[2].legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
         ncol=3,
@@ -562,7 +562,7 @@ def velo_pred(which=1):
     output6[1:, :] = output6[:-1, :]
     output6[:, 0] = 0
     time = np.arange(0, output.shape[0] / 20, 1 / 20)
-    fig, ax = plt.subplots(1, 1, figsize=(20 * cm, 8 * cm))
+    fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
     ax.plot(
         time, state_tensor[:, dof + 13] * 100, label="Ref.", color="k", linewidth=1.2
     )
@@ -599,7 +599,7 @@ def velo_pred(which=1):
         linestyle="-.",
     )
     ax.legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
         ncol=3,
@@ -642,7 +642,7 @@ def loss_curve():
         [0, 1, 2, 3, 4, 5, 6],
     ]
     figidx = ["(a)", "(b)", "(c)", "(d)"]
-    fig, axs = plt.subplots(2, 2, figsize=(22 * cm, 16 * cm))
+    fig, axs = plt.subplots(2, 2, figsize=(18 * cm, 14 * cm))
 
     for which in range(4):
         comp_rate = 1
@@ -668,7 +668,7 @@ def loss_curve():
             birnn_train_loss,
             label="BiRNN training",
             color="b",
-            linewidth=1.5,
+            linewidth=1.2,
         )
         axs[idx].plot(
             time_birnn,
@@ -676,10 +676,10 @@ def loss_curve():
             label="BiRNN test",
             color="b",
             linestyle="--",
-            linewidth=1.5,
+            linewidth=1.2,
         )
         axs[idx].plot(
-            time, rnn_train_loss, label="RNN training", color="r", linewidth=1.5
+            time, rnn_train_loss, label="RNN training", color="r", linewidth=1.2
         )
         axs[idx].plot(
             time,
@@ -687,16 +687,16 @@ def loss_curve():
             label="RNN test",
             color="r",
             linestyle="--",
-            linewidth=1.5,
+            linewidth=1.2,
         )
 
-        # axs[idx].legend(fontsize=10, facecolor="white", edgecolor="black", ncol=1)
+        # axs[idx].legend(fontsize=8, facecolor="white", edgecolor="black", ncol=1)
         axs[idx].set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
         axs[idx].set_xticks(
             x_ticks[which],
             x_ticks_label[which],
         )
-        axs[idx].set_xlabel(r"Epoch ($\times 10^3$)", labelpad=0.1)
+        axs[idx].set_xlabel(r"Epoch ($\times$10$^3$)", labelpad=0.1)
         # ax.set_ylim(0, 0.1)
         axs[idx].grid(True)
         axs[idx].tick_params(which="both", direction="in")
@@ -714,7 +714,7 @@ def loss_curve():
             fig.legend(
                 loc="outside upper center",
                 framealpha=1,
-                fontsize=10,
+                fontsize=8,
                 facecolor="white",
                 edgecolor="black",
                 ncol=4,
@@ -728,7 +728,7 @@ def loss_curve():
 
 def performance_evaluation():
     disp_akf, _ = shear_type_structure.integr_akf_seismic_pred()
-    fig, ax = plt.subplots(1, 1, figsize=(14 * cm, 8 * cm))
+    fig, ax = plt.subplots(1, 1, figsize=(11 * cm, 6 * cm))
 
     for i in range(4):
         acc_sensor = [0, 1, 2, 3, 4]
@@ -807,7 +807,7 @@ def performance_evaluation():
             ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
             ax.legend(
                 ["TL-BiRNN", "TL-RNN", "Integr. AKF"],
-                fontsize=10,
+                fontsize=8,
                 facecolor="white",
                 edgecolor="black",
                 ncol=1,

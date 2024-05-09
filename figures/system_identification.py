@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import numpy.linalg as LA
 from matplotlib.legend import _get_legend_handles_labels
+import matplotlib.pylab as pl
+import matplotlib.gridspec as gridspec
 
 # set the fonttype to be Arial
-plt.rcParams["font.family"] = "Arial"
+plt.rcParams["font.family"] = "Times New Roman"
 # set the font size's default value
-plt.rcParams.update({"font.size": 10})
+plt.rcParams.update({"font.size": 8})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
 
@@ -144,7 +146,7 @@ def base_loads():
     alpha = 0.7
     base_elastic_force = alpha * 1300 * disp[:, 0]
     base_hysteretic_force = (1 - alpha) * 10 * z
-    plt.figure(figsize=(11 * cm, 8 * cm))
+    plt.figure(figsize=(18 * cm, 6 * cm))
     plt.plot(
         time[:2000],
         base_elastic_force[:2000] * 1.2e2,
@@ -161,11 +163,11 @@ def base_loads():
     )
     plt.xlim(0, 100)
     plt.ylim(-10, 10)
-    plt.yticks(np.arange(-10, 11, 5), fontsize=10)
+    plt.yticks(np.arange(-10, 11, 5), fontsize=8)
     plt.xlabel("Time (s)")
     plt.ylabel("Base shear force (kN)")
     plt.legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
@@ -190,28 +192,28 @@ def singular_values():
     Pali_ss.add_algorithms(fsdd)
     Pali_ss.run_by_name("FSDD")
     fig, ax = fsdd.plot_CMIF(freqlim=(0.2, 8))
-    # plt.figure(figsize=(10 * cm, 6 * cm))
-    fig.set_size_inches(11 * cm, 8 * cm)
+
+    fig.set_size_inches(9 * cm, 7 * cm)
     plt.tick_params(axis="both", direction="in")
     plt.ylim([-80, 10])
     plt.ylabel("Singular values of \n cross-spectral matrices (dB)")
     plt.xlabel("Frequency (Hz)")
-    plt.xticks(fontsize=10)
-    plt.yticks(fontsize=10)
+    plt.xticks(fontsize=8)
+    plt.yticks(fontsize=8)
     plt.title("")
     plt.savefig("./figures/singular_values.svg", bbox_inches="tight")
     plt.savefig("./figures/F_singular_values.pdf", bbox_inches="tight")
     plt.show()
 
 
-def mode_shape():
+def mode_shape_old():
     # load the seismic response
     data_path = "./dataset/sts/model_updating.pkl"
     with open(data_path, "rb") as f:
         solution = pickle.load(f)
     model_ms = solution["model_ms"]
     ms = solution["ms"]
-    fig, axs = plt.subplots(1, 5, figsize=(12 * cm, 14 * cm))
+    fig, axs = plt.subplots(1, 5, figsize=(10 * cm, 14 * cm))
     for i in range(5):
         ms_i = ms[:, i] / np.max(np.abs(ms[:, i]))
         model_ms_i = model_ms[:, i] / np.max(np.abs(model_ms[:, i]))
@@ -242,15 +244,15 @@ def mode_shape():
         axs[i].set_ylim(-0.5, 12.5)
         axs[i].set_xlim(-1.1, 1.1)
         axs[i].grid(True)
-        axs[i].set_yticks(range(13), [str(i + 1) for i in range(13)], fontsize=10)
-        axs[i].set_xticks([0], [str(i + 1)], fontsize=10)
+        axs[i].set_yticks(range(13), [str(i + 1) for i in range(13)], fontsize=8)
+        axs[i].set_xticks([0], [str(i + 1)], fontsize=8)
         # axs[i].set_xlabel(idx_list[i])
         if i == 0:
             axs[i].set_ylabel("Degree of freedom")
             axs[0].legend(
                 loc="upper center",
                 bbox_to_anchor=(3, 1.1),
-                fontsize=10,
+                fontsize=8,
                 facecolor="white",
                 edgecolor="black",
                 ncol=2,
@@ -258,8 +260,73 @@ def mode_shape():
         else:
             axs[i].set_yticklabels([])
     axs[2].set_xlabel("Mode")
-    plt.savefig("./figures/mode_shape.svg", bbox_inches="tight")
-    plt.show()
+    # plt.savefig("./figures/mode_shape.svg", bbox_inches="tight")
+    # plt.show()
+
+
+def mode_shape(i=0):
+    # load the seismic response
+    data_path = "./dataset/sts/model_updating.pkl"
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    model_ms = solution["model_ms"]
+    ms = solution["ms"]
+    # fig, axs = plt.subplots(1, 5, figsize=(10 * cm, 14 * cm))
+    ms_i = ms[:, i] / np.max(np.abs(ms[:, i]))
+    model_ms_i = model_ms[:, i] / np.max(np.abs(model_ms[:, i]))
+    if ms_i[0] * model_ms_i[0] < 0:
+        model_ms_i = -model_ms_i
+    plt.plot(
+        model_ms_i,
+        range(13),
+        "-s",
+        color="red",
+        markersize=6,
+        linewidth=1,
+        label="Model results",
+        markerfacecolor="None",
+    )
+    plt.plot(
+        ms_i,
+        range(13),
+        "--o",
+        color="blue",
+        markersize=6,
+        linewidth=1,
+        label="Measurements",
+        markerfacecolor="None",
+    )
+    # print(model_ms_i.T @ ms_i / (LA.norm(model_ms_i) * LA.norm(ms_i)))
+    plt.tick_params(axis="both", direction="in")
+    plt.ylim(-0.5, 12.5)
+    plt.xlim(-1.1, 1.1)
+    plt.grid(True)
+    plt.yticks(range(13), [str(i + 1) for i in range(13)], fontsize=8)
+    plt.xticks([0], [str(i + 1)], fontsize=8)
+    # axs[i].set_xlabel(idx_list[i])
+    if i == 0:
+        plt.ylabel("Degree of freedom", labelpad=0)
+        plt.legend(
+            loc="upper center",
+            bbox_to_anchor=(3, 1.06),
+            fontsize=8,
+            facecolor="white",
+            edgecolor="black",
+            ncol=2,
+        )
+        plt.text(
+            -0.1,
+            -0.1 * 0.4,
+            "(c)",
+            ha="center",
+            va="center",
+            transform=plt.gca().transAxes,
+        )
+    else:
+        plt.yticks(alpha=0)
+        plt.ylabel(None)
+    if i == 2:
+        plt.xlabel("Mode")
 
 
 def natural_frequency():
@@ -268,7 +335,7 @@ def natural_frequency():
         solution = pickle.load(f)
     model_nf = solution["model_nf"]
     nf = solution["nf"]
-    fig, ax = plt.subplots(1, 1, figsize=(10 * cm, 6 * cm))
+    # fig, ax = plt.subplots(1, 1, figsize=(8 * cm, 6 * cm))
     x = np.arange(5)
     plt.bar(
         x - 0.125 + 1,
@@ -278,17 +345,18 @@ def natural_frequency():
         label="Model results",
     )
     plt.bar(x + 0.125 + 1, nf[:5], 0.25, color="blue", label="Measurements")
-    plt.xlabel("Mode", fontsize=10)
+    plt.xlabel("Mode", fontsize=8, labelpad=0)
     plt.tick_params(axis="both", direction="in")
-    plt.ylabel("Natural frequency (Hz)")
+    plt.ylabel("Natural frequency (Hz)", labelpad=1)
     plt.legend(
-        fontsize=10,
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
     )
-    plt.savefig("./figures/natural_frequency.svg", bbox_inches="tight")
-    print((model_nf[:5] - nf[:5]) / nf[:5])
-    plt.show()
+    plt.text(-0.1, -0.1, "(b)", ha="center", va="center", transform=plt.gca().transAxes)
+    # plt.savefig("./figures/natural_frequency.svg", bbox_inches="tight")
+    # print((model_nf[:5] - nf[:5]) / nf[:5])
+    # plt.show()
 
 
 def params():
@@ -324,22 +392,45 @@ def params():
     x = np.arange(13, dtype=float)
     x[0] = 0.15
 
-    fig, ax = plt.subplots(1, 1, figsize=(10 * cm, 8 * cm))
-    ax.barh(
+    # fig, ax = plt.subplots(1, 1, figsize=(8 * cm, 8 * cm))
+    plt.barh(
         x - 0.15 + 1, measured_params, 0.3, label="Updated parameters", color="blue"
     )
-    ax.barh(x + 0.15 + 1, model_params, 0.3, label="True parameters", color="red")
-    ax.set_yticks(range(1, 14, 1))
-    ax.tick_params(axis="both", direction="in")
-    ax.legend(
-        fontsize=10,
+    plt.barh(x + 0.15 + 1, model_params, 0.3, label="True parameters", color="red")
+    plt.yticks(range(1, 14, 1))
+    plt.tick_params(axis="both", direction="in")
+    plt.legend(
+        fontsize=8,
         facecolor="white",
         edgecolor="black",
     )
-    ax.set_xlim(0, 1.6)
-    ax.set_xticks(np.arange(0, 1.7, 0.4))
-    ax.set_xlabel(r"Stiffness parameter values ($\times10^5$ kN/m)")
-    plt.yticks(x + 1, k_sub, fontsize=10)
+    plt.xlim(0, 1.6)
+    plt.xticks(np.arange(0, 1.7, 0.4))
+    plt.xlabel(r"Stiffness parameter values ($\times$10$^5$ kN/m)", labelpad=1)
+    plt.yticks(x + 1, k_sub, fontsize=8)
+    plt.text(-0.1, -0.1, "(a)", ha="center", va="center", transform=plt.gca().transAxes)
 
-    plt.savefig("./figures/params.svg", bbox_inches="tight")
-    plt.show()
+    # plt.savefig("./figures/params.svg", bbox_inches="tight")
+    # plt.show()
+
+
+def model_updating():
+    # combine the above theree figures
+    gs = gridspec.GridSpec(15, 19)
+    pl.figure(figsize=(19 * cm, 15 * cm))
+    ax1 = pl.subplot(gs[:8, :8])
+    params()
+    ax2 = pl.subplot(gs[9:, :8])
+    natural_frequency()
+    ax3 = pl.subplot(gs[:, 9:11])
+    mode_shape(0)
+    ax4 = pl.subplot(gs[:, 11:13])
+    mode_shape(1)
+    ax5 = pl.subplot(gs[:, 13:15])
+    mode_shape(2)
+    ax6 = pl.subplot(gs[:, 15:17])
+    mode_shape(3)
+    ax7 = pl.subplot(gs[:, 17:])
+    mode_shape(4)
+
+    plt.savefig("./figures/F_model_updating.pdf", bbox_inches="tight")

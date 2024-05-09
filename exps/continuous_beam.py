@@ -10,6 +10,8 @@ import scipy.io
 from scipy import signal
 import sdypy as sd
 from scipy.optimize import minimize
+import types
+import os
 
 np.random.seed(0)
 torch.random.manual_seed(0)
@@ -71,9 +73,9 @@ def ema():
     save_path = "./dataset/csb/ema.pkl"
     data_path = "./dataset/csb/noise_for_ema_2.mat"
     exp_data = scipy.io.loadmat(data_path)
-    acc1 = exp_data["Data1_AI_1_AI_1"][::5, 0].reshape(-1, 1) * 9.8
-    acc2 = exp_data["Data1_AI_2_AI_2"][::5, 0].reshape(-1, 1) * 9.8
-    acc3 = exp_data["Data1_AI_3_AI_3"][::5, 0].reshape(-1, 1) * 9.8
+    acc1 = -exp_data["Data1_AI_1_AI_1"][::5, 0].reshape(-1, 1) * 9.8
+    acc2 = -exp_data["Data1_AI_2_AI_2"][::5, 0].reshape(-1, 1) * 9.8
+    acc3 = -exp_data["Data1_AI_3_AI_3"][::5, 0].reshape(-1, 1) * 9.8
     acc_mtx = np.hstack((acc1, acc2, acc3))
     acc_mtx = np.array([acc_mtx.T], dtype=np.float32)
     print(acc_mtx.shape)
@@ -106,11 +108,17 @@ def ema():
 
 
 def compute_frf(
-    k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp
+    k_theta_1_factor,
+    k_theta_2_factor,
+    k_theta_3_factor,
+    rho_factor,
+    E_factor,
+    damp,
+    resized=False,
 ):
-    k_theta_1 = 300000 * k_theta_1_factor
+    k_theta_1 = 10000 * k_theta_1_factor
     k_theta_2 = 100 * k_theta_2_factor
-    k_theta_3 = 300000 * k_theta_3_factor
+    k_theta_3 = 10000 * k_theta_3_factor
     material_properties = {
         "elastic_modulus": 68.5e9 * E_factor,
         "density": 2.7e3 * rho_factor,
@@ -124,33 +132,94 @@ def compute_frf(
         material_properties=material_properties,
         damping_params=(0, 1, damp),
     )
-    frf_mtx = cb.frf()
+    frf_mtx = cb.frf(resized)
     return frf_mtx
 
 
 def loss_func(params, frf_data):
-
+    # result = types.SimpleNamespace()
+    # result.x = params
+    # idx = [*range(50, 100)] + [*range(300, 350)]
+    # frf_data = frf_data[idx, :]
     frf_mtx = compute_frf(*params)
-    loss = np.sum((np.log(np.abs(frf_data)) - np.log(np.abs(frf_mtx))) ** 2)
+    phase_data = np.unwrap(np.abs(np.angle(frf_data)))
+    phase_mtx = np.unwrap(np.abs(np.angle(frf_mtx)))
+    amp_data = np.abs(frf_data)
+    amp_mtx = np.abs(frf_mtx)
+    loss = np.sum(((np.log10(amp_data) - np.log10(amp_mtx))) ** 2) + np.sum(
+        ((phase_data - phase_mtx)) ** 2
+    )
     loss = loss / (frf_data.shape[0] * frf_data.shape[1])
+    # compare_frf(result, frf_data, resized=True)
     return loss
 
 
-def compare_frf(result, frf_data):
+def compare_frf(result, frf_data, resized=False):
     k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp = (
         result.x
     )
     frf_mtx = compute_frf(
-        k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp
+        k_theta_1_factor,
+        k_theta_2_factor,
+        k_theta_3_factor,
+        rho_factor,
+        E_factor,
+        damp,
+        resized,
     )
     freq = np.linspace(10, 100, 450)
+    if resized:
+        idx = [*range(50, 100)] + [*range(300, 350)]
+        freq = freq[idx]
     _, ax = plt.subplots(3, 1, figsize=(8, 6))
     for i in range(3):
-        ax[i].plot(freq, np.abs(frf_mtx[:, i]))
-        ax[i].plot(freq, np.abs(frf_data[:, i]))
+        ax[i].plot(freq, np.abs(frf_mtx[:, i]), linestyle="--", color="red")
+        ax[i].plot(freq, np.abs(frf_data[:, i]), color="blue")
         ax[i].set_yscale("log")
+    plt.show()
+
+    _, ax = plt.subplots(3, 1, figsize=(8, 6))
+    for i in range(3):
+        ax[i].plot(
+            freq,
+            np.unwrap(np.abs(np.angle(frf_mtx[:, i]))) / np.pi,
+            color="red",
+            linestyle="--",
+        )
+        ax[i].plot(
+            freq,
+            np.unwrap(np.abs(np.angle(frf_data[:, i]))) / np.pi,
+            color="blue",
+        )
 
     plt.legend(["Model", "Data"])
+    plt.show()
+
+
+def plot_mode_shape(result, order=2):
+    k_theta_1_factor, k_theta_2_factor, k_theta_3_factor, rho_factor, E_factor, damp = (
+        result.x
+    )
+    k_theta_1 = 10000 * k_theta_1_factor
+    k_theta_2 = 100 * k_theta_2_factor
+    k_theta_3 = 10000 * k_theta_3_factor
+    material_properties = {
+        "elastic_modulus": 68.5e9 * E_factor,
+        "density": 2.7e3 * rho_factor,
+        "left_support_rotational_stiffness": k_theta_1,
+        "mid_support_rotational_stiffness": k_theta_2,
+        "right_support_rotational_stiffness": k_theta_3,
+    }
+    cb = ContinuousBeam01(
+        t_eval=np.linspace(0, 10, 1001),
+        f_t=[1],
+        material_properties=material_properties,
+        damping_params=(0, 1, damp),
+    )
+    ns, ms = cb.freqs_modes()
+    print(f"Natural frequencies: {ns}")
+    plt.plot(ms[::2, order - 1])
+    plt.text(3, 0.9, f"{ms[0, order - 1]:.2f}")
     plt.show()
 
 
@@ -158,17 +227,19 @@ def initial_comparsion():
     import types
 
     result = types.SimpleNamespace()
-    result.x = [1.0, 1.0, 1.0, 1.5, 1.0, 0.01]
+    result.x = [1.5, 0.0, 0.5, 1.2, 0.9, 0.012]
     with open("./dataset/csb/ema.pkl", "rb") as f:
         frf_data = pickle.load(f)
-    compare_frf(result, frf_data)
+    compare_frf(result, frf_data, resized=False)
+    plot_mode_shape(result, 1)
+    plot_mode_shape(result, 2)
 
 
 def model_updating():
     with open("./dataset/csb/ema.pkl", "rb") as f:
         frf_data = pickle.load(f)
     # Initial guess for parameters
-    initial_guess = [1.0, 1.0, 1.0, 1.5, 1.0, 0.01]
+    initial_guess = [1.0, 0.5, 1.0, 1.0, 1.0, 0.008]
     # Minimize the loss function
     result = minimize(
         loss_func,  # function to minimize
@@ -177,12 +248,12 @@ def model_updating():
         method="L-BFGS-B",  # optimization method
         options={"disp": True},
         bounds=[
-            (0.2, 2.0),
-            (0.0, 2.0),
-            (0.2, 2.0),
-            (0.2, 2.0),
-            (0.2, 2.0),
-            (0.005, 0.03),
+            (0.01, 10.0),
+            (0.01, 10.0),
+            (0.01, 10.0),
+            (0.5, 1.5),
+            (0.5, 1.5),
+            (0.003, 0.08),
         ],
     )
     compare_frf(result, frf_data)
@@ -191,7 +262,7 @@ def model_updating():
         pickle.dump(result, f)
 
 
-def random_vibration(num=30):
+def random_vibration(num=15):
     result_path = "./dataset/csb/model_updating.pkl"
     with open(result_path, "rb") as f:
         result = pickle.load(f)
@@ -211,9 +282,9 @@ def random_vibration(num=30):
         force = force()
         sampling_freq = 5000
         samping_period = 1.0
-        k_theta_1 = 300000 * k_theta_1_factor
+        k_theta_1 = 10000 * k_theta_1_factor
         k_theta_2 = 100 * k_theta_2_factor
-        k_theta_3 = 300000 * k_theta_3_factor
+        k_theta_3 = 10000 * k_theta_3_factor
         material_properties = {
             "elastic_modulus": 68.5e9 * E_factor,
             "density": 2.7e3 * rho_factor,
@@ -239,6 +310,9 @@ def random_vibration(num=30):
         solution["velocity"] = full_data["velocity"].T
         solution["force"] = full_data["force"].T
         solution["time"] = full_data["time"]
+        newpath = r"./dataset/csb/training_test_data"
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
         file_name = (
             f"./dataset/csb/training_test_data/solution" + format(i, "03") + ".pkl"
         )
