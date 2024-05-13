@@ -34,7 +34,8 @@ class ContinuousBeam01(MultiDOF):
         self.k_theta_1 = material_properties["left_support_rotational_stiffness"]
         self.k_theta_2 = material_properties["mid_support_rotational_stiffness"]
         self.k_theta_3 = material_properties["right_support_rotational_stiffness"]
-        self.k_theta = [self.k_theta_1, self.k_theta_2, self.k_theta_3]
+        self.k_s = material_properties["mid_support_translational_stiffness"]
+        self.k_theta = [self.k_theta_1, self.k_s, self.k_theta_2, self.k_theta_3]
         self.element_number = int(
             (geometry_properties["l_1"] + geometry_properties["l_2"]) / self.L
         )
@@ -43,11 +44,11 @@ class ContinuousBeam01(MultiDOF):
         self.f_dof = [int(f_loc / self.L * 2)]
         self.fixed_dof = [
             0,
-            int(geometry_properties["l_1"] / self.L * 2),
             -2,
         ]
         self.support_rotational_dof = [
             1,
+            int(geometry_properties["l_1"] / self.L * 2),
             int(geometry_properties["l_1"] / self.L * 2 + 1),
             -1,
         ]

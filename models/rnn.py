@@ -132,13 +132,13 @@ class Rnn02(nn.Module):
         if bidirectional:
             self.linear = nn.Linear(2 * hidden_size, output_size, bias=False).to(device)
         else:
-            self.linear = nn.Linear(hidden_size, output_size, bias=False).to(device)
+            self.linear = nn.Linear(hidden_size, hidden_size, bias=False).to(device)
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
-        self.linear2 = nn.Linear(output_size, output_size, bias=False).to(device)
+        self.linear2 = nn.Linear(hidden_size, output_size, bias=False).to(device)
         self.linear3 = nn.Linear(output_size, output_size, bias=False).to(device)
-        self.linear4 = nn.Linear(output_size, output_size, bias=False).to(device)
-        self.linear5 = nn.Linear(output_size, output_size, bias=False).to(device)
+        # self.linear4 = nn.Linear(output_size, output_size, bias=False).to(device)
+        # self.linear5 = nn.Linear(output_size, output_size, bias=False).to(device)
 
     def forward(self, u, h0):
         y, hn = self.rnn(u, h0)
@@ -210,10 +210,11 @@ class Rnn02(nn.Module):
                     torch.save(self.state_dict(), model_save_path)
                     print(f"Model saved to {model_save_path}")
             if (epoch + 1) % 5000 == 0:
-                plt.plot(output_test.detach().cpu().numpy()[0, :, 34], label="train")
-                plt.plot(test_set["Y"].detach().cpu().numpy()[0, :, 34], label="test")
-                plt.legend()
-                plt.show()
+                pass
+                # plt.plot(output_test.detach().cpu().numpy()[0, :, 34], label="train")
+                # plt.plot(test_set["Y"].detach().cpu().numpy()[0, :, 34], label="test")
+                # plt.legend()
+                # plt.show()
         return train_loss_list, test_loss_list
 
 

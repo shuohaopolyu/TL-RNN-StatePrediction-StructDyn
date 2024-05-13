@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     # continuous_beam.ema()
     # continuous_beam.model_updating()
-    # continuous_beam.random_vibration(num=60)
+    # continuous_beam.random_vibration(num=20)
     # continuous_beam.plot_solution()
     # continuous_beam.build_rnn()
     # continuous_beam.test_rnn()

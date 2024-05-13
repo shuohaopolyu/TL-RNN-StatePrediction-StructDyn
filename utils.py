@@ -161,6 +161,7 @@ def process_fbg_data(dir="./dataset/csb/Peaks.20240508162346.txt"):
         time_data.append(convert_fbg_time_to_num(time_temp))
     fbg_data = np.array(fbg_data).astype(float)
     time_data = np.array(time_data).reshape(-1, 1)
+    # print(time_data[60143])
     return time_data, fbg_data
 
 
@@ -175,7 +176,7 @@ def convert_fbg_time_to_num(time_string):
     # print(time_string)
     hour = time_string[9:11]
     minute = time_string[12:14]
-    second = time_string[15:24]
+    second = time_string[15:23]
     days = int(hour) / 24 + int(minute) / 1440 + float(second) / 86400
     return days
 
@@ -208,7 +209,10 @@ def combine_data():
     fbg_paths = ["./dataset/csb/Peaks.20240508162346.txt"]
     data_num = 33000
     for i, dewe_mat in enumerate(dewe_mat_paths):
-        dewe_time, _, acc1, acc2, acc3, force1, disp1 = process_dewe_data(dewe_mat)
+        dewe_time, dewe_time_list, acc1, acc2, acc3, force1, disp1 = process_dewe_data(
+            dewe_mat
+        )
+        print(dewe_time_list[0], dewe_time[0])
         ini_time = dewe_time[0]
         for j, fbg in enumerate(fbg_paths):
             fbg_time, fbg_data = process_fbg_data(fbg)
@@ -221,6 +225,7 @@ def combine_data():
             if v > 0:
                 temp_idx = k
                 break
+        print(temp_idx)
         fbg_time = fbg_time[temp_idx - 100 : temp_idx + data_num + 100, :]
         fbg_data = fbg_data[temp_idx - 100 : temp_idx + data_num + 100, :]
         fbg_data_interp = np.zeros((data_num, 4))
