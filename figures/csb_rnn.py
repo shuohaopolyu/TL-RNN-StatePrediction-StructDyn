@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 from exps import continuous_beam as cb
+import scipy.io
+import scipy.signal
+
 
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Times New Roman"
@@ -9,6 +12,31 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams.update({"font.size": 8})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
+
+
+def ema():
+    data_path = "./dataset/csb/noise_for_ema_2.mat"
+    exp_data = scipy.io.loadmat(data_path)
+    acc1 = -exp_data["Data1_AI_1_AI_1"][2000:7000, 0].reshape(-1, 1) * 9.8
+    acc2 = -exp_data["Data1_AI_2_AI_2"][2000:7000, 0].reshape(-1, 1) * 9.8
+    acc3 = -exp_data["Data1_AI_3_AI_3"][2000:7000, 0].reshape(-1, 1) * 9.8
+    force = exp_data["Data1_AI_4_AI_4"][2000:7000, 0].reshape(-1, 1)
+    time = np.arange(0, 0.0002 * len(acc1), 0.0002)
+    fig, axs = plt.subplots(2, 2, figsize=(18 * cm, 8 * cm))
+    axs[0, 0].plot(time, acc1, color="black", linewidth=0.6)
+    axs[0, 0].set_ylabel("Acceleration (m/s$^2$)")
+    axs[0, 0].set_xlim(0, 1)
+    axs[0, 1].plot(time, acc2, color="black", linewidth=0.6)
+    axs[0, 1].set_ylabel("Acceleration (m/s$^2$)")
+    axs[0, 1].set_xlim(0, 1)
+    axs[1, 0].plot(time, acc3, color="black", linewidth=0.6)
+    axs[1, 0].set_ylabel("Acceleration (m/s$^2$)")
+    axs[1, 0].set_xlim(0, 1)
+    axs[1, 1].plot(time, force, color="black", linewidth=0.6)
+    axs[1, 1].set_ylabel("Force (N)")
+    axs[1, 1].set_xlim(0, 1)
+    fig.supxlabel("Time (s)", fontsize=8)
+    plt.show()
 
 
 def model_updating():
@@ -62,7 +90,7 @@ def model_updating():
         for i in range(2):
             axs[i, j].tick_params(axis="y", direction="in", which="both")
             axs[i, j].set_xlim(10, 100)
-            axs[1, i].set_ylim(0, 3.15)
+            axs[1, j].set_ylim(0, 3.15)
             # axs[i, 0].set_ylim(1, 1000)
             axs[i, j].grid(True)
             axs[i, j].text(
@@ -88,4 +116,25 @@ def model_updating():
     plt.tight_layout()
 
     plt.savefig("./figures/F_csb_model_updating.pdf", bbox_inches="tight")
+    plt.show()
+
+
+def filteer_disp():
+    filename = f"./dataset/csb/exp_" + str(1) + ".mat"
+    exp_data = scipy.io.loadmat(filename)
+    disp = exp_data["disp1"][::]
+    # plt.plot(disp, color="black", linewidth=0.8)
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Displacement (mm)")
+    # plt.show()
+    # power spectral density of displacement
+    print(disp.shape)
+    f, Pxx = scipy.signal.periodogram(disp.squeeze(), fs=5000, scaling="spectrum")
+    fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 8 * cm))
+    print(Pxx)
+    ax.plot(f, np.sqrt(Pxx), color="black", linewidth=0.8)
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Power spectrum")
+    # ax.set_xlim(0, 25)
+    ax.set_yscale("log")
     plt.show()

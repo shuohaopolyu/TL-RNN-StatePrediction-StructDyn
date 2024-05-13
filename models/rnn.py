@@ -145,6 +145,8 @@ class Rnn02(nn.Module):
         y = self.linear(y)
         y = self.tanh(y)
         y = self.linear2(y)
+        y = self.tanh(y)
+        y = self.linear3(y)
         return y, hn
 
     def train_RNN(
@@ -178,7 +180,7 @@ class Rnn02(nn.Module):
             optimizer.zero_grad()
             loss_train.backward(retain_graph=True)
             optimizer.step()
-            if (epoch + 1) % 1000 == 0:
+            if (epoch + 1) % 100 == 0:
                 train_loss_list.append(loss_train.item())
                 # Test the model
                 self.eval()
@@ -192,10 +194,6 @@ class Rnn02(nn.Module):
                         "Epoch: %d / %d, Train loss: %.4e, Test loss: %.4e"
                         % (epoch + 1, epochs, loss_train.item(), loss_test.item())
                     )
-                # Save the model
-                if model_save_path is not None:
-                    torch.save(self.state_dict(), model_save_path)
-                    print(f"Model saved to {model_save_path}")
 
                 if loss_save_path is not None:
                     torch.save(
@@ -206,7 +204,12 @@ class Rnn02(nn.Module):
                         loss_save_path,
                     )
                     print(f"Loss saved to {loss_save_path}")
-            if (epoch + 1) % 20000 == 0:
+                    # Save the model
+            if (epoch + 1) % 1000 == 0:
+                if model_save_path is not None:
+                    torch.save(self.state_dict(), model_save_path)
+                    print(f"Model saved to {model_save_path}")
+            if (epoch + 1) % 5000 == 0:
                 plt.plot(output_test.detach().cpu().numpy()[0, :, 34], label="train")
                 plt.plot(test_set["Y"].detach().cpu().numpy()[0, :, 34], label="test")
                 plt.legend()
