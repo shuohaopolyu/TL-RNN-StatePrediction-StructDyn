@@ -519,12 +519,40 @@ def _birnn(
     test_set = {"X": acc_test, "Y": state_test}
     print(f"Train set: {state_train.shape}, {acc_train.shape}")
     print(f"Test set: {state_test.shape}, {acc_test.shape}")
+    rnn = Rnn02(
+        input_size=len(acc_sensor),
+        hidden_size=16,
+        num_layers=1,
+        output_size=256,
+        bidirectional=True,
+    )
+    train_h0 = torch.zeros(2, num_train_files, rnn.hidden_size, dtype=torch.float32).to(
+        device
+    )
+    test_h0 = torch.zeros(2, num_test_files, rnn.hidden_size, dtype=torch.float32).to(
+        device
+    )
+    model_save_path = f"./dataset/csb/birnn.pth"
+    loss_save_path = f"./dataset/csb/birnn.pkl"
+    train_loss_list, test_loss_list = rnn.train_RNN(
+        train_set,
+        test_set,
+        train_h0,
+        test_h0,
+        epochs,
+        lr,
+        model_save_path,
+        loss_save_path,
+        train_msg=True,
+        weight_decay=weight_decay,
+    )
+    return train_loss_list, test_loss_list
 
 
 def build_rnn():
     acc_sensor = [24, 44, 98]
     epochs = 20000
-    lr = 1e-4
+    lr = 3e-5
     noise_factor = 0.02
     compress_ratio = 5
     train_loss_list, test_loss_list = _rnn(
@@ -536,10 +564,25 @@ def build_rnn():
     plt.show()
 
 
+def build_birnn():
+    acc_sensor = [24, 44, 98]
+    epochs = 20000
+    lr = 3e-5
+    noise_factor = 0.02
+    compress_ratio = 5
+    train_loss_list, test_loss_list = _birnn(
+        acc_sensor, 5, 3, epochs, lr, noise_factor, compress_ratio
+    )
+    plt.plot(train_loss_list, label="train loss")
+    plt.plot(test_loss_list, label="test loss")
+    plt.legend()
+    plt.show()
+
+
 def test_rnn():
     acc_sensor = [24, 44, 98]
     _, _, state_test, acc_test = training_test_data(
-        acc_sensor, 20, 10, 0.02, compress_ratio=5
+        acc_sensor, 5, 3, 0.02, compress_ratio=5
     )
     test_set = {"X": acc_test, "Y": state_test}
     rnn = Rnn02(
@@ -552,18 +595,42 @@ def test_rnn():
     path = "./dataset/csb/rnn.pth"
     rnn.load_state_dict(torch.load(path))
     rnn.to(device)
-    test_h0 = torch.zeros(1, 10, rnn.hidden_size, dtype=torch.float32).to(device)
+    test_h0 = torch.zeros(1, 3, rnn.hidden_size, dtype=torch.float32).to(device)
     state_pred, _ = rnn(test_set["X"], test_h0)
     state_pred = state_pred.detach().cpu().numpy()
     state_test = test_set["Y"].detach().cpu().numpy()
-    plt.plot(state_pred[0, :, 34])
-    plt.plot(state_test[0, :, 34])
-    plt.show()
-    plt.plot(state_pred[0, :, 35])
-    plt.plot(state_test[0, :, 35])
-    plt.show()
+    # plt.plot(state_pred[0, :, 34])
+    # plt.plot(state_test[0, :, 34])
+    # plt.show()
+    # plt.plot(state_pred[0, :, 35])
+    # plt.plot(state_test[0, :, 35])
+    # plt.show()
     # plt.plot(acc_test[0, :, :].detach().cpu().numpy())
     # plt.show()
+    return state_pred, state_test
+
+
+def test_birnn():
+    acc_sensor = [24, 44, 98]
+    _, _, state_test, acc_test = training_test_data(
+        acc_sensor, 5, 3, 0.02, compress_ratio=5
+    )
+    test_set = {"X": acc_test, "Y": state_test}
+    rnn = Rnn02(
+        input_size=len(acc_sensor),
+        hidden_size=16,
+        num_layers=1,
+        output_size=256,
+        bidirectional=True,
+    )
+    path = "./dataset/csb/birnn.pth"
+    rnn.load_state_dict(torch.load(path))
+    rnn.to(device)
+    test_h0 = torch.zeros(2, 3, rnn.hidden_size, dtype=torch.float32).to(device)
+    state_pred, _ = rnn(test_set["X"], test_h0)
+    state_pred = state_pred.detach().cpu().numpy()
+    state_test = test_set["Y"].detach().cpu().numpy()
+    return state_pred, state_test
 
 
 def rnn_pred(path="./dataset/csb/rnn.pth"):

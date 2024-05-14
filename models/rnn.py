@@ -130,13 +130,21 @@ class Rnn02(nn.Module):
         self.bidirectional = bidirectional
         self.hidden_size = hidden_size
         if bidirectional:
-            self.linear = nn.Linear(2 * hidden_size, output_size, bias=False).to(device)
+            self.linear = nn.Linear(2 * hidden_size, 2 * hidden_size, bias=False).to(
+                device
+            )
+            self.relu = nn.ReLU()
+            self.tanh = nn.Tanh()
+            self.linear2 = nn.Linear(2 * hidden_size, output_size, bias=False).to(
+                device
+            )
+            self.linear3 = nn.Linear(output_size, output_size, bias=False).to(device)
         else:
             self.linear = nn.Linear(hidden_size, hidden_size, bias=False).to(device)
-        self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
-        self.linear2 = nn.Linear(hidden_size, output_size, bias=False).to(device)
-        self.linear3 = nn.Linear(output_size, output_size, bias=False).to(device)
+            self.relu = nn.ReLU()
+            self.tanh = nn.Tanh()
+            self.linear2 = nn.Linear(hidden_size, output_size, bias=False).to(device)
+            self.linear3 = nn.Linear(output_size, output_size, bias=False).to(device)
         # self.linear4 = nn.Linear(output_size, output_size, bias=False).to(device)
         # self.linear5 = nn.Linear(output_size, output_size, bias=False).to(device)
 

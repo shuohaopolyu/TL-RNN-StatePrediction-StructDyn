@@ -24,15 +24,16 @@ def loss_curve():
     epoch_birnn = np.arange(1, (len(birnn["train_loss_list"])) * 200, 200)
     epoch_rnn = np.arange(1, (len(rnn["train_loss_list"])) * 200, 200)
     plt.figure(figsize=(9 * cm, 7 * cm))
+    plt.plot(epoch_rnn, rnn["train_loss_list"], color="b", linewidth=1.2)
+    plt.plot(epoch_rnn, rnn["test_loss_list"], color="b", linestyle="--", linewidth=1.2)
     plt.plot(epoch_birnn, birnn["train_loss_list"], color="r", linewidth=1.2)
     plt.plot(
         epoch_birnn, birnn["test_loss_list"], color="r", linestyle="--", linewidth=1.2
     )
-    plt.plot(epoch_rnn, rnn["train_loss_list"], color="b", linewidth=1.2)
-    plt.plot(epoch_rnn, rnn["test_loss_list"], color="b", linestyle="--", linewidth=1.2)
+
     plt.tick_params(which="both", direction="in")
     plt.legend(
-        ["BiRNN training", "BiRNN test", "RNN training", "RNN test"],
+        ["RNN training", "RNN test", "BiRNN training", "BiRNN test"],
         fontsize=8,
         facecolor="white",
         edgecolor="black",
@@ -40,8 +41,8 @@ def loss_curve():
     )
     plt.xlim(0, 80000)
     plt.xticks(
-        [0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000],
-        ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+        [0, 20000, 40000, 60000, 80000],
+        ["0", "2", "4", "6", "8"],
         fontsize=8,
     )
     plt.yscale("log")
@@ -364,7 +365,7 @@ def state_pred():
         -0.1 / 3, -0.1, "(a)", ha="center", va="center", transform=axs[0].transAxes
     )
     axs[0].grid(True)
-    axs[0].set_xlabel("Time (s)")
+    # axs[0].set_xlabel("Time (s)")
     axs[0].set_ylabel("Displacement (cm)")
     axs[0].tick_params(which="both", direction="in")
     axs[0].set_xlim(0, 40)
@@ -646,6 +647,19 @@ def performance_evaluation():
     # std_err_akf_disp = np.std(err_mtx_akf_disp)
     # std_err_akf_velo = np.std(err_mtx_akf_velo)
     fig, axs = plt.subplots(1, 2, figsize=(18 * cm, 8 * cm))
+
+    # axs[0].set_ylim(0, 100)
+    axs[0].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
+    axs[0].set_ylabel("NRMSE")
+    axs[0].title.set_text("Displacement")
+    axs[0].tick_params(which="both", direction="in")
+    axs[0].text(
+        -0.1, -0.06, "(a)", ha="center", va="center", transform=axs[0].transAxes
+    )
+    axs[0].set_ylim(0, 0.2)
+    axs[0].set_yticks([0, 0.1, 0.2])
+    axs[0].grid(True)
+
     axs[0].bar(
         np.arange(4),
         [
@@ -662,21 +676,28 @@ def performance_evaluation():
         # ],
         # capsize=5,
         color="b",
-    )
-    # axs[0].set_ylim(0, 100)
-    axs[0].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
-    axs[0].set_ylabel("NRMSE")
-    axs[0].title.set_text("Displacement")
-    axs[0].tick_params(which="both", direction="in")
-    axs[0].text(
-        -0.1, -0.06, "(a)", ha="center", va="center", transform=axs[0].transAxes
-    )
-    axs[0].set_ylim(0, 0.2)
-    axs[0].set_yticks([0, 0.1, 0.2])
+        zorder=3,
 
+    )
     # axs[0].savefig("./figures/performance_disp.svg", bbox_inches="tight")
     # plt.show()
     # plt.figure(figsize=(10 * cm, 8 * cm))
+
+    axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
+    axs[1].set_ylabel("NRMSE")
+    axs[1].title.set_text("Velocity")
+    axs[1].tick_params(which="both", direction="in")
+    axs[1].text(
+        -0.1,
+        -0.06,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+    )
+    axs[1].set_ylim(0, 0.3)
+    axs[1].set_yticks([0, 0.1, 0.2, 0.3])
+    axs[1].grid(True)
     axs[1].bar(
         np.arange(4),
         [
@@ -693,21 +714,8 @@ def performance_evaluation():
         # ],
         # capsize=5,
         color="r",
+        zorder=3,
     )
-    axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
-    axs[1].set_ylabel("NRMSE")
-    axs[1].title.set_text("Velocity")
-    axs[1].tick_params(which="both", direction="in")
-    axs[1].text(
-        -0.1,
-        -0.06,
-        "(b)",
-        ha="center",
-        va="center",
-        transform=axs[1].transAxes,
-    )
-    axs[1].set_ylim(0, 0.3)
-    axs[1].set_yticks([0, 0.1, 0.2, 0.3])
     plt.savefig("./figures/performance.svg", bbox_inches="tight")
     plt.savefig("./figures/F_performance.pdf", bbox_inches="tight")
     plt.show()

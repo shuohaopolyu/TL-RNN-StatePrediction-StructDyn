@@ -729,6 +729,15 @@ def loss_curve():
 def performance_evaluation():
     disp_akf, _ = shear_type_structure.integr_akf_seismic_pred()
     fig, ax = plt.subplots(1, 1, figsize=(11 * cm, 6 * cm))
+    ax.set_xticks([0.6, 3.6, 6.6, 9.6], ["Kobe", "Kern County", "El Álamo", "Taiwan"])
+
+    # ax.set_ylim(0, 100)
+    ax.set_ylabel("NRMSE")
+    # ax.set_xlabel("Model")
+    ax.tick_params(which="both", direction="in")
+    ax.set_ylim(0, 0.5)
+    ax.set_yticks(np.arange(0, 0.51, 0.1))
+    ax.grid(True, zorder=-1.0)
 
     for i in range(4):
         acc_sensor = [0, 1, 2, 3, 4]
@@ -801,6 +810,7 @@ def performance_evaluation():
             width=0.6,
             # capsize=3,
             label=["TL-BiRNN", "TL-RNN", "Integr. AKF"],
+            zorder=3,
         )
         if i == 0:
             box = ax.get_position()
@@ -815,12 +825,6 @@ def performance_evaluation():
                 bbox_to_anchor=(1, 0.5),
             )
 
-    ax.set_xticks([0.6, 3.6, 6.6, 9.6], ["Kobe", "Kern County", "El Álamo", "Taiwan"])
-
-    # ax.set_ylim(0, 100)
-    ax.set_ylabel("NRMSE")
-    # ax.set_xlabel("Model")
-    ax.tick_params(which="both", direction="in")
     plt.savefig("./figures/tr_birnn_performance.svg", bbox_inches="tight")
     plt.savefig("./figures/F_tr_birnn_performance.pdf", bbox_inches="tight")
     plt.show()

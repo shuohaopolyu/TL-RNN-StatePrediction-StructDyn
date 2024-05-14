@@ -97,7 +97,7 @@ def plot_ground_motion():
         acc_g = inp_acc * factors[i]
         axs[i // 2, i % 2].plot(time, acc_g, "k", linewidth=0.8)
         axs[i // 2, i % 2].tick_params(
-            which="both", direction="in", right=True, top=True
+            which="both", direction="in", right=False, top=False
         )
         axs[i // 2, i % 2].grid(True)
         axs[i // 2, i % 2].set_xlim(xlim_list[i])
