@@ -634,6 +634,7 @@ def test_birnn():
 
 
 def rnn_pred(path="./dataset/csb/rnn.pth"):
+    filtered_freq = 30
     acc_sensor = [24, 44, 98]
     rnn = Rnn02(
         input_size=len(acc_sensor),
@@ -655,10 +656,11 @@ def rnn_pred(path="./dataset/csb/rnn.pth"):
     state_pred = state_pred.detach().cpu().numpy()
     disp_pred = state_pred[:, 34]
     # filter the predicted displacement using a low-pass filter
-    b, a = signal.butter(5, 30, "lowpass", fs=5000 / compress_ratio)
+    b, a = signal.butter(5, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_pred_filtered = signal.filtfilt(b, a, disp_pred)
-    b, a = signal.butter(5, 30, "lowpass", fs=5000 / compress_ratio)
+    b, a = signal.butter(5, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_data_filtered = signal.filtfilt(b, a, disp.reshape(-1))
+
     plt.figure(figsize=(14, 6))
     plt.plot(disp_pred_filtered[:], label="predicted", color="red")
     plt.plot(disp_data_filtered[:], label="measured", color="blue")
@@ -670,9 +672,11 @@ def rnn_pred(path="./dataset/csb/rnn.pth"):
     # plt.plot(disp, label="measured", color="blue")
     # plt.legend()
     # plt.show()
+    return disp_pred_filtered, disp_data_filtered
 
 
 def birnn_pred(path="./dataset/csb/birnn.pth"):
+    filtered_freq = 30
     acc_sensor = [24, 44, 98]
     rnn = Rnn02(
         input_size=len(acc_sensor),
@@ -694,21 +698,22 @@ def birnn_pred(path="./dataset/csb/birnn.pth"):
     state_pred = state_pred.detach().cpu().numpy()
     disp_pred = state_pred[:, 34]
     # filter the predicted displacement using a low-pass filter
-    b, a = signal.butter(5, 30, "lowpass", fs=5000 / compress_ratio)
+    b, a = signal.butter(5, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_pred_filtered = signal.filtfilt(b, a, disp_pred)
-    b, a = signal.butter(5, 30, "lowpass", fs=5000 / compress_ratio)
+    b, a = signal.butter(5, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_data_filtered = signal.filtfilt(b, a, disp.reshape(-1))
-    plt.figure(figsize=(14, 6))
-    plt.plot(disp_pred_filtered[:], label="predicted", color="red")
-    plt.plot(disp_data_filtered[:], label="measured", color="blue")
-    plt.legend()
-    plt.show()
+    # plt.figure(figsize=(14, 6))
+    # plt.plot(disp_pred_filtered[:], label="predicted", color="red")
+    # plt.plot(disp_data_filtered[:], label="measured", color="blue")
+    # plt.legend()
+    # plt.show()
     # plt.figure(figsize=(14, 6))
     # plt.plot(disp_pred, label="predicted", color="red")
     # # plt.plot(disp)
     # plt.plot(disp, label="measured", color="blue")
     # plt.legend()
     # plt.show()
+    return disp_pred_filtered, disp_data_filtered
 
 
 def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
@@ -881,24 +886,25 @@ def tr_rnn():
     rnn.to(device)
     unfrozen_params = [0, 1]
     lr = 1e-5
-    epochs = 10000
-    shift = 2
+    epochs = 8000
+    shift = 0
     measured_strain = _measured_strain(f"./dataset/csb/exp_1.mat", compress_ratio=5)
     acc_tensor = _measured_acc(f"./dataset/csb/exp_1.mat", compress_ratio=5)
 
-    # measured_strain_train = measured_strain[: 4000 - shift, [0, 2]]
-    # measured_strain_test = measured_strain[4000 - shift : -shift, [0, 2]]
-    # loc_fbg_train = [0.3, 0.64]
-    # loc_fbg_test = [0.3, 0.64]
-    # acc_train = acc_tensor[shift:4000, :]
-    # acc_test = acc_tensor[4000:, :]
-
-    measured_strain_train = measured_strain[:, [0, 2]]
-    measured_strain_test = measured_strain[:, [3]]
-    loc_fbg_train = [0.30, 0.64]
-    loc_fbg_test = [1.0]
-    acc_train = acc_tensor[:, :]
-    acc_test = acc_tensor[:, :]
+    if shift == 0:
+        measured_strain_train = measured_strain[:, [0, 2]]
+        measured_strain_test = measured_strain[:, [3]]
+        loc_fbg_train = [0.30, 0.64]
+        loc_fbg_test = [1.0]
+        acc_train = acc_tensor
+        acc_test = acc_tensor
+    else:
+        measured_strain_train = measured_strain[:-shift, [0, 2]]
+        measured_strain_test = measured_strain[:-shift, [3]]
+        loc_fbg_train = [0.30, 0.64]
+        loc_fbg_test = [1.0]
+        acc_train = acc_tensor[shift:, :]
+        acc_test = acc_tensor[shift:, :]
 
     train_loss_list, test_loss_list = tr_training(
         rnn,
@@ -917,81 +923,3 @@ def tr_rnn():
     plt.plot(test_loss_list, label="test loss")
     plt.legend()
     plt.show()
-
-
-def test_model():
-    filename = f"./dataset/csb/exp_6.mat"
-    acc_tensor = _measured_acc(filename)
-    disp_tensor = -_measured_disp(filename)
-    measured_disp = disp_tensor.detach().cpu().numpy()
-    force_tensor = _measured_force(filename)
-    force_mtx = force_tensor.detach().cpu().numpy()
-    force_func = lambda t: np.interp(t, np.arange(0, 4.000, 0.001), force_mtx.flatten())
-    result_path = "./dataset/csb/model_updating.pkl"
-    with open(result_path, "rb") as f:
-        result = pickle.load(f)
-    log_k_theta, log_k_t, rho_factor, E_factor, damp = result.x
-    sampling_freq = 3000
-    samping_period = 4.0
-    k_theta = 10**log_k_theta
-    k_theta_1 = 10**7
-    k_theta_2 = 10**7
-    k_t = 10**log_k_t
-    material_properties = {
-        "elastic_modulus": 68.5e9 * E_factor,
-        "density": 2.7e3 * rho_factor,
-        "mid_support_rotational_stiffness": k_theta,
-        "mid_support_transversal_stiffness": k_t,
-        "end_support_rotational_stiffness_1": k_theta_1,
-        "end_support_rotational_stiffness_2": k_theta_2,
-    }
-
-    cb = ContinuousBeam01(
-        t_eval=np.linspace(
-            0,
-            samping_period,
-            int(sampling_freq * samping_period) + 1,
-        ),
-        f_t=[force_func],
-        material_properties=material_properties,
-        damping_params=(0, 7, damp),
-    )
-    full_data = cb.run()
-    disp = full_data["displacement"].T
-    acc = full_data["acceleration"].T
-    time = full_data["time"]
-    plt.plot(disp[:, 34] * 1000)
-    plt.plot(measured_disp)
-    plt.show()
-    # plt.plot(disp[:4000, 34] * 1000, measured_disp, "o")
-    # plt.show()
-    acc_sensor = [24, 44, 64, 98]
-    fig, ax = plt.subplots(4, 1, figsize=(8, 6))
-    for i, dof in enumerate(acc_sensor):
-        ax[i].plot(acc[:, dof] * 0.01)
-        ax[i].plot(acc_tensor[:, i].detach().cpu().numpy())
-    plt.show()
-
-    fig, ax = plt.subplots(4, 1, figsize=(8, 6))
-    for i, dof in enumerate(acc_sensor):
-        ax[i].plot(acc[:20000, dof] * 0.01 - acc_tensor[:, i].detach().cpu().numpy())
-    plt.show()
-
-    # path = "./dataset/csb/rnn.pth"
-    # acc_sensor = [24, 44, 64]
-    # rnn = Rnn02(
-    #     input_size=len(acc_sensor),
-    #     hidden_size=12,
-    #     num_layers=1,
-    #     output_size=256,
-    #     bidirectional=False,
-    # )
-    # rnn.load_state_dict(torch.load(path))
-    # rnn.to(device)
-    # acc_input = torch.tensor(acc[:, acc_sensor] * 0.01, dtype=torch.float32).to(device)
-    # train_h0 = torch.zeros(1, rnn.hidden_size, dtype=torch.float32).to(device)
-    # state_pred, _ = rnn(acc_input, train_h0)
-    # state_pred = state_pred.detach().cpu().numpy()
-    # plt.plot(state_pred[:, 34])
-    # plt.plot(disp[:4000, 34] * 1000)
-    # plt.show()

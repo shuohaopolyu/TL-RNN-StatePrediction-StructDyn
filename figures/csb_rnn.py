@@ -206,24 +206,13 @@ def model_updating():
 
 
 def filter_disp():
+    # This figure aims to show that the laser displacement
+    # sensor data is accurate within a certain frequency range
     filename = f"./dataset/csb/exp_" + str(1) + ".mat"
     exp_data = scipy.io.loadmat(filename)
-    disp = exp_data["disp1"][::]
-    # plt.plot(disp, color="black", linewidth=0.8)
-    # plt.xlabel("Time (s)")
-    # plt.ylabel("Displacement (mm)")
-    # plt.show()
-    # power spectral density of displacement
-    print(disp.shape)
-    f, Pxx = scipy.signal.periodogram(disp.squeeze(), fs=5000, scaling="spectrum")
-    fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 8 * cm))
-    print(Pxx)
-    ax.plot(f, np.sqrt(Pxx), color="black", linewidth=0.8)
-    ax.set_xlabel("Frequency (Hz)")
-    ax.set_ylabel("Power spectrum")
-    # ax.set_xlim(0, 25)
-    ax.set_yscale("log")
-    plt.show()
+    disp = exp_data["disp1"][::25].reshape(-1)
+    force = exp_data["force1"][::25].reshape(-1)
+    pass
 
 
 def loss_curve():
@@ -397,4 +386,131 @@ def state_pred():
         axs[i].set_xlim(0, 2)
 
     plt.savefig("./figures/F_csb_state_pred.pdf", bbox_inches="tight")
+    plt.show()
+
+
+def input_acc():
+    # load the experimental data in .mat format
+    data_length = 20000
+    filename = f"./dataset/csb/exp_" + str(1) + ".mat"
+    exp_data = scipy.io.loadmat(filename)
+    acc1 = -exp_data["acc1"][:data_length:5].reshape(-1, 1)
+    acc2 = -exp_data["acc2"][:data_length:5].reshape(-1, 1)
+    acc3 = -exp_data["acc3"][:data_length:5].reshape(-1, 1)
+    time = np.arange(0, 0.0002 * data_length, 0.001)
+    fig, axs = plt.subplots(3, 1, figsize=(18 * cm, 12 * cm))
+    axs[0].plot(time, acc3, color="black", linewidth=0.8)
+    axs[0].set_ylim(-3.2, 2.2)
+    axs[0].set_yticks([-3.2, -1.6, 0, 1.1, 2.2])
+    axs[0].text(
+        -0.2 * 2 / 9,
+        -0.1,
+        "(a)",
+        ha="center",
+        va="center",
+        transform=axs[0].transAxes,
+    )
+    axs[0].text(
+        0.2 * 2 / 9,
+        0.2,
+        "A1",
+        ha="center",
+        va="center",
+        transform=axs[0].transAxes,
+    )
+    axs[1].plot(time, acc2, color="black", linewidth=0.8)
+    axs[1].set_ylim(-2.6, 2.6)
+    axs[1].set_yticks([-2.6, -1.3, 0, 1.3, 2.6])
+    axs[1].text(
+        -0.2 * 2 / 9,
+        -0.1,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+    )
+    axs[1].text(
+        0.2 * 2 / 9,
+        0.2,
+        "A2",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+    )
+    axs[2].plot(time, acc1, color="black", linewidth=0.8)
+    axs[2].set_ylim(-4.8, 3.2)
+    axs[2].set_yticks([-4.8, -2.4, 0, 1.6, 3.2])
+    axs[2].text(
+        -0.2 * 2 / 9,
+        -0.1,
+        "(c)",
+        ha="center",
+        va="center",
+        transform=axs[2].transAxes,
+    )
+    axs[2].text(
+        0.2 * 2 / 9,
+        0.2,
+        "A3",
+        ha="center",
+        va="center",
+        transform=axs[2].transAxes,
+    )
+    axs[1].set_ylabel("Acceleration (g)")
+    axs[2].set_xlabel("Time (s)")
+    for i in range(3):
+        axs[i].set_xlim(0, 4)
+        axs[i].tick_params(axis="both", direction="in", which="both")
+        axs[i].grid(True)
+    plt.savefig("./figures/F_csb_input_acc.pdf", bbox_inches="tight")
+    plt.show()
+
+
+def rnn_birnn_pred():
+    rnn_pred, ground_truth = cb.rnn_pred()
+    birnn_pred, _ = cb.birnn_pred()
+    shift = 11
+    data_length = 4000
+    time = np.arange(0, 0.001 * data_length, 0.001)
+    fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
+    ax.plot(
+        time,
+        ground_truth[shift : data_length + shift],
+        color="black",
+        linewidth=0.8,
+        label="Ref.",
+    )
+    ax.plot(
+        time,
+        rnn_pred[:data_length],
+        color="blue",
+        linewidth=0.8,
+        label="RNN pred.",
+        linestyle="-.",
+    )
+    ax.plot(
+        time,
+        birnn_pred[:data_length],
+        color="red",
+        linewidth=0.8,
+        label="BiRNN pred.",
+        linestyle="--",
+    )
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Deflection (mm)")
+    ax.set_ylim(-0.12, 0.12)
+    ax.set_xlim(0, 4)
+    ax.set_xticks([0, 1, 2, 3, 4])
+    ax.set_yticks([-0.12, -0.06, 0, 0.06, 0.12])
+    ax.tick_params(axis="both", direction="in", which="both")
+    ax.grid(True)
+    ax.legend(
+        fontsize=8,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=1,
+        loc="upper left",
+        ncol=3,
+    )
+    plt.savefig("./figures/F_csb_rnn_birnn_pred.pdf", bbox_inches="tight")
     plt.show()
