@@ -291,19 +291,20 @@ def loss_curve():
 def state_pred():
     rnn_state_pred, rnn_state_test = cb.test_rnn()
     birnn_state_pred, birnn_state_test = cb.test_birnn()
+    lw = 0.8
     step = 2000
     dof1 = 50
     dof2 = 75
     time = np.arange(0, 0.001 * step, 0.001)
     fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
     axs[0].plot(
-        time, rnn_state_test[0, :step, dof1], color="k", linewidth=1.2, label="Ref."
+        time, rnn_state_test[0, :step, dof1], color="k", linewidth=lw, label="Ref."
     )
     axs[0].plot(
         time,
         rnn_state_pred[0, :step, dof1],
         color="blue",
-        linewidth=1.2,
+        linewidth=lw,
         label="RNN pred.",
         linestyle="-.",
     )
@@ -311,7 +312,7 @@ def state_pred():
         time,
         birnn_state_pred[0, :step, dof1],
         color="red",
-        linewidth=1.2,
+        linewidth=lw,
         label="BiRNN pred.",
         linestyle="--",
     )
@@ -365,14 +366,14 @@ def state_pred():
         time,
         rnn_state_test[0, :step, dof2 + 128],
         color="k",
-        linewidth=1.2,
+        linewidth=lw,
         label="Ref.",
     )
     axs[1].plot(
         time,
         rnn_state_pred[0, :step, dof2 + 128],
         color="blue",
-        linewidth=1.2,
+        linewidth=lw,
         label="RNN pred.",
         linestyle="-.",
     )
@@ -380,7 +381,7 @@ def state_pred():
         time,
         birnn_state_pred[0, :step, dof2 + 128],
         color="red",
-        linewidth=1.2,
+        linewidth=lw,
         label="BiRNN pred.",
         linestyle="--",
     )

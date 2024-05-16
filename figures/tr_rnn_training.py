@@ -256,7 +256,12 @@ def disp_kf_pred(which=0):
     plt.show()
 
 
-def disp_pred(which=0):
+def disp_pred(which=1):
+    lw = 0.8
+    num_floor = 9
+    xlim = (0, 70)
+    ylim = (-6, 6)
+    yticks = np.arange(-6, 7, 2)
     fig, ax = plt.subplots(3, 1, figsize=(18 * cm, 18 * cm))
 
     acc_sensor = [0, 1, 2, 3, 4]
@@ -298,24 +303,30 @@ def disp_pred(which=0):
     output2 = output2.squeeze(0).cpu().numpy()
 
     time = np.arange(0, output.shape[0] / 20, 1 / 20)
-    ax[0].plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
     ax[0].plot(
         time,
-        output[:, 7] * 100,
+        state_tensor[:, num_floor - 1] * 100,
+        label="Ref.",
+        color="k",
+        linewidth=lw,
+    )
+    ax[0].plot(
+        time,
+        output[:, num_floor - 1] * 100,
         label="TL-BiRNN pred.",
         color="r",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle="-.",
     )
     ax[0].plot(
         time,
-        output2[:, 7] * 100,
+        output2[:, num_floor - 1] * 100,
         label="BiRNN pred.",
         color="b",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle="--",
     )
-    ax[0].set_ylim(-20, 20)
+    ax[0].set_ylim(*ylim)
 
     ax[0].legend(
         fontsize=8,
@@ -323,16 +334,17 @@ def disp_pred(which=0):
         edgecolor="black",
         ncol=3,
         framealpha=1,
+        loc="lower left",
     )
-    ax[0].set_xlim(0, 40)
+    ax[0].set_xlim(*xlim)
     ax[0].grid(True)
     ax[0].tick_params(which="both", direction="in")
-    ax[0].set_yticks(np.arange(-20, 20, 10))
-    ax[0].text(
-        0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[0].transAxes
-    )
+    ax[0].set_yticks(yticks)
+    # ax[0].text(
+    #     0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[0].transAxes
+    # )
     ax[0].text(-0.05, -0.1, "(a)", ha="center", va="center", transform=ax[0].transAxes)
-    ax[0].set_xlabel("Time (s)")
+    # ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Displacement (cm)")
 
     acc_sensor = [0, 1, 2, 3, 4]
@@ -376,40 +388,46 @@ def disp_pred(which=0):
     # output5, _ = shear_type_structure.dkf_seismic_pred()
     # output5 = output5[which]
     time = np.arange(0, output3.shape[0] / 20, 1 / 20)
-    ax[1].plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
     ax[1].plot(
         time,
-        output3[:, 7] * 100,
+        state_tensor[:, num_floor - 1] * 100,
+        label="Ref.",
+        color="k",
+        linewidth=lw,
+    )
+    ax[1].plot(
+        time,
+        output3[:, num_floor - 1] * 100,
         label="TL-RNN pred.",
         color="r",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle="-.",
     )
     ax[1].plot(
         time,
-        output4[:, 7] * 100,
+        output4[:, num_floor - 1] * 100,
         label="RNN pred.",
         color="b",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle="--",
     )
 
-    ax[1].set_ylim(-20, 60)
+    ax[1].set_ylim(*ylim)
     ax[1].legend(
         fontsize=8,
         facecolor="white",
         edgecolor="black",
-        ncol=4,
+        ncol=3,
         framealpha=1,
     )
-    ax[1].set_xlim(0, 40)
+    ax[1].set_xlim(*xlim)
     ax[1].grid(True)
     ax[1].tick_params(which="both", direction="in")
-    ax[1].set_yticks(np.arange(-20, 61, 20))
-    ax[1].text(
-        0.1, 0.1, "8th floor", ha="center", va="center", transform=ax[1].transAxes
-    )
-    ax[1].set_xlabel("Time (s)")
+    ax[1].set_yticks(yticks)
+    # ax[1].text(
+    #     0.1, 0.1, "8th floor", ha="center", va="center", transform=ax[1].transAxes
+    # )
+    # ax[1].set_xlabel("Time (s)")
     ax[1].set_ylabel("Displacement (cm)")
     ax[1].text(-0.05, -0.1, "(b)", ha="center", va="center", transform=ax[1].transAxes)
     acc_sensor = [0, 1, 2, 3, 4]
@@ -438,54 +456,60 @@ def disp_pred(which=0):
     disp4[1:, :] = disp4[:-1, :]
     disp4[:, 0] = 0
     time = np.arange(0, disp1.shape[0] / 20, 1 / 20)
-    ax[2].plot(time, state_tensor[:, 7] * 100, label="Ref.", color="k", linewidth=1.2)
     ax[2].plot(
         time,
-        disp1[:, 7] * 100,
+        state_tensor[:, num_floor - 1] * 100,
+        label="Ref.",
+        color="k",
+        linewidth=lw,
+    )
+    ax[2].plot(
+        time,
+        disp1[:, num_floor - 1] * 100,
         label="DKF pred.",
         color="r",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle="-.",
     )
     ax[2].plot(
         time,
-        disp2[:, 7] * 100,
+        disp2[:, num_floor - 1] * 100,
         label="Integr. DKF pred.",
         color="b",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle="--",
     )
     ax[2].plot(
         time,
-        disp3[:, 7] * 100,
+        disp3[:, num_floor - 1] * 100,
         label="AKF pred.",
         color="lime",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle=":",
     )
     ax[2].plot(
         time,
-        disp4[:, 7] * 100,
+        disp4[:, num_floor - 1] * 100,
         label="Integr. AKF pred.",
         color="m",
-        linewidth=1.2,
+        linewidth=lw,
         linestyle="--",
     )
-    ax[2].set_ylim(-20, 40)
+    ax[2].set_ylim(*ylim)
     ax[2].legend(
         fontsize=8,
         facecolor="white",
         edgecolor="black",
-        ncol=3,
+        ncol=5,
         framealpha=1,
     )
-    ax[2].set_xlim(0, 40)
+    ax[2].set_xlim(*xlim)
     ax[2].grid(True)
     ax[2].tick_params(which="both", direction="in")
-    ax[2].set_yticks(np.arange(-20, 41, 20))
-    ax[2].text(
-        0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[2].transAxes
-    )
+    ax[2].set_yticks(yticks)
+    # ax[2].text(
+    #     0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[2].transAxes
+    # )
     ax[2].set_xlabel("Time (s)")
     ax[2].set_ylabel("Displacement (cm)")
     ax[2].text(-0.05, -0.1, "(c)", ha="center", va="center", transform=ax[2].transAxes)
@@ -495,6 +519,7 @@ def disp_pred(which=0):
 
 
 def velo_pred(which=1):
+    lw = 0.8
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
     acc_list, state_list = shear_type_structure.generate_seismic_response(

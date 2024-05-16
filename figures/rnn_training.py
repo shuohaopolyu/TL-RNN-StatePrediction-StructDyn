@@ -270,6 +270,7 @@ def velo_pred():
 def state_pred():
     file_idx = 2
     dof_idx = 8
+    lw = 0.8
     BiRNN4ststate = Rnn(
         input_size=5,
         hidden_size=30,
@@ -323,7 +324,7 @@ def state_pred():
 
     fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
     axs[0].plot(
-        time, state_test[file_idx, :] * 100, label="Ref.", color="k", linewidth=1.2
+        time, state_test[file_idx, :] * 100, label="Ref.", color="k", linewidth=lw
     )
     axs[0].plot(
         time,
@@ -331,7 +332,7 @@ def state_pred():
         label="RNN pred.",
         linestyle="-.",
         color="b",
-        linewidth=1.2,
+        linewidth=lw,
     )
     axs[0].plot(
         time,
@@ -339,7 +340,7 @@ def state_pred():
         label="BiRNN pred.",
         linestyle="--",
         color="r",
-        linewidth=1.2,
+        linewidth=lw,
     )
     axs[0].plot(
         time,
@@ -347,7 +348,7 @@ def state_pred():
         label="DKF pred.",
         linestyle=":",
         color="lime",
-        linewidth=1.2,
+        linewidth=lw,
     )
     axs[0].plot(
         time,
@@ -459,14 +460,14 @@ def state_pred():
     akf_state_pred[file_idx, 1:] = akf_state_pred[file_idx, :-1]
     akf_state_pred[file_idx, 0] = 0
 
-    axs[1].plot(time, state_test[file_idx, :], label="Ref.", color="k", linewidth=1.2)
+    axs[1].plot(time, state_test[file_idx, :], label="Ref.", color="k", linewidth=lw)
     axs[1].plot(
         time,
         rnn_state_pred[file_idx, :],
         label="RNN pred.",
         linestyle="-.",
         color="b",
-        linewidth=1.2,
+        linewidth=lw,
     )
     axs[1].plot(
         time,
@@ -474,7 +475,7 @@ def state_pred():
         label="BiRNN pred.",
         linestyle="--",
         color="r",
-        linewidth=1.2,
+        linewidth=lw,
     )
     axs[1].plot(
         time,
@@ -482,7 +483,7 @@ def state_pred():
         label="DKF pred.",
         linestyle=":",
         color="lime",
-        linewidth=1.2,
+        linewidth=lw,
     )
     axs[1].plot(
         time,
@@ -490,7 +491,7 @@ def state_pred():
         label="AKF pred.",
         linestyle="--",
         color="darkviolet",
-        linewidth=1.2,
+        linewidth=lw,
     )
 
     axs[1].text(
@@ -677,7 +678,6 @@ def performance_evaluation():
         # capsize=5,
         color="b",
         zorder=3,
-
     )
     # axs[0].savefig("./figures/performance_disp.svg", bbox_inches="tight")
     # plt.show()

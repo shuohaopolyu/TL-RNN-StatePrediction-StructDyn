@@ -672,6 +672,45 @@ def rnn_pred(path="./dataset/csb/rnn.pth"):
     # plt.show()
 
 
+def birnn_pred(path="./dataset/csb/birnn.pth"):
+    acc_sensor = [24, 44, 98]
+    rnn = Rnn02(
+        input_size=len(acc_sensor),
+        hidden_size=16,
+        num_layers=1,
+        output_size=256,
+        bidirectional=True,
+    )
+    rnn.load_state_dict(torch.load(path))
+    rnn.to(device)
+    compress_ratio = 5
+    # load the experimental data in .mat format
+    filename = f"./dataset/csb/exp_" + str(1) + ".mat"
+    acc_tensor = _measured_acc(filename, compress_ratio=5)
+    disp_tensor = _measured_disp(filename, compress_ratio=5)
+    disp = disp_tensor.detach().cpu().numpy()
+    train_h0 = torch.zeros(2, rnn.hidden_size, dtype=torch.float32).to(device)
+    state_pred, _ = rnn(acc_tensor, train_h0)
+    state_pred = state_pred.detach().cpu().numpy()
+    disp_pred = state_pred[:, 34]
+    # filter the predicted displacement using a low-pass filter
+    b, a = signal.butter(5, 30, "lowpass", fs=5000 / compress_ratio)
+    disp_pred_filtered = signal.filtfilt(b, a, disp_pred)
+    b, a = signal.butter(5, 30, "lowpass", fs=5000 / compress_ratio)
+    disp_data_filtered = signal.filtfilt(b, a, disp.reshape(-1))
+    plt.figure(figsize=(14, 6))
+    plt.plot(disp_pred_filtered[:], label="predicted", color="red")
+    plt.plot(disp_data_filtered[:], label="measured", color="blue")
+    plt.legend()
+    plt.show()
+    # plt.figure(figsize=(14, 6))
+    # plt.plot(disp_pred, label="predicted", color="red")
+    # # plt.plot(disp)
+    # plt.plot(disp, label="measured", color="blue")
+    # plt.legend()
+    # plt.show()
+
+
 def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
     # compute strain from nodal displacement
     # nodal_disp: (nt, n_dof), torch tensor

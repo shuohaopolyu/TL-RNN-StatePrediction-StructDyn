@@ -50,11 +50,12 @@ if __name__ == "__main__":
 
     # continuous_beam.ema()
     # continuous_beam.model_updating()
-    # continuous_beam.random_vibration(num=20)
+    # continuous_beam.random_vibration(num=8)
     # continuous_beam.plot_solution()
     # continuous_beam.build_rnn()
     # continuous_beam.build_birnn()
-    # continuous_beam.rnn_pred()
+    continuous_beam.rnn_pred()
+    # continuous_beam.birnn_pred()
     # continuous_beam.tr_rnn()
 
     # figure plot
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     # system_identification.model_updating()
     # artifical_acc.cwt_acc_g()
     # rnn_training.loss_curve()
-    rnn_training.state_pred()
+    # rnn_training.state_pred()
     # rnn_training.performance_evaluation()
     # strong_ground_motion.plot_ground_motion()
     # tr_rnn_training.velo_pred()
@@ -74,7 +75,7 @@ if __name__ == "__main__":
     # csb_rnn.model_updating()
     # csb_rnn.loss_curve()
     # csb_rnn.state_pred()
-    # csb_rnn.filter_disp()
+    csb_rnn.filter_disp()
 
     # experiment utils
     # waveform_generator_1()
