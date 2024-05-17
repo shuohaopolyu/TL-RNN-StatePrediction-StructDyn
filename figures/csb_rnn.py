@@ -220,7 +220,7 @@ def loss_curve():
     birnn_loss_path = "./dataset/csb/birnn.pkl"
     rnn_loss = torch.load(rnn_loss_path)
     birnn_loss = torch.load(birnn_loss_path)
-    step = np.linspace(0, 20000, 201)
+    step = np.linspace(0, 60000, 601)
     step = step[1:]
     fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
     ax.plot(
@@ -279,7 +279,7 @@ def loss_curve():
 
 def state_pred():
     rnn_state_pred, rnn_state_test = cb.test_rnn()
-    birnn_state_pred, birnn_state_test = cb.test_birnn()
+    birnn_state_pred, _ = cb.test_birnn()
     lw = 0.8
     step = 2000
     dof1 = 50

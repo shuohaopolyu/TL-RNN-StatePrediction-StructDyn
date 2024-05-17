@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # continuous_beam.build_birnn()
     # continuous_beam.rnn_pred()
     # continuous_beam.birnn_pred()
-    continuous_beam.tr_rnn()
+    # continuous_beam.tr_rnn()
 
     # figure plot
     # system_identification.base_loads()
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # tr_rnn_training.performance_evaluation()
     # csb_rnn.ema()
     # csb_rnn.model_updating()
-    # csb_rnn.loss_curve()
+    csb_rnn.loss_curve()
     # csb_rnn.state_pred()
     # csb_rnn.filter_disp()
     # csb_rnn.input_acc()

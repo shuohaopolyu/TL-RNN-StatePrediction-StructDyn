@@ -20,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.manual_seed(0)
 
 
-def _measured_strain(filename=f"./dataset/csb/exp_1.mat", compress_ratio=1):
+def _measured_strain(filename=f"./dataset/csb/exp_1.mat", compress_ratio=5):
     k = 0.78
     # measured strain data for training
     exp_data = scipy.io.loadmat(filename)
@@ -40,7 +40,7 @@ def _measured_strain(filename=f"./dataset/csb/exp_1.mat", compress_ratio=1):
 
 
 def _measured_acc(
-    filename=f"./dataset/csb/exp_1.mat", acc_scale=0.01, compress_ratio=1
+    filename=f"./dataset/csb/exp_1.mat", acc_scale=0.01, compress_ratio=5
 ):
     exp_data = scipy.io.loadmat(filename)
     acc1 = -exp_data["acc1"][::compress_ratio] * 9.8 * acc_scale
@@ -52,7 +52,7 @@ def _measured_acc(
     return acc_tensor
 
 
-def _measured_disp(filename=f"./dataset/csb/exp_1.mat", disp_scale=1, compress_ratio=1):
+def _measured_disp(filename=f"./dataset/csb/exp_1.mat", disp_scale=1, compress_ratio=5):
     # the measured displacement data, unit: mm
     exp_data = scipy.io.loadmat(filename)
     disp = exp_data["disp1"][::compress_ratio]
@@ -299,7 +299,7 @@ def random_vibration(num=15):
         start_time = time.time()
         psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
         force = PSDExcitationGenerator(
-            psd, tmax=8, fmax=2000, normalize=True, normalize_factor=0.2
+            psd, tmax=6, fmax=2000, normalize=True, normalize_factor=0.2
         )
         # force.plot()
         print("Force" + " generated.")
@@ -453,7 +453,7 @@ def _rnn(
     epochs,
     lr,
     noise_factor,
-    compress_ratio=1,
+    compress_ratio=5,
     weight_decay=0.0,
 ):
     state_train, acc_train, state_test, acc_test = training_test_data(
@@ -551,32 +551,32 @@ def _birnn(
 
 def build_rnn():
     acc_sensor = [24, 44, 98]
-    epochs = 20000
+    epochs = 60000
     lr = 3e-5
     noise_factor = 0.02
     compress_ratio = 5
     train_loss_list, test_loss_list = _rnn(
         acc_sensor, 5, 3, epochs, lr, noise_factor, compress_ratio
     )
-    plt.plot(train_loss_list, label="train loss")
-    plt.plot(test_loss_list, label="test loss")
-    plt.legend()
-    plt.show()
+    # plt.plot(train_loss_list, label="train loss")
+    # plt.plot(test_loss_list, label="test loss")
+    # plt.legend()
+    # plt.show()
 
 
 def build_birnn():
     acc_sensor = [24, 44, 98]
-    epochs = 20000
+    epochs = 60000
     lr = 3e-5
     noise_factor = 0.02
     compress_ratio = 5
     train_loss_list, test_loss_list = _birnn(
         acc_sensor, 5, 3, epochs, lr, noise_factor, compress_ratio
     )
-    plt.plot(train_loss_list, label="train loss")
-    plt.plot(test_loss_list, label="test loss")
-    plt.legend()
-    plt.show()
+    # plt.plot(train_loss_list, label="train loss")
+    # plt.plot(test_loss_list, label="test loss")
+    # plt.legend()
+    # plt.show()
 
 
 def test_rnn():
@@ -727,59 +727,18 @@ def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
     L = 0.04
     for i, loc in enumerate(loc_fbg):
         ele_num = int(loc / 0.02)
-        dofs = [2 * ele_num + 0, 2 * ele_num + 1, 2 * ele_num + 4, 2 * ele_num + 5]
+        dofs = [2 * ele_num, 2 * ele_num + 1, 2 * ele_num + 4, 2 * ele_num + 5]
         disp = nodal_disp[:, dofs]
-        B_mtx = -y * torch.tensor(
+        B_mtx = y * torch.tensor(
             [
-                [-6 / L**2],
-                [-4 / L],
                 [6 / L**2],
-                [-2 / L],
+                [4 / L],
+                [-6 / L**2],
+                [2 / L],
             ],
             dtype=torch.float32,
         ).to(device)
         strain[:, i] = (disp @ B_mtx).squeeze() * 1e3
-
-        # dofs = [2 * ele_num - 4, 2 * ele_num - 3, 2 * ele_num + 0, 2 * ele_num + 1]
-        # B_mtx = y * torch.tensor(
-        #     [
-        #         [6 / L**2],
-        #         [2 / L],
-        #         [-6 / L**2],
-        #         [4 / L],
-        #     ],
-        #     dtype=torch.float32,
-        # ).to(device)
-        # disp = nodal_disp[:, dofs]
-        # strain[:, i] += (disp @ B_mtx).squeeze() * 1e3
-
-        # dofs = [2 * ele_num - 1, 2 * ele_num + 3]
-        # B_mtx = y * torch.tensor(
-        #     [
-        #         [-1 / L],
-        #         [1 / L],
-        #     ],
-        #     dtype=torch.float32,
-        # ).to(device)
-        # disp = nodal_disp[:, dofs]
-        # strain[:, i] += (disp @ B_mtx).squeeze() * 1e3
-
-        # strain[:, i] /= 3
-
-    # L = 0.04
-    # for i, loc in enumerate(loc_fbg):
-    #     ele_num = int(loc / 0.02)
-    #     # print(ele_num)
-    #     dofs = [2 * ele_num - 1, 2 * ele_num + 3]
-    #     B = y * torch.tensor(
-    #         [
-    #             [-1 / L],
-    #             [1 / L],
-    #         ],
-    #         dtype=torch.float32,
-    #     ).to(device)
-    #     disp = nodal_disp[:, dofs]
-    #     strain[:, i] = (disp @ B).squeeze() * 1e3
 
     return strain
 
@@ -838,7 +797,7 @@ def tr_training(
             )
             torch.save(RNN4state.state_dict(), save_path)
 
-        if i % 1000 == 0:
+        if i % 2000 == 0:
             rnn_pred(path=save_path)
             fig, ax = plt.subplots(measured_strain_train.shape[1], 1, figsize=(8, 6))
             if measured_strain_train.shape[1] == 1:
@@ -886,7 +845,7 @@ def tr_rnn():
     rnn.to(device)
     unfrozen_params = [0, 1]
     lr = 1e-5
-    epochs = 8000
+    epochs = 20000
     shift = 0
     measured_strain = _measured_strain(f"./dataset/csb/exp_1.mat", compress_ratio=5)
     acc_tensor = _measured_acc(f"./dataset/csb/exp_1.mat", compress_ratio=5)
@@ -894,15 +853,15 @@ def tr_rnn():
     if shift == 0:
         measured_strain_train = measured_strain[:, [0, 2]]
         measured_strain_test = measured_strain[:, [3]]
-        loc_fbg_train = [0.30, 0.64]
-        loc_fbg_test = [1.0]
+        loc_fbg_train = [0.30 + 1e-7, 0.64 + 1e-7]
+        loc_fbg_test = [1.00 + 1e-7]
         acc_train = acc_tensor
         acc_test = acc_tensor
     else:
         measured_strain_train = measured_strain[:-shift, [0, 2]]
         measured_strain_test = measured_strain[:-shift, [3]]
-        loc_fbg_train = [0.30, 0.64]
-        loc_fbg_test = [1.0]
+        loc_fbg_train = [0.30 + 1e-7, 0.64 + 1e-7]
+        loc_fbg_test = [1.00 + 1e-7]
         acc_train = acc_tensor[shift:, :]
         acc_test = acc_tensor[shift:, :]
 
