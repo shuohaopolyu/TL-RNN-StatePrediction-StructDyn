@@ -52,14 +52,14 @@ if __name__ == "__main__":
     # continuous_beam.model_updating()
     # continuous_beam.random_vibration(num=8)
     # continuous_beam.plot_solution()
-    continuous_beam.build_rnn()
-    continuous_beam.build_birnn()
+    # continuous_beam.build_rnn()
+    # continuous_beam.build_birnn()
     # continuous_beam.rnn_pred()
     # continuous_beam.birnn_pred()
     # continuous_beam.tr_rnn()
     # continuous_beam.rnn_pred(path="./dataset/csb/tr_rnn.pth")
     # continuous_beam.tr_birnn()
-    # continuous_beam.birnn_pred(path="./dataset/csb/tr_birnn.pth")
+    continuous_beam.birnn_pred(path="./dataset/csb/tr_birnn.pth")
 
     # figure plot
     # system_identification.base_loads()
