@@ -23,7 +23,7 @@ conda activate trrnn
 Install the required packages.
 
 ```bash
-pip install -r requirements.txt
+conda install --yes --file requirements.txt
 ```
 
 ## Usage
