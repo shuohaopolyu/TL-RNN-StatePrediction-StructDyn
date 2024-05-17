@@ -220,7 +220,7 @@ def loss_curve():
     birnn_loss_path = "./dataset/csb/birnn.pkl"
     rnn_loss = torch.load(rnn_loss_path)
     birnn_loss = torch.load(birnn_loss_path)
-    step = np.linspace(0, 60000, 601)
+    step = np.linspace(0, 30000, 301)
     step = step[1:]
     fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
     ax.plot(
@@ -257,7 +257,7 @@ def loss_curve():
     ax.set_xlabel(r"Epoch ($\times$10$^4$)", fontsize=8)
     ax.set_ylabel("Loss")
     ax.set_yscale("log")
-    ax.set_xlim(0, 20000)
+    ax.set_xlim(0, 30000)
     ax.set_ylim(2e-4, 1e-2)
     ax.set_xticks(
         [0, 4000, 8000, 12000, 16000, 20000],
@@ -284,14 +284,15 @@ def state_pred():
     step = 2000
     dof1 = 50
     dof2 = 75
+    idx = 1
     time = np.arange(0, 0.001 * step, 0.001)
     fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
     axs[0].plot(
-        time, rnn_state_test[0, :step, dof1], color="k", linewidth=lw, label="Ref."
+        time, rnn_state_test[idx, :step, dof1], color="k", linewidth=lw, label="Ref."
     )
     axs[0].plot(
         time,
-        rnn_state_pred[0, :step, dof1],
+        rnn_state_pred[idx, :step, dof1],
         color="blue",
         linewidth=lw,
         label="RNN pred.",
@@ -299,7 +300,7 @@ def state_pred():
     )
     axs[0].plot(
         time,
-        birnn_state_pred[0, :step, dof1],
+        birnn_state_pred[idx, :step, dof1],
         color="red",
         linewidth=lw,
         label="BiRNN pred.",
@@ -353,14 +354,14 @@ def state_pred():
 
     axs[1].plot(
         time,
-        rnn_state_test[0, :step, dof2 + 128],
+        rnn_state_test[idx, :step, dof2 + 128],
         color="k",
         linewidth=lw,
         label="Ref.",
     )
     axs[1].plot(
         time,
-        rnn_state_pred[0, :step, dof2 + 128],
+        rnn_state_pred[idx, :step, dof2 + 128],
         color="blue",
         linewidth=lw,
         label="RNN pred.",
@@ -368,7 +369,7 @@ def state_pred():
     )
     axs[1].plot(
         time,
-        birnn_state_pred[0, :step, dof2 + 128],
+        birnn_state_pred[idx, :step, dof2 + 128],
         color="red",
         linewidth=lw,
         label="BiRNN pred.",
