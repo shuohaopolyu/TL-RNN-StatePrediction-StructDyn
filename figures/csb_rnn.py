@@ -220,7 +220,7 @@ def loss_curve():
     birnn_loss_path = "./dataset/csb/birnn.pkl"
     rnn_loss = torch.load(rnn_loss_path)
     birnn_loss = torch.load(birnn_loss_path)
-    step = np.linspace(0, 30000, 301)
+    step = np.linspace(0, 40000, 401)
     step = step[1:]
     fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
     ax.plot(
@@ -260,8 +260,8 @@ def loss_curve():
     ax.set_xlim(0, 30000)
     ax.set_ylim(2e-4, 1e-2)
     ax.set_xticks(
-        [0, 4000, 8000, 12000, 16000, 20000],
-        ["0.0", "0.4", "0.8", "1.2", "1.6", "2.0"],
+        [0, 10000, 20000, 30000, 40000],
+        ["0", "1", "2", "3", "4"],
     )
     # ax.set_yticks([1e-4, 1e-3, 1e-2])
     ax.tick_params(axis="both", direction="in", which="both")
@@ -470,9 +470,9 @@ def input_acc():
 def rnn_birnn_pred():
     rnn_pred, ground_truth = cb.rnn_pred()
     birnn_pred, _ = cb.birnn_pred()
-    shift = 11
-    data_length = 4000
-    time = np.arange(0, 0.001 * data_length, 0.001)
+    shift = 40
+    data_length = 20000
+    time = np.arange(0, 0.0002 * data_length, 0.0002)
     fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
     ax.plot(
         time,
@@ -499,10 +499,10 @@ def rnn_birnn_pred():
     )
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Deflection (mm)")
-    ax.set_ylim(-0.12, 0.12)
+    ax.set_ylim(-0.16, 0.16)
     ax.set_xlim(0, 4)
     ax.set_xticks([0, 1, 2, 3, 4])
-    ax.set_yticks([-0.12, -0.06, 0, 0.06, 0.12])
+    ax.set_yticks([-0.16, -0.08, 0, 0.08, 0.16])
     ax.tick_params(axis="both", direction="in", which="both")
     ax.grid(True)
     ax.legend(
@@ -510,8 +510,148 @@ def rnn_birnn_pred():
         facecolor="white",
         edgecolor="black",
         framealpha=1,
-        loc="upper left",
+        loc="lower left",
         ncol=3,
     )
     plt.savefig("./figures/F_csb_rnn_birnn_pred.pdf", bbox_inches="tight")
     plt.show()
+
+
+def tr_loss_curve():
+    dir1 = "./dataset/csb/tr_rnn.pkl"
+    dir2 = "./dataset/csb/tr_birnn.pkl"
+    rnn_loss = torch.load(dir1)
+    birnn_loss = torch.load(dir2)
+    steps = np.linspace(0, 240, 241)
+    steps = steps[1:]
+    fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
+    ax.plot(
+        steps,
+        rnn_loss["train_loss_list"],
+        color="blue",
+        linewidth=1.2,
+        label="RNN training",
+    )
+    ax.plot(
+        steps,
+        rnn_loss["test_loss_list"],
+        color="blue",
+        linewidth=1.2,
+        linestyle="--",
+        label="RNN test",
+    )
+    steps = np.linspace(0, 250, 251)
+    steps = steps[1:]
+    ax.plot(
+        steps,
+        birnn_loss["train_loss_list"],
+        color="red",
+        linewidth=1.2,
+        label="BiRNN training",
+    )
+    ax.plot(
+        steps,
+        birnn_loss["test_loss_list"],
+        color="red",
+        linewidth=1.2,
+        linestyle="--",
+        label="BiRNN test",
+    )
+    ax.set_xlim(0, 250)
+    ax.set_xticks([0, 50, 100, 150, 200, 250])
+    ax.set_ylim(5, 40)
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Loss")
+    ax.tick_params(axis="both", direction="in", which="both")
+    ax.grid(True)
+    ax.legend(
+        fontsize=8,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=1,
+    )
+    plt.savefig("./figures/F_csb_tr_rnn_training.pdf", bbox_inches="tight")
+    # ax.set_yscale("log")
+    plt.show()
+
+
+def tr_rnn_birnn_pred():
+    rnn_disp_pred_filtered, disp = cb.rnn_pred(
+        path="./dataset/csb/tr_rnn.pth", plot_data=False
+    )
+
+    birnn_disp_pred_filtered, _ = cb.birnn_pred(
+        path="./dataset/csb/tr_birnn.pth", plot_data=False
+    )
+    shift = 40
+    data_length = 20000
+    time = np.arange(0, 0.0002 * data_length, 0.0002)
+    fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
+    ax.plot(
+        time,
+        disp[shift : data_length + shift],
+        color="black",
+        linewidth=0.8,
+        label="Ref.",
+    )
+    ax.plot(
+        time,
+        rnn_disp_pred_filtered[:data_length],
+        color="blue",
+        linewidth=0.8,
+        label="TL-RNN pred.",
+        linestyle="-.",
+    )
+    ax.plot(
+        time,
+        birnn_disp_pred_filtered[:data_length],
+        color="red",
+        linewidth=0.8,
+        label="TL-BiRNN pred.",
+        linestyle="--",
+    )
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Deflection (mm)")
+    ax.set_ylim(-0.16, 0.16)
+    ax.set_xlim(0, 4)
+    ax.set_xticks([0, 1, 2, 3, 4])
+    ax.set_yticks([-0.16, -0.08, 0, 0.08, 0.16])
+    ax.tick_params(axis="both", direction="in", which="both")
+    ax.grid(True)
+    ax.legend(
+        fontsize=8,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=1,
+        loc="lower left",
+        ncol=3,
+    )
+    plt.savefig("./figures/F_csb_tr_rnn_birnn_pred.pdf", bbox_inches="tight")
+    plt.show()
+
+
+def performance_evaluation():
+    rnn_disp, disp = cb.rnn_pred(path="./dataset/csb/rnn.pth", plot_data=False)
+    tr_rnn_disp, _ = cb.rnn_pred(path="./dataset/csb/tr_rnn.pth", plot_data=False)
+    birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/birnn.pth", plot_data=False)
+    tr_birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/tr_birnn.pth", plot_data=False)
+    shift = 40
+    data_length = 20000
+    rnn_disp = rnn_disp[:data_length].reshape(-1)
+    tr_rnn_disp = tr_rnn_disp[:data_length].reshape(-1)
+    birnn_disp = birnn_disp[:data_length].reshape(-1)
+    tr_birnn_disp = tr_birnn_disp[:data_length].reshape(-1)
+    disp = disp[shift : data_length + shift].reshape(-1)
+
+    plt.plot(rnn_disp, label="RNN")
+    plt.plot(tr_rnn_disp, label="TL-RNN")
+    plt.plot(birnn_disp, label="BiRNN")
+    plt.plot(tr_birnn_disp, label="TL-BiRNN")
+    plt.plot(disp, label="Ref.", color="red")
+    plt.show()
+    # calculate the error
+    mean_target = np.mean(disp)
+    print(np.linalg.norm(disp - rnn_disp) / np.linalg.norm(disp - mean_target))
+    print(np.linalg.norm(disp - tr_rnn_disp) / np.linalg.norm(disp - mean_target))
+    print(np.linalg.norm(disp - birnn_disp) / np.linalg.norm(disp - mean_target))
+    print(np.linalg.norm(disp - tr_birnn_disp) / np.linalg.norm(disp - mean_target))

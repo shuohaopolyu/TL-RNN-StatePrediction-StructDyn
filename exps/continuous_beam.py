@@ -632,7 +632,7 @@ def test_birnn():
     return state_pred, state_test
 
 
-def rnn_pred(path="./dataset/csb/rnn.pth"):
+def rnn_pred(path="./dataset/csb/rnn.pth", plot_data=True):
     filtered_freq = 38
     shift = 40
     acc_sensor = [24, 44, 98]
@@ -658,7 +658,7 @@ def rnn_pred(path="./dataset/csb/rnn.pth"):
     # filter the predicted displacement using a low-pass filter
     b, a = signal.butter(2, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_pred_filtered = signal.filtfilt(b, a, disp_pred)
-    b, a = signal.butter(7, filtered_freq, "lowpass", fs=5000 / compress_ratio)
+    b, a = signal.butter(2, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_data_filtered = signal.filtfilt(b, a, disp.reshape(-1))
     print(
         np.sum(
@@ -668,23 +668,18 @@ def rnn_pred(path="./dataset/csb/rnn.pth"):
             )
         )
     )
-    plt.figure(figsize=(14, 6))
-    plt.plot(disp[shift:], label="true", color="black")
-    plt.plot(disp_pred_filtered[:-shift], label="predicted", color="red")
-    # plt.plot(disp_data_filtered[shift:], label="measured", color="black")
-    plt.legend()
-    plt.xlim(0, 20000)
-    plt.show()
-    # plt.figure(figsize=(14, 6))
-    # plt.plot(disp_pred, label="predicted", color="red")
-    # # plt.plot(disp)
-    # plt.plot(disp, label="measured", color="blue")
-    # plt.legend()
-    # plt.show()
-    return disp_pred_filtered, disp_data_filtered
+    if plot_data:
+        plt.figure(figsize=(14, 6))
+        plt.plot(disp[shift:], label="true", color="black")
+        plt.plot(disp_pred_filtered[:-shift], label="predicted", color="red")
+        # plt.plot(disp_data_filtered[shift:], label="true", color="black")
+        plt.legend()
+        plt.xlim(0, 20000)
+        plt.show()
+    return disp_pred_filtered, disp
 
 
-def birnn_pred(path="./dataset/csb/birnn.pth"):
+def birnn_pred(path="./dataset/csb/birnn.pth", plot_data=True):
     filtered_freq = 38
     shift = 40
     acc_sensor = [24, 44, 98]
@@ -720,12 +715,13 @@ def birnn_pred(path="./dataset/csb/birnn.pth"):
             )
         )
     )
-    plt.figure(figsize=(14, 6))
-    plt.plot(disp[shift:], label="true", color="black")
-    plt.plot(disp_pred_filtered[:-shift], label="predicted", color="red")
-    plt.legend()
-    plt.xlim(0, 20000)
-    plt.show()
+    if plot_data:
+        plt.figure(figsize=(14, 6))
+        plt.plot(disp[shift:], label="true", color="black")
+        plt.plot(disp_pred_filtered[:-shift], label="predicted", color="red")
+        plt.legend()
+        plt.xlim(0, 20000)
+        plt.show()
     return disp_pred_filtered, disp_data_filtered
 
 
@@ -804,42 +800,46 @@ def tr_training(
                 loss2 = loss_fun(strain_train_pred[:, 1], measured_strain_train[:, 1])
             test_loss = loss_fun(strain_test_pred, measured_strain_test)
             test_loss_list.append(test_loss.item())
-        if i % 10 == 0:
-            if strain_train_pred.shape[1] > 1:
-                print(
-                    f"Epoch {i}, Train Loss 1: {loss1.item()}, Train Loss 2: {loss2.item()}, Test Loss: {test_loss.item()}"
-                )
-            else:
-                print(
-                    f"Epoch {i}, Train Loss: {loss.item()}, Test Loss: {test_loss.item()}"
-                )
-        if i % 200 == 0:
-            torch.save(RNN4state.state_dict(), save_path)
-            # rnn_pred(path=save_path)
-            # if i % 1000 == 0:
-            # rnn_pred(path=save_path)
-            # plt.plot(state_pred_test[286, :128:2].detach().cpu().numpy())
-            # plt.show()
-            # print(strain_train_pred[286, :])
-            # print(strain_test_pred[286, :])
-            # plt.plot(state_pred_test[:, 30].detach().cpu().numpy())
-            # plt.plot(state_pred_test[:, 31].detach().cpu().numpy())
-            # plt.plot(state_pred_test[:, 34].detach().cpu().numpy())
-            # plt.plot(state_pred_test[:, 35].detach().cpu().numpy())
-            plt.show()
-            fig, ax = plt.subplots(2, 1, figsize=(8, 6))
-            ax[0].plot(measured_strain_train[:, 0].detach().cpu().numpy(), color="blue")
-            ax[0].plot(
-                measured_strain_train[:, 1].detach().cpu().numpy(), color="green"
-            )
-            ax[0].plot(measured_strain_test[:, 0].detach().cpu().numpy(), color="red")
-
-            ax[1].plot(strain_train_pred[:, 0].detach().cpu().numpy(), color="blue")
-            ax[1].plot(strain_train_pred[:, 1].detach().cpu().numpy(), color="green")
-            ax[1].plot(strain_test_pred.detach().cpu().numpy(), color="red")
-
-            plt.show()
         torch.save(RNN4state.state_dict(), save_path)
+        if RNN4state.bidirectional:
+            birnn_pred(path=save_path, plot_data=False)
+        else:
+            rnn_pred(path=save_path, plot_data=False)
+        if i > 10 and test_loss_list[-1] > test_loss_list[-2]:
+            break
+        if strain_train_pred.shape[1] > 1:
+            print(
+                f"Epoch {i}, Train Loss 1: {loss1.item()}, Train Loss 2: {loss2.item()}, Test Loss: {test_loss.item()}"
+            )
+
+        else:
+            print(
+                f"Epoch {i}, Train Loss: {loss.item()}, Test Loss: {test_loss.item()}"
+            )
+        # rnn_pred(path=save_path)
+
+        # if i % 200 == 0:
+        #     rnn_pred(path=save_path)
+        # if i % 1000 == 0:
+        # plt.plot(state_pred_test[286, :128:2].detach().cpu().numpy())
+        # plt.show()
+        # print(strain_train_pred[286, :])
+        # print(strain_test_pred[286, :])
+        # plt.plot(state_pred_test[:, 30].detach().cpu().numpy())
+        # plt.plot(state_pred_test[:, 31].detach().cpu().numpy())
+        # plt.plot(state_pred_test[:, 34].detach().cpu().numpy())
+        # plt.plot(state_pred_test[:, 35].detach().cpu().numpy())
+        # plt.show()
+        # fig, ax = plt.subplots(2, 1, figsize=(8, 6))
+        # ax[0].plot(measured_strain_train[:, 0].detach().cpu().numpy(), color="blue")
+        # ax[0].plot(
+        #     measured_strain_train[:, 1].detach().cpu().numpy(), color="green"
+        # )
+        # ax[0].plot(measured_strain_test[:, 0].detach().cpu().numpy(), color="red")
+        # ax[1].plot(strain_train_pred[:, 0].detach().cpu().numpy(), color="blue")
+        # ax[1].plot(strain_train_pred[:, 1].detach().cpu().numpy(), color="green")
+        # ax[1].plot(strain_test_pred.detach().cpu().numpy(), color="red")
+        # plt.show()
 
     return train_loss_list, test_loss_list
 
@@ -848,7 +848,7 @@ def data_shift(measured_strain, acc_tensor, shift):
     if shift == 0:
         measured_strain_train = measured_strain[:, [0, 3]]
         measured_strain_test = measured_strain[:, [2]]
-        loc_fbg_train = [0.3, 1.0]
+        loc_fbg_train = [0.30, 1.00]
         loc_fbg_test = [0.64]
         acc_train = acc_tensor
         acc_test = acc_tensor
@@ -884,7 +884,7 @@ def tr_rnn():
     rnn.to(device)
     unfrozen_params = [0, 1]
     lr = 1e-5
-    epochs = 240
+    epochs = 2000
     shift = 0
     measured_strain = _measured_strain(f"./dataset/csb/exp_1.mat", compress_ratio=1)
     acc_tensor = _measured_acc(f"./dataset/csb/exp_1.mat", compress_ratio=1)
@@ -910,8 +910,10 @@ def tr_rnn():
         unfrozen_params,
         f"./dataset/csb/tr_rnn.pth",
     )
-    with open("./dataset/csb/tr_rnn.pkl", "wb") as f:
-        pickle.dump([train_loss_list, test_loss_list], f)
+    torch.save(
+        {"train_loss_list": train_loss_list, "test_loss_list": test_loss_list},
+        f"./dataset/csb/tr_rnn.pkl",
+    )
 
 
 def tr_birnn():
@@ -928,7 +930,7 @@ def tr_birnn():
     rnn.to(device)
     unfrozen_params = [0, 1, 2, 3]
     lr = 1e-5
-    epochs = 250
+    epochs = 1000
     measured_strain = _measured_strain(f"./dataset/csb/exp_1.mat", compress_ratio=1)
     acc_tensor = _measured_acc(f"./dataset/csb/exp_1.mat", compress_ratio=1)
     measured_strain_train = measured_strain[:, [0, 3]]
@@ -950,9 +952,8 @@ def tr_birnn():
         unfrozen_params,
         f"./dataset/csb/tr_birnn.pth",
     )
-    # plt.plot(train_loss_list, label="train loss")
-    # plt.plot(test_loss_list, label="test loss")
-    # plt.legend()
-    # plt.show()
-    with open("./dataset/csb/tr_birnn.pkl", "wb") as f:
-        pickle.dump([train_loss_list, test_loss_list], f)
+
+    torch.save(
+        {"train_loss_list": train_loss_list, "test_loss_list": test_loss_list},
+        f"./dataset/csb/tr_birnn.pkl",
+    )

@@ -56,10 +56,10 @@ if __name__ == "__main__":
     # continuous_beam.build_birnn()
     # continuous_beam.rnn_pred()
     # continuous_beam.birnn_pred()
-    # continuous_beam.tr_rnn()
+    continuous_beam.tr_rnn()
     # continuous_beam.rnn_pred(path="./dataset/csb/tr_rnn.pth")
     # continuous_beam.tr_birnn()
-    continuous_beam.birnn_pred(path="./dataset/csb/tr_birnn.pth")
+    # continuous_beam.birnn_pred(path="./dataset/csb/tr_birnn.pth")
 
     # figure plot
     # system_identification.base_loads()
@@ -80,6 +80,9 @@ if __name__ == "__main__":
     # csb_rnn.state_pred()
     # csb_rnn.input_acc()
     # csb_rnn.rnn_birnn_pred()
+    # csb_rnn.tr_loss_curve()
+    # csb_rnn.tr_rnn_birnn_pred()
+    csb_rnn.performance_evaluation()
 
     # experiment utils
     # waveform_generator_1()
