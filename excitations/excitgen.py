@@ -69,6 +69,7 @@ class PSDExcitationGenerator:
                 axis=0,
                 norm="forward",
             )
+            force_series[0] = 0
             return self.t, force_series / np.std(force_series) * self.normalize_factor
         else:
             return self.t, np.fft.irfft(
