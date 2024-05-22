@@ -161,7 +161,7 @@ def process_fbg_data(dir="./dataset/csb/Peaks.20240508162346.txt"):
         time_data.append(convert_fbg_time_to_num(time_temp))
     fbg_data = np.array(fbg_data).astype(float)
     time_data = np.array(time_data).reshape(-1, 1)
-    # print(time_data[60143])
+    # print(data_temp)
     return time_data, fbg_data
 
 
@@ -212,7 +212,7 @@ def combine_data():
         dewe_time, dewe_time_list, acc1, acc2, acc3, force1, disp1 = process_dewe_data(
             dewe_mat
         )
-        print(dewe_time_list[0], dewe_time[0])
+        # print(dewe_time_list[0], dewe_time[0])
         ini_time = dewe_time[0]
         for j, fbg in enumerate(fbg_paths):
             fbg_time, fbg_data = process_fbg_data(fbg)
@@ -225,7 +225,7 @@ def combine_data():
             if v > 0:
                 temp_idx = k
                 break
-        print(temp_idx)
+        # print(temp_idx)
         fbg_time = fbg_time[temp_idx - 100 : temp_idx + data_num + 100, :]
         fbg_data = fbg_data[temp_idx - 100 : temp_idx + data_num + 100, :]
         fbg_data_interp = np.zeros((data_num, 4))
@@ -235,13 +235,13 @@ def combine_data():
             )
         fbg_data_interp = np.round(fbg_data_interp, 4)
         fbg1 = fbg_data_interp[:, 0].reshape(-1, 1)
-        fbg2 = fbg_data_interp[:, 1].reshape(-1, 1)
-        fbg3 = fbg_data_interp[:, 2].reshape(-1, 1)
-        fbg4 = fbg_data_interp[:, 3].reshape(-1, 1)
+        fbg2 = fbg_data_interp[:, 2].reshape(-1, 1)
+        fbg3 = fbg_data_interp[:, 3].reshape(-1, 1)
+        # fbg4 = fbg_data_interp[:, 3].reshape(-1, 1)
         fbg1_ini = np.mean(fbg1[:800])
         fbg2_ini = np.mean(fbg2[:800])
         fbg3_ini = np.mean(fbg3[:800])
-        fbg4_ini = np.mean(fbg4[:800])
+        # fbg4_ini = np.mean(fbg4[:800])
         mdict = {
             "acc1": acc1[:data_num, :],
             "acc2": acc2[:data_num, :],
@@ -251,10 +251,10 @@ def combine_data():
             "fbg1": fbg1,
             "fbg2": fbg2,
             "fbg3": fbg3,
-            "fbg4": fbg4,
+            # "fbg4": fbg4,
             "fbg1_ini": fbg1_ini,
             "fbg2_ini": fbg2_ini,
             "fbg3_ini": fbg3_ini,
-            "fbg4_ini": fbg4_ini,
+            # "fbg4_ini": fbg4_ini,
         }
         sio.savemat("./dataset/csb/exp_{}.mat".format(i + 1), mdict)

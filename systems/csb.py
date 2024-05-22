@@ -32,9 +32,9 @@ class ContinuousBeam01(MultiDOF):
         self.A = geometry_properties["b"] * geometry_properties["h"]
         self.L = element_length
         self.k_theta_1 = material_properties["left_support_rotational_stiffness"]
+        self.k_s = material_properties["mid_support_translational_stiffness"]
         self.k_theta_2 = material_properties["mid_support_rotational_stiffness"]
         self.k_theta_3 = material_properties["right_support_rotational_stiffness"]
-        self.k_s = material_properties["mid_support_translational_stiffness"]
         self.k_theta = [self.k_theta_1, self.k_s, self.k_theta_2, self.k_theta_3]
         self.element_number = int(
             (geometry_properties["l_1"] + geometry_properties["l_2"]) / self.L
@@ -46,7 +46,7 @@ class ContinuousBeam01(MultiDOF):
             0,
             -2,
         ]
-        self.support_rotational_dof = [
+        self.support_spring_dof = [
             1,
             int(geometry_properties["l_1"] / self.L * 2),
             int(geometry_properties["l_1"] / self.L * 2 + 1),
@@ -101,15 +101,15 @@ class ContinuousBeam01(MultiDOF):
         return M
 
     def _apply_support_conditions(self, matrix):
-        std_const = np.std(matrix)
         for dof in self.fixed_dof:
+            temp = matrix[dof, dof]
             matrix[dof, :] = 0
             matrix[:, dof] = 0
-            matrix[dof, dof] = std_const
+            matrix[dof, dof] = temp
         return matrix
 
-    def _add_support_rotational_stiffness(self, matrix):
-        for i, dof in enumerate(self.support_rotational_dof):
+    def _add_support_spring_stiffness(self, matrix):
+        for i, dof in enumerate(self.support_spring_dof):
             matrix[dof, dof] += self.k_theta[i]
         return matrix
 
@@ -123,7 +123,7 @@ class ContinuousBeam01(MultiDOF):
             global_matrix[2 * i : 2 * i + 4, 2 * i : 2 * i + 4] += element_matrix
         global_matrix = self._apply_support_conditions(global_matrix)
         if type == "stiff":
-            global_matrix = self._add_support_rotational_stiffness(global_matrix)
+            global_matrix = self._add_support_spring_stiffness(global_matrix)
         return global_matrix
 
     def _newmark_beta_int(self, delta, varp):
@@ -137,7 +137,7 @@ class ContinuousBeam01(MultiDOF):
         r = np.zeros((self.dof_number, 1))
         r[self.f_dof, 0] = 1
         r = inv_M @ r
-        f = r * f_mtx[0, 0]
+        f = r @ (f_mtx[0, 0].reshape(1, 1))
         f = f.reshape(-1)
         dt = self.t_eval[1] - self.t_eval[0]
         dt2 = dt**2
@@ -154,7 +154,7 @@ class ContinuousBeam01(MultiDOF):
         const_mtx_2 = (varp - 1) * dt * C + (delta - 0.5) * dt2 * K
 
         for i in range(1, self.n_t):
-            f = r * f_mtx[0, i]
+            f = r @ (f_mtx[0, i].reshape(1, 1))
             f = f.reshape(-1)
             resp_acc[:, i] = inv_ICK_mtx @ (
                 -K @ resp_disp[:, i - 1]

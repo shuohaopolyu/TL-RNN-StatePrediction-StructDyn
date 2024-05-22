@@ -220,7 +220,7 @@ def loss_curve():
     birnn_loss_path = "./dataset/csb/birnn.pkl"
     rnn_loss = torch.load(rnn_loss_path)
     birnn_loss = torch.load(birnn_loss_path)
-    step = np.linspace(0, 40000, 401)
+    step = np.linspace(0, 15000, 151)
     step = step[1:]
     fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
     ax.plot(
@@ -257,12 +257,12 @@ def loss_curve():
     ax.set_xlabel(r"Epoch ($\times$10$^4$)", fontsize=8)
     ax.set_ylabel("Loss")
     ax.set_yscale("log")
-    ax.set_xlim(0, 30000)
-    ax.set_ylim(2e-4, 1e-2)
-    ax.set_xticks(
-        [0, 10000, 20000, 30000, 40000],
-        ["0", "1", "2", "3", "4"],
-    )
+    ax.set_xlim(0, 15000)
+    ax.set_ylim(1e-4, 1e-2)
+    # ax.set_xticks(
+    #     [0, 10000, 20000, 30000, 40000],
+    #     ["0", "1", "2", "3", "4"],
+    # )
     # ax.set_yticks([1e-4, 1e-3, 1e-2])
     ax.tick_params(axis="both", direction="in", which="both")
     ax.grid(True)
@@ -281,18 +281,23 @@ def state_pred():
     rnn_state_pred, rnn_state_test = cb.test_rnn()
     birnn_state_pred, _ = cb.test_birnn()
     lw = 0.8
-    step = 2000
+    start = 10000
+    step = 10000
     dof1 = 50
     dof2 = 75
     idx = 1
-    time = np.arange(0, 0.001 * step, 0.001)
+    time = np.arange(0, 0.0002 * step, 0.0002)
     fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
     axs[0].plot(
-        time, rnn_state_test[idx, :step, dof1], color="k", linewidth=lw, label="Ref."
+        time,
+        rnn_state_test[idx, start : step + start, dof1],
+        color="k",
+        linewidth=lw,
+        label="Ref.",
     )
     axs[0].plot(
         time,
-        rnn_state_pred[idx, :step, dof1],
+        rnn_state_pred[idx, start : step + start, dof1],
         color="blue",
         linewidth=lw,
         label="RNN pred.",
@@ -300,14 +305,14 @@ def state_pred():
     )
     axs[0].plot(
         time,
-        birnn_state_pred[idx, :step, dof1],
+        birnn_state_pred[idx, start : step + start, dof1],
         color="red",
         linewidth=lw,
         label="BiRNN pred.",
         linestyle="--",
     )
     axs[0].set_ylabel("Deflection (mm)")
-    axs[0].set_ylim(-0.2, 0.2)
+    axs[0].set_ylim(-0.3, 0.3)
     fig.legend(
         bbox_to_anchor=(0.5, 0.95),
         loc="outside upper center",
@@ -330,20 +335,20 @@ def state_pred():
     # )
     # axins.plot(
     #     time,
-    #     rnn_state_test[0, :step, dof1],
+    #     rnn_state_test[0, start:step+start, dof1],
     #     color="k",
     #     linewidth=1.2,
     # )
     # axins.plot(
     #     time,
-    #     rnn_state_pred[0, :step, dof1],
+    #     rnn_state_pred[0, start:step+start, dof1],
     #     color="blue",
     #     linewidth=1.2,
     #     linestyle="-.",
     # )
     # axins.plot(
     #     time,
-    #     birnn_state_pred[0, :step, dof1],
+    #     birnn_state_pred[0, start:step+start, dof1],
     #     color="red",
     #     linewidth=1.2,
     #     linestyle="--",
@@ -354,14 +359,14 @@ def state_pred():
 
     axs[1].plot(
         time,
-        rnn_state_test[idx, :step, dof2 + 128],
+        rnn_state_test[idx, start : step + start, dof2 + 128],
         color="k",
         linewidth=lw,
         label="Ref.",
     )
     axs[1].plot(
         time,
-        rnn_state_pred[idx, :step, dof2 + 128],
+        rnn_state_pred[idx, start : step + start, dof2 + 128],
         color="blue",
         linewidth=lw,
         label="RNN pred.",
@@ -369,7 +374,7 @@ def state_pred():
     )
     axs[1].plot(
         time,
-        birnn_state_pred[idx, :step, dof2 + 128],
+        birnn_state_pred[idx, start : step + start, dof2 + 128],
         color="red",
         linewidth=lw,
         label="BiRNN pred.",
@@ -522,7 +527,11 @@ def tr_loss_curve():
     dir2 = "./dataset/csb/tr_birnn.pkl"
     rnn_loss = torch.load(dir1)
     birnn_loss = torch.load(dir2)
-    steps = np.linspace(0, 240, 241)
+    steps = np.linspace(
+        0,
+        len(rnn_loss["train_loss_list"]),
+        len(rnn_loss["train_loss_list"]) + 1,
+    )
     steps = steps[1:]
     fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
     ax.plot(
@@ -540,7 +549,7 @@ def tr_loss_curve():
         linestyle="--",
         label="RNN test",
     )
-    steps = np.linspace(0, 250, 251)
+    steps = np.linspace(0, 198, 199)
     steps = steps[1:]
     ax.plot(
         steps,
