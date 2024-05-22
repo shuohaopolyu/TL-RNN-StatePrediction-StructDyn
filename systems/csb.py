@@ -1,6 +1,29 @@
 """
 Finite element model of a 2-span continously supported beam.
-The beam is modelled as a Bernoulli-Euler beam.
+Coordinate origin is at the left end of the beam.
+The left span of the beam is 0.84 m and the right span is 0.42 m.
+Left and right ends of the beam are transversely fixed, while the mid-span is supported by a translational spring.
+All three supports are also supported by rotational springs.
+The beam is discretized into 2-node beam elements, each node has 2 DOFs (translational and rotational).
+Each element is 0.02 m long, therefore the total number of elements is 63.
+Total number of nodes is 64 and total number of DOFs is 128.
+The beam is made of aluminum with the following reference properties:
+- Elastic modulus: 70 GPa
+- Density: 2.7 g/cm^3
+- Cross-sectional area: 0.0015 m^2
+- Moment of inertia: 1.125e-8 m^4
+The beam is subjected to a stochastic transverse force at coordinate 0.54 m.
+
+To define the system, the following parameters are required:
+- material_properties: dictionary containing the material properties of the beam
+- geometry_properties: dictionary containing the geometry properties of the beam
+- element_length: length of each element
+- damping_params: tuple containing the damping parameters (alpha, beta, gamma)
+- f_loc: location
+- resp_dof: response DOF
+- t_eval: time vector
+- f_t: force vector
+- init_cond: initial conditions
 """
 
 import numpy as np
@@ -16,6 +39,9 @@ class ContinuousBeam01(MultiDOF):
             "elastic_modulus": 70e9,
             "density": 2.7e3,
             "mid_support_rotational_stiffness": 1e2,
+            "mid_support_translational_stiffness": 1e3,
+            "left_support_rotational_stiffness": 1e2,
+            "right_support_rotational_stiffness": 1e2,
         },
         geometry_properties={"b": 0.03, "h": 0.005, "l_1": 0.84, "l_2": 0.42},
         element_length=0.02,
@@ -138,6 +164,7 @@ class ContinuousBeam01(MultiDOF):
         r[self.f_dof, 0] = 1
         r = inv_M @ r
         f = r @ (f_mtx[0, 0].reshape(1, 1))
+        # f = r * f_mtx[0, 0]
         f = f.reshape(-1)
         dt = self.t_eval[1] - self.t_eval[0]
         dt2 = dt**2
@@ -155,6 +182,7 @@ class ContinuousBeam01(MultiDOF):
 
         for i in range(1, self.n_t):
             f = r @ (f_mtx[0, i].reshape(1, 1))
+            # f = r * f_mtx[0, i]
             f = f.reshape(-1)
             resp_acc[:, i] = inv_ICK_mtx @ (
                 -K @ resp_disp[:, i - 1]
@@ -162,16 +190,16 @@ class ContinuousBeam01(MultiDOF):
                 + const_mtx_2 @ resp_acc[:, i - 1]
                 + f
             )
+            resp_velo[:, i] = (
+                resp_velo[:, i - 1]
+                + dt * resp_acc[:, i - 1]
+                + varp * dt * (resp_acc[:, i] - resp_acc[:, i - 1])
+            )
             resp_disp[:, i] = (
                 resp_disp[:, i - 1]
                 + dt * resp_velo[:, i - 1]
                 + 0.5 * dt2 * resp_acc[:, i - 1]
                 + delta * dt2 * (resp_acc[:, i] - resp_acc[:, i - 1])
-            )
-            resp_velo[:, i] = (
-                resp_velo[:, i - 1]
-                + dt * resp_acc[:, i - 1]
-                + varp * dt * (resp_acc[:, i] - resp_acc[:, i - 1])
             )
 
         return resp_disp, resp_velo, resp_acc
