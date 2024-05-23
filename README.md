@@ -1,8 +1,8 @@
 # TR-RNN-StatePrediction-StructDyn
 
-## Transfer learning of recurrent neural networks for state estimation in structural dynamics
+## State Estimation in Structural Dynamics through RNN Transfer Learning
 
-This is the code repository for the paper "Transfer learning of recurrent neural networks for state estimation in structural dynamics" by Shuo HAO. It contains the code necessary to reproduce the numerical and experimental results presented in the paper. Now the code is under development and will be released soon.
+This is the code repository for the paper "State Estimation in Structural Dynamics through RNN Transfer Learning" by Shuo HAO. It contains the code necessary to reproduce the numerical and experimental results presented in the paper. Now the code is under development and will be released soon.
 
 ## Installation
 
