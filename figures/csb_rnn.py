@@ -220,18 +220,20 @@ def loss_curve():
     birnn_loss_path = "./dataset/csb/birnn.pkl"
     rnn_loss = torch.load(rnn_loss_path)
     birnn_loss = torch.load(birnn_loss_path)
-    step = np.linspace(0, 15000, 151)
-    step = step[1:]
+    step1 = np.linspace(0, 50000, 501)
+    step2 = np.linspace(0, 20000, 201)
+    step1 = step1[1:]
+    step2 = step2[1:]
     fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
     ax.plot(
-        step,
+        step1,
         rnn_loss["train_loss_list"],
         color="blue",
         linewidth=1.2,
         label="RNN training",
     )
     ax.plot(
-        step,
+        step1,
         rnn_loss["test_loss_list"],
         color="blue",
         linewidth=1.2,
@@ -239,7 +241,7 @@ def loss_curve():
         label="RNN test",
     )
     ax.plot(
-        step,
+        step2,
         birnn_loss["train_loss_list"],
         color="red",
         linewidth=1.2,
@@ -247,7 +249,7 @@ def loss_curve():
     )
 
     ax.plot(
-        step,
+        step2,
         birnn_loss["test_loss_list"],
         color="red",
         linewidth=1.2,
@@ -257,8 +259,8 @@ def loss_curve():
     ax.set_xlabel(r"Epoch ($\times$10$^4$)", fontsize=8)
     ax.set_ylabel("Loss")
     ax.set_yscale("log")
-    ax.set_xlim(0, 15000)
-    ax.set_ylim(1e-4, 1e-2)
+    ax.set_xlim(0, 20000)
+    ax.set_ylim(1e-4, 1e-1)
     # ax.set_xticks(
     #     [0, 10000, 20000, 30000, 40000],
     #     ["0", "1", "2", "3", "4"],
@@ -281,11 +283,11 @@ def state_pred():
     rnn_state_pred, rnn_state_test = cb.test_rnn()
     birnn_state_pred, _ = cb.test_birnn()
     lw = 0.8
-    start = 10000
+    start = 0
     step = 10000
     dof1 = 50
     dof2 = 75
-    idx = 1
+    idx = 0
     time = np.arange(0, 0.0002 * step, 0.0002)
     fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
     axs[0].plot(
@@ -312,7 +314,7 @@ def state_pred():
         linestyle="--",
     )
     axs[0].set_ylabel("Deflection (mm)")
-    axs[0].set_ylim(-0.3, 0.3)
+    axs[0].set_ylim(-1.0, 1.0)
     fig.legend(
         bbox_to_anchor=(0.5, 0.95),
         loc="outside upper center",
@@ -382,7 +384,7 @@ def state_pred():
     )
     axs[1].set_ylabel("Rotational speed (rad/s)")
     axs[1].set_xlabel("Time (s)")
-    axs[1].set_ylim(-0.2, 0.2)
+    axs[1].set_ylim(-0.6, 0.6)
     axs[1].text(
         -0.1 / 3, -0.1, "(b)", ha="center", va="center", transform=axs[1].transAxes
     )
@@ -644,7 +646,7 @@ def performance_evaluation():
     tr_rnn_disp, _ = cb.rnn_pred(path="./dataset/csb/tr_rnn.pth", plot_data=False)
     birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/birnn.pth", plot_data=False)
     tr_birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/tr_birnn.pth", plot_data=False)
-    shift = 40
+    shift = 55
     data_length = 20000
     rnn_disp = rnn_disp[:data_length].reshape(-1)
     tr_rnn_disp = tr_rnn_disp[:data_length].reshape(-1)

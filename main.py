@@ -50,7 +50,8 @@ if __name__ == "__main__":
 
     # continuous_beam.ema()
     # continuous_beam.model_updating()
-    # continuous_beam.random_vibration(num=8)
+    # continuous_beam.random_vibration(num=2)
+    # continuous_beam.verify_random_vibration_results()
     # continuous_beam.plot_solution()
     # continuous_beam.build_rnn()
     # continuous_beam.build_birnn()
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     # continuous_beam.birnn_pred()
     # continuous_beam.tr_rnn()
     # continuous_beam.rnn_pred(path="./dataset/csb/tr_rnn.pth")
-    continuous_beam.tr_birnn()
+    # continuous_beam.tr_birnn()
     # continuous_beam.birnn_pred(path="./dataset/csb/tr_birnn.pth")
 
     # figure plot
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     # csb_rnn.input_acc()
     # csb_rnn.rnn_birnn_pred()
     # csb_rnn.tr_loss_curve()
-    # csb_rnn.tr_rnn_birnn_pred()
+    csb_rnn.tr_rnn_birnn_pred()
     # csb_rnn.performance_evaluation()
 
     # experiment utils
