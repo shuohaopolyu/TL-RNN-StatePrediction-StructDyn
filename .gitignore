@@ -1,7 +1,6 @@
 archive/
 *.pyc
 __pycache__/
-dataset/csb/training_test_data
 figures/*.pdf
 figures/*.svg
 figures/ink_drawings

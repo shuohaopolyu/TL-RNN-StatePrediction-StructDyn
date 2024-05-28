@@ -89,6 +89,19 @@ def _comp_strain_from_nodal_disp(nodal_disp, loc_fbg):
             dtype=torch.float32,
         ).to(device)
         strain[:, i] = (disp @ B_mtx).squeeze() * 1e3
+        # L = 0.06
+        # dofs = [2 * ele_num + 0, 2 * ele_num + 1, 2 * ele_num + 6, 2 * ele_num + 7]
+        # disp = nodal_disp[:, dofs]
+        # B_mtx = y * torch.tensor(
+        #     [
+        #         [6 / L**2],
+        #         [4 / L],
+        #         [-6 / L**2],
+        #         [2 / L],
+        #     ],
+        #     dtype=torch.float32,
+        # ).to(device)
+        # strain[:, i] = (disp @ B_mtx).squeeze() * 1e3
 
     return strain
 
@@ -97,13 +110,13 @@ def ema():
     save_path = "./dataset/csb/ema.pkl"
     data_path = "./dataset/csb/noise_for_ema_2.mat"
     exp_data = scipy.io.loadmat(data_path)
-    acc1 = -exp_data["Data1_AI_1_AI_1"][::5, 0].reshape(-1, 1) * 9.8
-    acc2 = -exp_data["Data1_AI_2_AI_2"][::5, 0].reshape(-1, 1) * 9.8
-    acc3 = -exp_data["Data1_AI_3_AI_3"][::5, 0].reshape(-1, 1) * 9.8
+    acc1 = -exp_data["Data1_AI_1_AI_1"][:125000:5, 0].reshape(-1, 1) * 9.8
+    acc2 = -exp_data["Data1_AI_2_AI_2"][:125000:5, 0].reshape(-1, 1) * 9.8
+    acc3 = -exp_data["Data1_AI_3_AI_3"][:125000:5, 0].reshape(-1, 1) * 9.8
     acc_mtx = np.hstack((acc1, acc2, acc3))
     acc_mtx = np.array([acc_mtx.T], dtype=np.float32)
     print(acc_mtx.shape)
-    force = exp_data["Data1_AI_4_AI_4"][::5, 0].reshape(-1, 1)
+    force = exp_data["Data1_AI_4_AI_4"][:120000:5, 0].reshape(-1, 1)
     force_mtx = np.array([force.T], dtype=np.float32)
     frf_obj = sd.FRF.FRF(
         1000,
@@ -141,10 +154,10 @@ def compute_frf(
     damp,
     resized=False,
 ):
-    k_theta_1 = 1e3 * k_theta_1_factor
+    k_theta_1 = 1e4 * k_theta_1_factor
     k_s = 1e5 * k_s_factor
     k_theta_2 = 1e1 * k_theta_2_factor
-    k_theta_3 = 1e3 * k_theta_3_factor
+    k_theta_3 = 1e4 * k_theta_3_factor
     material_properties = {
         "elastic_modulus": 68.5e9 * E_factor,
         "density": 2.7e3 * rho_factor,
@@ -240,10 +253,10 @@ def compare_frf(result, frf_data, resized=False):
 #         E_factor,
 #         damp,
 #     ) = result.x
-#     k_theta_1 = 1e3 * k_theta_1_factor
+#     k_theta_1 = 1e4 * k_theta_1_factor
 #     k_s = 1e5 * k_s_factor
-#     k_theta_2 = 1e2 * k_theta_2_factor
-#     k_theta_3 = 1e3 * k_theta_3_factor
+#     k_theta_2 = 1e1 * k_theta_2_factor
+#     k_theta_3 = 1e4 * k_theta_3_factor
 #     material_properties = {
 #         "elastic_modulus": 68.5e9 * E_factor,
 #         "density": 2.7e3 * rho_factor,
@@ -332,10 +345,10 @@ def random_vibration(num=8):
         force = force()
         sampling_freq = 10000
         samping_period = 4
-        k_theta_1 = 1e3 * k_theta_1_factor
+        k_theta_1 = 1e4 * k_theta_1_factor
         k_s = 1e5 * k_s_factor
         k_theta_2 = 1e1 * k_theta_2_factor
-        k_theta_3 = 1e3 * k_theta_3_factor
+        k_theta_3 = 1e4 * k_theta_3_factor
         material_properties = {
             "elastic_modulus": 68.5e9 * E_factor,
             "density": 2.7e3 * rho_factor,
@@ -355,6 +368,7 @@ def random_vibration(num=8):
             material_properties=material_properties,
             damping_params=(0, 1, damp),
         )
+        print(np.std(force(cb.t_eval)))
         full_data = cb.run()
         solution = {}
         solution["displacement"] = full_data["displacement"].T
@@ -400,10 +414,10 @@ def verify_random_vibration_results():
     force = force()
     sampling_freq = 10000
     samping_period = 1.0
-    k_theta_1 = 1e3 * k_theta_1_factor
+    k_theta_1 = 1e4 * k_theta_1_factor
     k_s = 1e5 * k_s_factor
     k_theta_2 = 1e1 * k_theta_2_factor
-    k_theta_3 = 1e3 * k_theta_3_factor
+    k_theta_3 = 1e4 * k_theta_3_factor
     material_properties = {
         "elastic_modulus": 68.5e9 * E_factor,
         "density": 2.7e3 * rho_factor,
@@ -542,6 +556,7 @@ def tr_training(
 ):
     loss_fun = torch.nn.MSELoss(reduction="mean")
     for j, param in enumerate(RNN4state.parameters()):
+        # print(j)
         param.requires_grad = False
         if j in unfrozen_params:
             param.requires_grad = True
@@ -575,31 +590,32 @@ def tr_training(
             test_loss = loss_fun(strain_test_pred, measured_strain_test)
             test_loss_list.append(test_loss.item())
 
-        # if i > 1000 and test_loss_list[-1] > test_loss_list[-2]:
-        #     fig, ax = plt.subplots(3, 1, figsize=(18, 18))
-        #     ax[0].plot(measured_strain_train[:, 0].detach().cpu().numpy(), color="gray")
-        #     ax[1].plot(measured_strain_train[:, 1].detach().cpu().numpy(), color="gray")
-        #     ax[2].plot(measured_strain_test[:, 0].detach().cpu().numpy(), color="gray")
-        #     ax[0].plot(strain_train_pred[:, 0].detach().cpu().numpy(), color="blue")
-        #     ax[1].plot(strain_train_pred[:, 1].detach().cpu().numpy(), color="blue")
-        #     ax[2].plot(strain_test_pred.detach().cpu().numpy(), color="blue")
-        #     plt.show()
-        #     break
-        if strain_train_pred.shape[1] > 1 and i % 100 == 0:
+        if strain_train_pred.shape[1] > 1 and i % 500 == 0:
             print(
                 f"Epoch {i}, Train Loss 1: {loss1.item()}, Train Loss 2: {loss2.item()}, Test Loss: {test_loss.item()}"
             )
             torch.save(RNN4state.state_dict(), save_path)
+            # fig, ax = plt.subplots(3, 1, figsize=(18, 12))
+            # ax[0].plot(measured_strain_train[:, 0].detach().cpu().numpy(), color="gray")
+            # ax[1].plot(measured_strain_train[:, 1].detach().cpu().numpy(), color="gray")
+            # ax[2].plot(measured_strain_test[:, 0].detach().cpu().numpy(), color="gray")
+            # ax[0].plot(strain_train_pred[:, 0].detach().cpu().numpy(), color="blue")
+            # ax[1].plot(strain_train_pred[:, 1].detach().cpu().numpy(), color="blue")
+            # ax[2].plot(strain_test_pred.detach().cpu().numpy(), color="blue")
+            # plt.show()
             if RNN4state.bidirectional:
                 birnn_pred(path=save_path, plot_data=False)
             else:
                 rnn_pred(path=save_path, plot_data=False)
 
-        # else:
-        #     print(
-        #         f"Epoch {i}, Train Loss: {loss.item()}, Test Loss: {test_loss.item()}"
-        #     )
-        # rnn_pred(path=save_path)
+        elif i % 100 == 0:
+            print(
+                f"Epoch {i}, Train Loss: {loss.item()}, Test Loss: {test_loss.item()}"
+            )
+            torch.save(RNN4state.state_dict(), save_path)
+            rnn_pred(path=save_path, plot_data=False)
+            # if i % 1000 == 0:
+            #     rnn_pred(path=save_path)
 
         # if i % 200 == 0:
         #     rnn_pred(path=save_path)
@@ -726,7 +742,7 @@ def test_rnn():
 
 
 def rnn_pred(path="./dataset/csb/rnn.pth", plot_data=True):
-    filtered_freq = 38
+    filtered_freq = 30
     shift = 55
     acc_sensor = [24, 44, 98]
     rnn = Rnn02(
@@ -741,6 +757,7 @@ def rnn_pred(path="./dataset/csb/rnn.pth", plot_data=True):
     compress_ratio = 1
     # load the experimental data in .mat format
     filename = f"./dataset/csb/exp_" + str(1) + ".mat"
+    # filename = f"./dataset/csb/loosen_exp_" + str(1) + ".mat"
     acc_tensor = _measured_acc(filename, compress_ratio=1)
     disp_tensor = _measured_disp(filename, compress_ratio=1)
     disp = disp_tensor.detach().cpu().numpy()
@@ -749,26 +766,27 @@ def rnn_pred(path="./dataset/csb/rnn.pth", plot_data=True):
     state_pred = state_pred.detach().cpu().numpy()
     disp_pred = state_pred[:, 34]
     # filter the predicted displacement using a low-pass filter
-    b, a = signal.butter(2, filtered_freq, "lowpass", fs=5000 / compress_ratio)
+    b, a = signal.butter(5, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_pred_filtered = signal.filtfilt(b, a, disp_pred)
-    b, a = signal.butter(8, filtered_freq, "lowpass", fs=5000 / compress_ratio)
+    b, a = signal.butter(5, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_data_filtered = signal.filtfilt(b, a, disp.reshape(-1))
     print(
         np.sum(
             np.sqrt(
-                (disp_pred_filtered[:-shift].reshape(-1) - disp[shift:].reshape(-1))
+                (disp_pred_filtered[:-shift].reshape(-1) - disp_data_filtered[shift:].reshape(-1))
                 ** 2
             )
         )
     )
     if plot_data:
         plt.figure(figsize=(14, 6))
-        plt.plot(disp[shift:], label="true", color="black")
+        # plt.plot(disp[shift:], label="true", color="black")
         plt.plot(disp_pred_filtered[:-shift], label="predicted", color="red")
-        # plt.plot(disp_data_filtered[shift:], label="true", color="black")
+        plt.plot(disp_data_filtered[shift:], label="true", color="black")
         plt.legend()
-        plt.xlim(0, 20000)
         plt.show()
+        # plt.plot(state_pred[882, :128:2])
+        # plt.show()
 
     return disp_pred_filtered, disp
 
@@ -786,16 +804,19 @@ def tr_rnn():
     rnn.load_state_dict(torch.load(f"./dataset/csb/rnn.pth"))
     rnn.to(device)
     unfrozen_params = [0, 1]
-    lr = 1e-5
-    epochs = 11000
-    measured_strain = _measured_strain(f"./dataset/csb/exp_1.mat", compress_ratio=1)
-    acc_tensor = _measured_acc(f"./dataset/csb/exp_1.mat", compress_ratio=1)
+    lr = 3e-7
+    epochs = 10000
+    # filename = f"./dataset/csb/loosen_exp_" + str(1) + ".mat"
+    filename = f"./dataset/csb/exp_" + str(1) + ".mat"
+
+    measured_strain = _measured_strain(filename, compress_ratio=1)
+    acc_tensor = _measured_acc(filename, compress_ratio=1)
     start = 700
-    num_data = 20700
-    measured_strain_train = measured_strain[start:num_data, [0, 1, 2]]
-    measured_strain_test = measured_strain[start:num_data, [0]]
-    loc_fbg_train = [0.3, 0.64, 1.00]
-    loc_fbg_test = [0.30]
+    num_data = 10000
+    measured_strain_train = measured_strain[start:num_data, [0, 1]]
+    measured_strain_test = measured_strain[start:num_data, [2]]
+    loc_fbg_train = [0.30, 0.64]
+    loc_fbg_test = [1.00]
     acc_train = acc_tensor[start:num_data, :]
     acc_test = acc_tensor[start:num_data, :]
 
@@ -922,7 +943,8 @@ def birnn_pred(path="./dataset/csb/birnn.pth", plot_data=True):
     rnn.to(device)
     compress_ratio = 1
     # load the experimental data in .mat format
-    filename = f"./dataset/csb/exp_" + str(1) + ".mat"
+    # filename = f"./dataset/csb/exp_" + str(1) + ".mat"
+    filename = f"./dataset/csb/loosen_exp_" + str(1) + ".mat"
     acc_tensor = _measured_acc(filename, compress_ratio=1)
     disp_tensor = _measured_disp(filename, compress_ratio=1)
     disp = disp_tensor.detach().cpu().numpy()
@@ -944,11 +966,12 @@ def birnn_pred(path="./dataset/csb/birnn.pth", plot_data=True):
         )
     )
     if plot_data:
+
         plt.figure(figsize=(14, 6))
         plt.plot(disp[shift:], label="true", color="black")
         plt.plot(disp_pred_filtered[:-shift], label="predicted", color="red")
         plt.legend()
-        plt.xlim(0, 20000)
+        # plt.xlim(0, 20000)
         plt.show()
     return disp_pred_filtered, disp
 
@@ -967,14 +990,15 @@ def tr_birnn():
     rnn.to(device)
     unfrozen_params = [0, 1, 2, 3]
     lr = 1e-5
-    epochs = 6000
-    measured_strain = _measured_strain(f"./dataset/csb/exp_1.mat", compress_ratio=1)
-    acc_tensor = _measured_acc(f"./dataset/csb/exp_1.mat", compress_ratio=1)
-    start = 700
-    num_data = 20700
+    epochs = 20000
+    filename = f"./dataset/csb/loosen_exp_" + str(1) + ".mat"
+    measured_strain = _measured_strain(filename, compress_ratio=1)
+    acc_tensor = _measured_acc(filename, compress_ratio=1)
+    start = 0
+    num_data = 10000
     measured_strain_train = measured_strain[start:num_data, [0, 1, 2]]
     measured_strain_test = measured_strain[start:num_data, [2]]
-    loc_fbg_train = [0.31, 0.641, 1.001]
+    loc_fbg_train = [0.31, 0.641, 1.01]
     loc_fbg_test = [1.01]
     acc_train = acc_tensor[start:num_data, :]
     acc_test = acc_tensor[start:num_data, :]
@@ -997,3 +1021,152 @@ def tr_birnn():
         {"train_loss_list": train_loss_list, "test_loss_list": test_loss_list},
         f"./dataset/csb/tr_birnn.pkl",
     )
+
+
+def simulate_tr_rnn():
+    result_path = "./dataset/csb/model_updating.pkl"
+    with open(result_path, "rb") as f:
+        result = pickle.load(f)
+    (
+        k_theta_1_factor,
+        k_s_factor,
+        k_theta_2_factor,
+        k_theta_3_factor,
+        rho_factor,
+        E_factor,
+        damp,
+    ) = result.x
+    print(f"Model updating result: {result.x}")
+    start_time = time.time()
+    psd = BandPassPSD(a_v=1.0, f_1=10.0, f_2=410.0)
+    force = PSDExcitationGenerator(
+        psd, tmax=11, fmax=500, normalize=True, normalize_factor=0.6
+    )
+    # force.plot()
+    print("Force" + " generated.")
+    force = force()
+    sampling_freq = 10000
+    samping_period = 2
+    k_theta_1 = 1e4 * k_theta_1_factor
+    k_s = 1e5 * k_s_factor
+    k_theta_2 = 1e1 * k_theta_2_factor * 1
+    k_theta_3 = 1e4 * k_theta_3_factor * 1
+    material_properties = {
+        "elastic_modulus": 68.5e9 * E_factor * 1.4,
+        "density": 2.7e3 * rho_factor * 0.6,
+        "left_support_rotational_stiffness": k_theta_1,
+        "mid_support_translational_stiffness": k_s,
+        "mid_support_rotational_stiffness": k_theta_2,
+        "right_support_rotational_stiffness": k_theta_3,
+    }
+
+    cb = ContinuousBeam01(
+        t_eval=np.linspace(
+            0,
+            samping_period,
+            int(sampling_freq * samping_period) + 1,
+        ),
+        f_t=[force],
+        material_properties=material_properties,
+        damping_params=(0, 1, damp),
+    )
+    full_data = cb.run()
+    solution = {}
+    solution["disp1"] = full_data["displacement"][34, :].reshape(-1, 1)
+    solution["acc1"] = full_data["acceleration"][24, :].reshape(-1, 1) * 0.01
+    solution["acc2"] = full_data["acceleration"][44, :].reshape(-1, 1) * 0.01
+    solution["acc3"] = full_data["acceleration"][98, :].reshape(-1, 1) * 0.01
+    loc_strain = [0.3, 0.44, 0.54, 0.64]
+    loc_train = [0.44]
+    loc_test = [0.64]
+    strain = _comp_strain_from_nodal_disp(
+        torch.tensor(full_data["displacement"].T * 1e3, dtype=torch.float32).to(device),
+        loc_strain,
+    )
+    strain = strain.detach().cpu().numpy()
+    solution["fbg1"] = strain[:, 0].reshape(-1, 1)
+    solution["fbg2"] = strain[:, 1].reshape(-1, 1)
+    solution["fbg3"] = strain[:, 2].reshape(-1, 1)
+    solution["fbg4"] = strain[:, 3].reshape(-1, 1)
+    # solution["fbg5"] = strain[:, 4].reshape(-1, 1)
+    strain_train = torch.tensor(
+        np.hstack(
+            (
+                # solution["fbg1"],
+                solution["fbg2"],
+                # solution["fbg3"],
+                # solution["fbg4"],
+            )
+        ),
+        dtype=torch.float32,
+    ).to(device)
+    strain_test = torch.tensor(
+        np.hstack((solution["fbg4"],)),
+        dtype=torch.float32,
+    ).to(device)
+    path = "./dataset/csb/rnn.pth"
+    rnn = Rnn02(
+        input_size=3,
+        hidden_size=36,
+        num_layers=1,
+        output_size=256,
+        bidirectional=False,
+    )
+    rnn.load_state_dict(torch.load(path))
+    rnn.to(device)
+
+    h0 = torch.zeros(1, rnn.hidden_size, dtype=torch.float32).to(device)
+    acc = torch.tensor(
+        np.hstack(
+            (
+                solution["acc1"],
+                solution["acc2"],
+                solution["acc3"],
+            )
+        ),
+        dtype=torch.float32,
+    ).to(device)
+    state_pred, _ = rnn(acc, h0)
+    state_pred = state_pred.detach().cpu().numpy()
+    disp_pred = state_pred[:, 34]
+    plt.plot(disp_pred / 1000)
+    plt.plot(solution["disp1"])
+    plt.show()
+
+    # transfer learning of recurrent neural networks
+    unfrozen_params = [0, 1]
+    lr = 1e-5
+    epochs = 10000
+    loss_func = torch.nn.MSELoss(reduction="mean")
+    for j, param in enumerate(rnn.parameters()):
+        param.requires_grad = False
+        if j in unfrozen_params:
+            param.requires_grad = True
+    optimizer = torch.optim.Adam(
+        filter(lambda p: p.requires_grad, rnn.parameters()),
+        lr=lr,
+    )
+
+    # strain_train = strain_train.reshape(-1, 4)
+    # strain_test = strain_test.reshape(-1, 1)
+    for i in range(epochs):
+        state_pred, _ = rnn(acc, h0)
+        strain_pred = _comp_strain_from_nodal_disp(state_pred, loc_train)
+        optimizer.zero_grad()
+        rnn.train()
+        loss = loss_func(strain_pred, strain_train)
+        loss.backward()
+        optimizer.step()
+        if i % 10 == 0:
+            print(f"Epoch {i}, Loss: {loss.item()}")
+            state_pred_test, _ = rnn(acc, h0)
+            strain_pred_test = _comp_strain_from_nodal_disp(state_pred_test, loc_test)
+            test_loss = loss_func(strain_pred_test, strain_test)
+            print(f"Test Loss: {test_loss.item()}")
+        if i % 100 == 0:
+            plt.plot(strain_pred_test.detach().cpu().numpy())
+            plt.plot(strain_test.detach().cpu().numpy())
+            plt.show()
+            plt.plot(state_pred_test[:, 34].detach().cpu().numpy())
+            plt.plot(solution["disp1"] * 1e3)
+            plt.show()

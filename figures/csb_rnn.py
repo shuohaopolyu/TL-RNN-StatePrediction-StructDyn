@@ -221,20 +221,21 @@ def loss_curve():
     rnn_loss = torch.load(rnn_loss_path)
     birnn_loss = torch.load(birnn_loss_path)
     step1 = np.linspace(0, 50000, 501)
-    step2 = np.linspace(0, 20000, 201)
+    step2 = np.linspace(0, 50000, 501)
     step1 = step1[1:]
     step2 = step2[1:]
+    print(len(rnn_loss["train_loss_list"]))
     fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
     ax.plot(
         step1,
-        rnn_loss["train_loss_list"],
+        rnn_loss["train_loss_list"][0:500],
         color="blue",
         linewidth=1.2,
         label="RNN training",
     )
     ax.plot(
         step1,
-        rnn_loss["test_loss_list"],
+        rnn_loss["test_loss_list"][0:500],
         color="blue",
         linewidth=1.2,
         linestyle="--",
@@ -259,12 +260,12 @@ def loss_curve():
     ax.set_xlabel(r"Epoch ($\times$10$^4$)", fontsize=8)
     ax.set_ylabel("Loss")
     ax.set_yscale("log")
-    ax.set_xlim(0, 20000)
+    ax.set_xlim(0, 50000)
     ax.set_ylim(1e-4, 1e-1)
-    # ax.set_xticks(
-    #     [0, 10000, 20000, 30000, 40000],
-    #     ["0", "1", "2", "3", "4"],
-    # )
+    ax.set_xticks(
+        [0, 10000, 20000, 30000, 40000, 50000],
+        ["0", "1", "2", "3", "4", "5"],
+    )
     # ax.set_yticks([1e-4, 1e-3, 1e-2])
     ax.tick_params(axis="both", direction="in", which="both")
     ax.grid(True)
@@ -283,12 +284,158 @@ def state_pred():
     rnn_state_pred, rnn_state_test = cb.test_rnn()
     birnn_state_pred, _ = cb.test_birnn()
     lw = 0.8
-    start = 0
-    step = 10000
+    start = 2000
+    step = 2000
     dof1 = 50
     dof2 = 75
     idx = 0
+    cmap = "seismic"
     time = np.arange(0, 0.0002 * step, 0.0002)
+    fig, axs = plt.subplots(3, 2, figsize=(18 * cm, 12 * cm))
+    wv = axs[0, 0].imshow(
+        rnn_state_test[idx, start : step + start, 0:128:2].T,
+        aspect="auto",
+        cmap=cmap,
+        origin="lower",
+        interpolation="spline16",
+    )
+
+    axs[0, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[0, 0].set_ylim(0, 63)
+    axs[0, 0].tick_params(axis="both", direction="in", which="both")
+    axs[0, 0].set_xlim(0, 2000)
+    axs[0, 0].set_xticks(
+        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+    )
+    axs[0, 0].set_ylabel("x", style="italic", labelpad=3)
+    axs[0, 0].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(wv, ax=axs[0, 0], orientation="vertical", extend="both")
+    cbar.minorticks_on()
+    axs[0, 0].text(
+        -0.1, -0.16, "(a)", ha="center", va="center", transform=axs[0, 0].transAxes
+    )
+    axs[0, 0].title.set_text("Ref. displacement field")
+    wv = axs[1, 0].imshow(
+        rnn_state_pred[idx, start : step + start, 0:128:2].T,
+        aspect="auto",
+        cmap=cmap,
+        origin="lower",
+        interpolation="spline16",
+    )
+    axs[1, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[1, 0].set_ylim(0, 63)
+    axs[1, 0].tick_params(axis="both", direction="in", which="both")
+    axs[1, 0].set_xlim(0, 2000)
+    axs[1, 0].set_xticks(
+        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+    )
+    axs[1, 0].set_ylabel("x", style="italic", labelpad=3)
+    axs[1, 0].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(wv, ax=axs[1, 0], orientation="vertical", extend="both")
+    cbar.minorticks_on()
+    axs[1, 0].text(
+        -0.1, -0.16, "(b)", ha="center", va="center", transform=axs[1, 0].transAxes
+    )
+    axs[1, 0].title.set_text("RNN pred. displacement field")
+
+    wv = axs[2, 0].imshow(
+        birnn_state_pred[idx, start : step + start, 0:128:2].T,
+        aspect="auto",
+        cmap=cmap,
+        origin="lower",
+        interpolation="spline16",
+    )
+    axs[2, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[2, 0].set_ylim(0, 63)
+    axs[2, 0].tick_params(axis="both", direction="in", which="both")
+    axs[2, 0].set_xlim(0, 2000)
+    axs[2, 0].set_xticks(
+        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+    )
+    axs[2, 0].set_ylabel("x", style="italic", labelpad=3)
+    axs[2, 0].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(wv, ax=axs[2, 0], orientation="vertical", extend="both")
+    cbar.minorticks_on()
+    axs[2, 0].text(
+        -0.1, -0.16, "(c)", ha="center", va="center", transform=axs[2, 0].transAxes
+    )
+    axs[2, 0].title.set_text("BiRNN pred. displacement field")
+
+    wv = axs[0, 1].imshow(
+        rnn_state_test[idx, start : step + start, 128:256:2].T,
+        aspect="auto",
+        cmap=cmap,
+        origin="lower",
+    )
+    axs[0, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[0, 1].set_ylim(0, 63)
+    axs[0, 1].tick_params(axis="both", direction="in", which="both")
+    axs[0, 1].set_xlim(0, 2000)
+    axs[0, 1].set_xticks(
+        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+    )
+    axs[0, 1].set_ylabel("x", style="italic", labelpad=3)
+    axs[0, 1].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(wv, ax=axs[0, 1], orientation="vertical", extend="both")
+    cbar.minorticks_on()
+    axs[0, 1].text(
+        -0.1, -0.16, "(d)", ha="center", va="center", transform=axs[0, 1].transAxes
+    )
+    axs[0, 1].title.set_text("Ref. velocity field")
+
+    wv = axs[1, 1].imshow(
+        rnn_state_pred[idx, start : step + start, 128:256:2].T,
+        aspect="auto",
+        cmap=cmap,
+        origin="lower",
+    )
+    axs[1, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[1, 1].set_ylim(0, 63)
+    axs[1, 1].tick_params(axis="both", direction="in", which="both")
+    axs[1, 1].set_xlim(0, 2000)
+    axs[1, 1].set_xticks(
+        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+    )
+    axs[1, 1].set_ylabel("x", style="italic", labelpad=3)
+    axs[1, 1].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(wv, ax=axs[1, 1], orientation="vertical", extend="both")
+    cbar.minorticks_on()
+    axs[1, 1].text(
+        -0.1, -0.16, "(e)", ha="center", va="center", transform=axs[1, 1].transAxes
+    )
+    axs[1, 1].title.set_text("RNN pred. velocity field")
+
+    wv = axs[2, 1].imshow(
+        birnn_state_pred[idx, start : step + start, 128:256:2].T,
+        aspect="auto",
+        cmap=cmap,
+        origin="lower",
+    )
+    axs[2, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[2, 1].set_ylim(0, 63)
+    axs[2, 1].tick_params(axis="both", direction="in", which="both")
+    axs[2, 1].set_xlim(0, 2000)
+    axs[2, 1].set_xticks(
+        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+    )
+    axs[2, 1].set_ylabel("x", style="italic", labelpad=3)
+    axs[2, 1].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(wv, ax=axs[2, 1], orientation="vertical", extend="both")
+    cbar.minorticks_on()
+    axs[2, 1].text(
+        -0.1, -0.16, "(f)", ha="center", va="center", transform=axs[2, 1].transAxes
+    )
+    axs[2, 1].title.set_text("BiRNN pred. velocity field")
+
+
+    plt.tight_layout()
+    plt.savefig("./figures/F_csb_state_img.pdf", bbox_inches="tight")
+    plt.show()
+
+    start = 0
+    step = 10000
+    time = np.arange(0, 0.0002 * step, 0.0002)
+
     fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
     axs[0].plot(
         time,

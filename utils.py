@@ -146,7 +146,7 @@ def waveform_generator_2():
     plt.show()
 
 
-def process_fbg_data(dir="./dataset/csb/Peaks.20240508162346.txt"):
+def process_fbg_data_1(dir="./dataset/csb/Peaks.20240508162346.txt"):
     # import the fbg data
     with open(dir, "r") as f:
         data = f.readlines()
@@ -159,6 +159,25 @@ def process_fbg_data(dir="./dataset/csb/Peaks.20240508162346.txt"):
         data_temp[-1] = data_temp[-1].replace("\n", "")
         fbg_data.append(data_temp)
         time_data.append(convert_fbg_time_to_num(time_temp))
+    fbg_data = np.array(fbg_data).astype(float)
+    time_data = np.array(time_data).reshape(-1, 1)
+    # print(data_temp)
+    return time_data, fbg_data
+
+
+def process_fbg_data_2(dir="./dataset/csb/Peaks.20240508162346.txt"):
+    # import the fbg data
+    with open(dir, "r") as f:
+        data = f.readlines()
+    fbg_data = []
+    time_data = []
+    for i in range(45, len(data)):
+        temp = data[i].split("	")
+        time_temp = temp[0]
+        data_temp = temp[-4:]
+        data_temp[-1] = data_temp[-1].replace("\n", "")
+        fbg_data.append(data_temp)
+        time_data.append(convert_fbg_time_to_num_2(time_temp))
     fbg_data = np.array(fbg_data).astype(float)
     time_data = np.array(time_data).reshape(-1, 1)
     # print(data_temp)
@@ -181,11 +200,24 @@ def convert_fbg_time_to_num(time_string):
     return days
 
 
+def convert_fbg_time_to_num_2(time_string):
+    # print(time_string)
+    hour = time_string[10:12]
+    minute = time_string[13:15]
+    second = time_string[16:24]
+    days = int(hour) / 24 + int(minute) / 1440 + float(second) / 86400
+    return days
+
+
 def convert_dewe_time_to_num(time_num):
     return time_num - 739380
 
 
-def process_dewe_data(dir="./dataset/csb/test_1_amp_3.mat"):
+def convert_dewe_time_to_num_2(time_num):
+    return time_num - 739371
+
+
+def process_dewe_data_1(dir="./dataset/csb/test_1_amp_3.mat"):
     # import the dewe data
 
     data = sio.loadmat(dir)
@@ -204,22 +236,40 @@ def process_dewe_data(dir="./dataset/csb/test_1_amp_3.mat"):
     return time_data, time_list, acc1, acc2, acc3, force1, disp1
 
 
-def combine_data():
+def process_dewe_data_2(dir="./dataset/csb/noise_4vpp_2span_1dis_4strain.mat"):
+    # import the dewe data
+    data = sio.loadmat(dir)
+    acc1 = data["Data1_AI_1"]
+    acc2 = data["Data1_AI_2"]
+    acc3 = data["Data1_AI_4"]
+    force1 = data["Data1_AI_5"]
+    disp1 = data["Data1_AI_6"]
+    disp1_ini = np.mean(disp1[:300])
+    disp1 = disp1 - disp1_ini
+    time_data = data["Data1_time_AI_1"]
+    time_list = []
+    for i in range(time_data.shape[0]):
+        time_list.append(str(convert_num_to_time(time_data[i, 0]))[13:])
+        time_data[i, 0] = convert_dewe_time_to_num_2(time_data[i, 0])
+    return time_data, time_list, acc1, acc2, acc3, force1, disp1
+
+
+def combine_data_1():
     dewe_mat_paths = ["./dataset/csb/test_1_amp_3.mat"]
     fbg_paths = ["./dataset/csb/Peaks.20240508162346.txt"]
     data_num = 33000
     for i, dewe_mat in enumerate(dewe_mat_paths):
-        dewe_time, dewe_time_list, acc1, acc2, acc3, force1, disp1 = process_dewe_data(
-            dewe_mat
+        dewe_time, dewe_time_list, acc1, acc2, acc3, force1, disp1 = (
+            process_dewe_data_1(dewe_mat)
         )
         # print(dewe_time_list[0], dewe_time[0])
         ini_time = dewe_time[0]
         for j, fbg in enumerate(fbg_paths):
-            fbg_time, fbg_data = process_fbg_data(fbg)
+            fbg_time, fbg_data = process_fbg_data_1(fbg)
             if max(fbg_time) > ini_time:
                 file_idx = j
                 break
-        fbg_time, fbg_data = process_fbg_data(fbg_paths[file_idx])
+        fbg_time, fbg_data = process_fbg_data_1(fbg_paths[file_idx])
         time_deviation = fbg_time - ini_time
         for k, v in enumerate(time_deviation):
             if v > 0:
@@ -258,3 +308,56 @@ def combine_data():
             # "fbg4_ini": fbg4_ini,
         }
         sio.savemat("./dataset/csb/exp_{}.mat".format(i + 1), mdict)
+
+
+def combine_data_2():
+    dewe_mat_paths = ["./dataset/csb/noise_4vpp_2span_1dis_4strain_2.mat"]
+    fbg_paths = ["./dataset/csb/Peaks.20240429161002.txt"]
+    data_num = 10000
+    for i, dewe_mat in enumerate(dewe_mat_paths):
+        dewe_time, dewe_time_list, acc1, acc2, acc3, force1, disp1 = (
+            process_dewe_data_2(dewe_mat)
+        )
+        ini_time = dewe_time[0]
+        # print(ini_time)
+        for j, fbg in enumerate(fbg_paths):
+            fbg_time, fbg_data = process_fbg_data_2(fbg)
+            if max(fbg_time) > ini_time:
+                file_idx = j
+                break
+        fbg_time, fbg_data = process_fbg_data_2(fbg_paths[file_idx])
+        time_deviation = fbg_time - ini_time
+        for k, v in enumerate(time_deviation):
+            if v > 0:
+                temp_idx = k
+                break
+        # print(temp_idx)
+        fbg_time = fbg_time[temp_idx - 100 : temp_idx + data_num + 100, :]
+        fbg_data = fbg_data[temp_idx - 100 : temp_idx + data_num + 100, :]
+        fbg_data_interp = np.zeros((data_num, 4))
+        for q in range(4):
+            fbg_data_interp[:, q] = np.interp(
+                dewe_time[:data_num, 0], fbg_time[:, 0], fbg_data[:, q]
+            )
+        fbg
+        fbg_data_interp = np.round(fbg_data_interp, 4)
+        fbg1 = fbg_data_interp[:, 0].reshape(-1, 1)
+        fbg2 = fbg_data_interp[:, 2].reshape(-1, 1)
+        fbg3 = fbg_data_interp[:, 3].reshape(-1, 1)
+        fbg1_ini = np.mean(fbg1[:300])
+        fbg2_ini = np.mean(fbg2[:300])
+        fbg3_ini = np.mean(fbg3[:300])
+        mdict = {
+            "acc1": acc1[:data_num, :],
+            "acc2": acc2[:data_num, :],
+            "acc3": acc3[:data_num, :],
+            "force1": force1[:data_num, :],
+            "disp1": disp1[:data_num, :] * 1e3,
+            "fbg1": fbg1,
+            "fbg2": fbg2,
+            "fbg3": fbg3,
+            "fbg1_ini": fbg1_ini,
+            "fbg2_ini": fbg2_ini,
+            "fbg3_ini": fbg3_ini,
+        }
+        sio.savemat("./dataset/csb/loosen_exp_{}.mat".format(i + 1), mdict)

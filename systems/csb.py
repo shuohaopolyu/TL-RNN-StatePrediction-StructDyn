@@ -8,7 +8,7 @@ The beam is discretized into 2-node beam elements, each node has 2 DOFs (transla
 Each element is 0.02 m long, therefore the total number of elements is 63.
 Total number of nodes is 64 and total number of DOFs is 128.
 The beam is made of aluminum with the following reference properties:
-- Elastic modulus: 70 GPa
+- Elastic modulus: 68.5 GPa
 - Density: 2.7 g/cm^3
 - Cross-sectional area: 0.0015 m^2
 - Moment of inertia: 1.125e-8 m^4
@@ -36,12 +36,12 @@ class ContinuousBeam01(MultiDOF):
     def __init__(
         self,
         material_properties={
-            "elastic_modulus": 70e9,
+            "elastic_modulus": 68.5e9,
             "density": 2.7e3,
-            "mid_support_rotational_stiffness": 1e2,
-            "mid_support_translational_stiffness": 1e3,
-            "left_support_rotational_stiffness": 1e2,
-            "right_support_rotational_stiffness": 1e2,
+            "mid_support_rotational_stiffness": 1e4,
+            "mid_support_translational_stiffness": 1e1,
+            "left_support_rotational_stiffness": 1e5,
+            "right_support_rotational_stiffness": 1e4,
         },
         geometry_properties={"b": 0.03, "h": 0.005, "l_1": 0.84, "l_2": 0.42},
         element_length=0.02,

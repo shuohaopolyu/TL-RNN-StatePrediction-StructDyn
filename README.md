@@ -30,4 +30,9 @@ conda install --yes --file requirements.txt
 
 The code is organized in the following way:
 
-- `data/`: Contains the data used in the paper.
+- `dataset/`: Contains the data used in the paper.
+- `excitations/`: Contains the excitation models for the finite element simulations.
+- `exps/`: Contains experiments for the state estimation.
+
+- `models/`: Contains the RNN models used in the paper.
+- `systems/`: Contains finite element models of the structures.

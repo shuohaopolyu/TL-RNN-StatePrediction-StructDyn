@@ -19,9 +19,8 @@ from figures import (
 from utils import (
     waveform_generator_1,
     waveform_generator_2,
-    process_fbg_data,
-    process_dewe_data,
-    combine_data,
+    combine_data_1,
+    combine_data_2,
 )
 
 
@@ -53,12 +52,13 @@ if __name__ == "__main__":
     # continuous_beam.random_vibration(num=2)
     # continuous_beam.verify_random_vibration_results()
     # continuous_beam.plot_solution()
+    # continuous_beam.simulate_tr_rnn()
     # continuous_beam.build_rnn()
     # continuous_beam.build_birnn()
     # continuous_beam.rnn_pred()
     # continuous_beam.birnn_pred()
     # continuous_beam.tr_rnn()
-    # continuous_beam.rnn_pred(path="./dataset/csb/tr_rnn.pth")
+    continuous_beam.rnn_pred(path="./dataset/csb/tr_rnn.pth")
     # continuous_beam.tr_birnn()
     # continuous_beam.birnn_pred(path="./dataset/csb/tr_birnn.pth")
 
@@ -82,10 +82,11 @@ if __name__ == "__main__":
     # csb_rnn.input_acc()
     # csb_rnn.rnn_birnn_pred()
     # csb_rnn.tr_loss_curve()
-    csb_rnn.tr_rnn_birnn_pred()
+    # csb_rnn.tr_rnn_birnn_pred()
     # csb_rnn.performance_evaluation()
 
     # experiment utils
     # waveform_generator_1()
     # waveform_generator_2()
-    # combine_data()
+    # combine_data_1()
+    # combine_data_2()
