@@ -220,6 +220,8 @@ def loss_curve():
     birnn_loss_path = "./dataset/csb/birnn.pkl"
     rnn_loss = torch.load(rnn_loss_path)
     birnn_loss = torch.load(birnn_loss_path)
+    print(rnn_loss["train_loss_list"][-1])
+    print(birnn_loss["train_loss_list"][-1])
     step1 = np.linspace(0, 50000, 501)
     step2 = np.linspace(0, 50000, 501)
     step1 = step1[1:]
@@ -427,7 +429,6 @@ def state_pred():
     )
     axs[2, 1].title.set_text("BiRNN pred. velocity field")
 
-
     plt.tight_layout()
     plt.savefig("./figures/F_csb_state_img.pdf", bbox_inches="tight")
     plt.show()
@@ -549,16 +550,16 @@ def input_acc():
     data_length = 20000
     filename = f"./dataset/csb/exp_" + str(1) + ".mat"
     exp_data = scipy.io.loadmat(filename)
-    acc1 = -exp_data["acc1"][:data_length:5].reshape(-1, 1)
-    acc2 = -exp_data["acc2"][:data_length:5].reshape(-1, 1)
-    acc3 = -exp_data["acc3"][:data_length:5].reshape(-1, 1)
-    time = np.arange(0, 0.0002 * data_length, 0.001)
-    fig, axs = plt.subplots(3, 1, figsize=(18 * cm, 12 * cm))
+    acc1 = -exp_data["acc1"][:data_length:1].reshape(-1, 1)
+    acc2 = -exp_data["acc2"][:data_length:1].reshape(-1, 1)
+    acc3 = -exp_data["acc3"][:data_length:1].reshape(-1, 1)
+    time = np.arange(0, 0.0002 * data_length, 0.0002)
+    fig, axs = plt.subplots(1, 3, figsize=(18 * cm, 6 * cm))
     axs[0].plot(time, acc3, color="black", linewidth=0.8)
-    axs[0].set_ylim(-3.2, 2.2)
-    axs[0].set_yticks([-3.2, -1.6, 0, 1.1, 2.2])
+    axs[0].set_ylim(-3.6, 3.6)
+    axs[0].set_yticks([-3.6, -1.8, 0, 1.8, 3.6])
     axs[0].text(
-        -0.2 * 2 / 9,
+        -0.1,
         -0.1,
         "(a)",
         ha="center",
@@ -566,18 +567,19 @@ def input_acc():
         transform=axs[0].transAxes,
     )
     axs[0].text(
-        0.2 * 2 / 9,
-        0.2,
+        0.1,
+        0.1,
         "A1",
         ha="center",
         va="center",
         transform=axs[0].transAxes,
     )
+    axs[0].set_xticks([0, 1, 2, 3, 4])
     axs[1].plot(time, acc2, color="black", linewidth=0.8)
-    axs[1].set_ylim(-2.6, 2.6)
-    axs[1].set_yticks([-2.6, -1.3, 0, 1.3, 2.6])
+    axs[1].set_ylim(-4.0, 4.0)
+    axs[1].set_yticks([-4.0, -2.0, 0, 2.0, 4.0], ["-4.0", "-2.0", "0.0", "2.0", "4.0"])
     axs[1].text(
-        -0.2 * 2 / 9,
+        -0.1,
         -0.1,
         "(b)",
         ha="center",
@@ -585,18 +587,19 @@ def input_acc():
         transform=axs[1].transAxes,
     )
     axs[1].text(
-        0.2 * 2 / 9,
-        0.2,
+        0.1,
+        0.1,
         "A2",
         ha="center",
         va="center",
         transform=axs[1].transAxes,
     )
+    axs[1].set_xticks([0, 1, 2, 3, 4])
     axs[2].plot(time, acc1, color="black", linewidth=0.8)
-    axs[2].set_ylim(-4.8, 3.2)
-    axs[2].set_yticks([-4.8, -2.4, 0, 1.6, 3.2])
+    axs[2].set_ylim(-4.8, 4.8)
+    axs[2].set_yticks([-4.8, -2.4, 0, 2.4, 4.8])
     axs[2].text(
-        -0.2 * 2 / 9,
+        -0.1,
         -0.1,
         "(c)",
         ha="center",
@@ -604,19 +607,21 @@ def input_acc():
         transform=axs[2].transAxes,
     )
     axs[2].text(
-        0.2 * 2 / 9,
-        0.2,
+        0.1,
+        0.1,
         "A3",
         ha="center",
         va="center",
         transform=axs[2].transAxes,
     )
-    axs[1].set_ylabel("Acceleration (g)")
+    axs[2].set_xticks([0, 1, 2, 3, 4])
+    axs[0].set_ylabel("Acceleration (g)")
     axs[2].set_xlabel("Time (s)")
     for i in range(3):
         axs[i].set_xlim(0, 4)
         axs[i].tick_params(axis="both", direction="in", which="both")
         axs[i].grid(True)
+        axs[i].set_xlabel("Time (s)")
     plt.savefig("./figures/F_csb_input_acc.pdf", bbox_inches="tight")
     plt.show()
 
@@ -624,7 +629,7 @@ def input_acc():
 def rnn_birnn_pred():
     rnn_pred, ground_truth = cb.rnn_pred()
     birnn_pred, _ = cb.birnn_pred()
-    shift = 40
+    shift = 55
     data_length = 20000
     time = np.arange(0, 0.0002 * data_length, 0.0002)
     fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
@@ -793,7 +798,7 @@ def performance_evaluation():
     tr_rnn_disp, _ = cb.rnn_pred(path="./dataset/csb/tr_rnn.pth", plot_data=False)
     birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/birnn.pth", plot_data=False)
     tr_birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/tr_birnn.pth", plot_data=False)
-    shift = 55
+    shift = 52
     data_length = 20000
     rnn_disp = rnn_disp[:data_length].reshape(-1)
     tr_rnn_disp = tr_rnn_disp[:data_length].reshape(-1)
