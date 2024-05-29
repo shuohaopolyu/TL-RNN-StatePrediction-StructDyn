@@ -757,7 +757,7 @@ def data_shift(strain_tensor, shift):
 
 def rnn_pred(path="./dataset/csb/rnn.pth", plot_data=True):
     filtered_freq = 36
-    shift = 55
+    shift = 52
     acc_sensor = [24, 44, 98]
     rnn = Rnn02(
         input_size=len(acc_sensor),
@@ -818,8 +818,8 @@ def tr_rnn():
     rnn.load_state_dict(torch.load(f"./dataset/csb/rnn.pth"))
     rnn.to(device)
     unfrozen_params = [0, 1]
-    lr = 1e-7
-    epochs = 10000
+    lr = 1e-6
+    epochs = 540
     # filename = f"./dataset/csb/loosen_exp_" + str(1) + ".mat"
     filename = f"./dataset/csb/exp_" + str(1) + ".mat"
 
@@ -945,7 +945,7 @@ def test_birnn():
 
 def birnn_pred(path="./dataset/csb/birnn.pth", plot_data=True):
     filtered_freq = 36
-    shift = 55
+    shift = 52
     acc_sensor = [24, 44, 98]
     rnn = Rnn02(
         input_size=len(acc_sensor),
@@ -1004,8 +1004,8 @@ def tr_birnn():
     rnn.load_state_dict(torch.load(f"./dataset/csb/birnn.pth"))
     rnn.to(device)
     unfrozen_params = [0, 1, 2, 3]
-    lr = 1e-7
-    epochs = 20000
+    lr = 1e-6
+    epochs = 3000
     # filename = f"./dataset/csb/loosen_exp_" + str(1) + ".mat"
     filename = f"./dataset/csb/exp_" + str(1) + ".mat"
     measured_strain = _measured_strain(filename, compress_ratio=1)
