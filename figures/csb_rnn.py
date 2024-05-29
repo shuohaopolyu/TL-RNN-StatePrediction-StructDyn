@@ -746,7 +746,7 @@ def tr_rnn_birnn_pred():
     birnn_disp_pred_filtered, _ = cb.birnn_pred(
         path="./dataset/csb/tr_birnn.pth", plot_data=False
     )
-    shift = 40
+    shift = 52
     data_length = 20000
     time = np.arange(0, 0.0002 * data_length, 0.0002)
     fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
@@ -806,15 +806,89 @@ def performance_evaluation():
     tr_birnn_disp = tr_birnn_disp[:data_length].reshape(-1)
     disp = disp[shift : data_length + shift].reshape(-1)
 
-    plt.plot(rnn_disp, label="RNN")
-    plt.plot(tr_rnn_disp, label="TL-RNN")
-    plt.plot(birnn_disp, label="BiRNN")
-    plt.plot(tr_birnn_disp, label="TL-BiRNN")
-    plt.plot(disp, label="Ref.", color="red")
-    plt.show()
+    # plt.plot(rnn_disp, label="RNN")
+    # plt.plot(tr_rnn_disp, label="TL-RNN")
+    # plt.plot(birnn_disp, label="BiRNN")
+    # plt.plot(tr_birnn_disp, label="TL-BiRNN")
+    # plt.plot(disp, label="Ref.", color="red")
+    # plt.show()
     # calculate the error
     mean_target = np.mean(disp)
+    metric = []
+    metric.append(
+        np.round(
+            np.linalg.norm(disp - rnn_disp) / np.linalg.norm(disp - mean_target), 3
+        )
+    )
+    metric.append(
+        np.round(
+            np.linalg.norm(disp - tr_rnn_disp) / np.linalg.norm(disp - mean_target), 3
+        )
+    )
+    metric.append(
+        np.round(
+            np.linalg.norm(disp - birnn_disp) / np.linalg.norm(disp - mean_target), 3
+        )
+    )
+    metric.append(
+        np.round(
+            np.linalg.norm(disp - tr_birnn_disp) / np.linalg.norm(disp - mean_target), 3
+        )
+    )
     print(np.linalg.norm(disp - rnn_disp) / np.linalg.norm(disp - mean_target))
     print(np.linalg.norm(disp - tr_rnn_disp) / np.linalg.norm(disp - mean_target))
     print(np.linalg.norm(disp - birnn_disp) / np.linalg.norm(disp - mean_target))
     print(np.linalg.norm(disp - tr_birnn_disp) / np.linalg.norm(disp - mean_target))
+
+    width = 0.35
+    fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
+    rects = ax.bar(
+        0,
+        metric[0],
+        width,
+        label="Before TL",
+        color="blue",
+        zorder=3,
+    )
+    ax.bar_label(rects, padding=3)
+    rects = ax.bar(
+        0 + width,
+        metric[1],
+        width,
+        label="After TL",
+        color="red",
+        zorder=3,
+    )
+    ax.bar_label(rects, padding=3)
+    rects = ax.bar(
+        1,
+        metric[2],
+        width,
+        color="blue",
+        zorder=3,
+    )
+    ax.bar_label(rects, padding=3)
+    rects = ax.bar(
+        1 + width,
+        metric[3],
+        width,
+        color="red",
+        zorder=3,
+    )
+    ax.bar_label(rects, padding=3, fmt='%.3f')
+    ax.grid(True)
+    ax.set_xticks([0.175, 0.5, 0.825, 1.175], ["RNN", "", "", "BiRNN"])
+    ax.tick_params(axis="both", direction="in", which="both")
+    ax.legend(
+        fontsize=8,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=1,
+        loc="upper right",
+    )
+
+    ax.set_ylabel("NRMSE")
+    ax.set_ylim(0, 0.6)
+    ax.tick_params(axis="both", direction="in", which="both")
+    plt.savefig("./figures/F_csb_performance_evaluation.pdf", bbox_inches="tight")
+    plt.show()
