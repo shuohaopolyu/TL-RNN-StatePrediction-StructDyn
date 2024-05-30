@@ -81,7 +81,7 @@ if __name__ == "__main__":
     # csb_rnn.state_pred()
     # csb_rnn.input_acc()
     # csb_rnn.rnn_birnn_pred()
-    # csb_rnn.tr_rnn_birnn_pred()
+    csb_rnn.tr_rnn_birnn_pred()
     csb_rnn.performance_evaluation()
 
     # experiment utils

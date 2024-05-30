@@ -799,12 +799,13 @@ def performance_evaluation():
     birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/birnn.pth", plot_data=False)
     tr_birnn_disp, _ = cb.birnn_pred(path="./dataset/csb/tr_birnn.pth", plot_data=False)
     shift = 52
+    start = 0
     data_length = 20000
-    rnn_disp = rnn_disp[:data_length].reshape(-1)
-    tr_rnn_disp = tr_rnn_disp[:data_length].reshape(-1)
-    birnn_disp = birnn_disp[:data_length].reshape(-1)
-    tr_birnn_disp = tr_birnn_disp[:data_length].reshape(-1)
-    disp = disp[shift : data_length + shift].reshape(-1)
+    rnn_disp = rnn_disp[start:data_length].reshape(-1)
+    tr_rnn_disp = tr_rnn_disp[start:data_length].reshape(-1)
+    birnn_disp = birnn_disp[start:data_length].reshape(-1)
+    tr_birnn_disp = tr_birnn_disp[start:data_length].reshape(-1)
+    disp = disp[shift + start : data_length + shift].reshape(-1)
 
     # plt.plot(rnn_disp, label="RNN")
     # plt.plot(tr_rnn_disp, label="TL-RNN")
@@ -875,7 +876,7 @@ def performance_evaluation():
         color="red",
         zorder=3,
     )
-    ax.bar_label(rects, padding=3, fmt='%.3f')
+    ax.bar_label(rects, padding=3, fmt="%.3f")
     ax.grid(True)
     ax.set_xticks([0.175, 0.5, 0.825, 1.175], ["RNN", "", "", "BiRNN"])
     ax.tick_params(axis="both", direction="in", which="both")

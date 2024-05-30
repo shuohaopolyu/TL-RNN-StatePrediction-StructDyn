@@ -821,7 +821,7 @@ def performance_evaluation():
         std_error_trrnn = np.std(error_trrnn[0:13])
         std_error_akf = np.std(error_akf[0:13])
 
-        color = ["b", "r", "g"]
+        color = ["b", "r", "grey"]
 
         ax.bar(
             [0 + i * 3, 0.6 + i * 3, 1.2 + i * 3],
