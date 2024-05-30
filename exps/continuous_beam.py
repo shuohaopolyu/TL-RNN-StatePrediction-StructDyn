@@ -584,68 +584,33 @@ def tr_training(
             strain_test_pred = _comp_strain_from_nodal_disp(
                 state_pred_test, loc_fbg_test
             )
-            loss1 = loss_fun(strain_train_pred[:, 0], measured_strain_train[:, 0])
-            if strain_train_pred.shape[1] > 1:
-                loss2 = loss_fun(strain_train_pred[:, 1], measured_strain_train[:, 1])
             test_loss = loss_fun(strain_test_pred, measured_strain_test)
             test_loss_list.append(test_loss.item())
 
-        if strain_train_pred.shape[1] > 1 and i % 10 == 0:
+        if i % 10 == 0:
             print(
-                f"Epoch {i}, Train Loss 1: {loss1.item()}, Train Loss 2: {loss2.item()}, Test Loss: {test_loss.item()}"
+                f"Epoch {i}, Train Loss 1: {loss.item()}, Test Loss: {test_loss.item()}"
             )
             torch.save(RNN4state.state_dict(), save_path)
-            if i % 1000 == 0:
-                fig, ax = plt.subplots(3, 1, figsize=(18, 12))
-                ax[0].plot(
-                    measured_strain_train[:, 0].detach().cpu().numpy(), color="gray"
-                )
-                ax[1].plot(
-                    measured_strain_train[:, 1].detach().cpu().numpy(), color="gray"
-                )
-                ax[2].plot(
-                    measured_strain_test[:, 0].detach().cpu().numpy(), color="gray"
-                )
-                ax[0].plot(strain_train_pred[:, 0].detach().cpu().numpy(), color="blue")
-                ax[1].plot(strain_train_pred[:, 1].detach().cpu().numpy(), color="blue")
-                ax[2].plot(strain_test_pred.detach().cpu().numpy(), color="blue")
-                plt.show()
+            # if i % 1000 == 0:
+            #     fig, ax = plt.subplots(3, 1, figsize=(18, 12))
+            #     ax[0].plot(
+            #         measured_strain_train[:, 0].detach().cpu().numpy(), color="gray"
+            #     )
+            #     ax[1].plot(
+            #         measured_strain_train[:, 1].detach().cpu().numpy(), color="gray"
+            #     )
+            #     ax[2].plot(
+            #         measured_strain_test[:, 0].detach().cpu().numpy(), color="gray"
+            #     )
+            #     ax[0].plot(strain_train_pred[:, 0].detach().cpu().numpy(), color="blue")
+            #     ax[1].plot(strain_train_pred[:, 1].detach().cpu().numpy(), color="blue")
+            #     ax[2].plot(strain_test_pred.detach().cpu().numpy(), color="blue")
+            #     plt.show()
             if RNN4state.bidirectional:
                 birnn_pred(path=save_path, plot_data=False)
             else:
                 rnn_pred(path=save_path, plot_data=False)
-
-        elif i % 100 == 0:
-            print(
-                f"Epoch {i}, Train Loss: {loss.item()}, Test Loss: {test_loss.item()}"
-            )
-            torch.save(RNN4state.state_dict(), save_path)
-            rnn_pred(path=save_path, plot_data=False)
-            # if i % 1000 == 0:
-            #     rnn_pred(path=save_path)
-
-        # if i % 200 == 0:
-        #     rnn_pred(path=save_path)
-        # if i % 1000 == 0:
-        # plt.plot(state_pred_test[286, :128:2].detach().cpu().numpy())
-        # plt.show()
-        # print(strain_train_pred[286, :])
-        # print(strain_test_pred[286, :])
-        # plt.plot(state_pred_test[:, 30].detach().cpu().numpy())
-        # plt.plot(state_pred_test[:, 31].detach().cpu().numpy())
-        # plt.plot(state_pred_test[:, 34].detach().cpu().numpy())
-        # plt.plot(state_pred_test[:, 35].detach().cpu().numpy())
-        # plt.show()
-        # fig, ax = plt.subplots(2, 1, figsize=(8, 6))
-        # ax[0].plot(measured_strain_train[:, 0].detach().cpu().numpy(), color="blue")
-        # ax[0].plot(
-        #     measured_strain_train[:, 1].detach().cpu().numpy(), color="green"
-        # )
-        # ax[0].plot(measured_strain_test[:, 0].detach().cpu().numpy(), color="red")
-        # ax[1].plot(strain_train_pred[:, 0].detach().cpu().numpy(), color="blue")
-        # ax[1].plot(strain_train_pred[:, 1].detach().cpu().numpy(), color="green")
-        # ax[1].plot(strain_test_pred.detach().cpu().numpy(), color="red")
-        # plt.show()
 
     return train_loss_list, test_loss_list
 
@@ -784,14 +749,14 @@ def rnn_pred(path="./dataset/csb/rnn.pth", plot_data=True):
     disp_pred_filtered = signal.filtfilt(b, a, disp_pred)
     b, a = signal.butter(2, filtered_freq, "lowpass", fs=5000 / compress_ratio)
     disp_data_filtered = signal.filtfilt(b, a, disp.reshape(-1))
-    print(
-        np.sum(
-            np.sqrt(
-                (disp_pred_filtered[:-shift].reshape(-1) - disp[shift:].reshape(-1))
-                ** 2
-            )
-        )
-    )
+    # print(
+    #     np.sum(
+    #         np.sqrt(
+    #             (disp_pred_filtered[:-shift].reshape(-1) - disp[shift:].reshape(-1))
+    #             ** 2
+    #         )
+    #     )
+    # )
     if plot_data:
         plt.figure(figsize=(14, 6))
         plt.plot(disp[shift:], label="true", color="black")
