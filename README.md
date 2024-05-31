@@ -36,7 +36,7 @@ The code is organized in the following way:
 
 - `main.py`: Contains the main program for running the experiments.
 - `models/`: Contains the RNN models used in the paper.
-- `exps/`: Contains experiments for the state estimation.
+- `experiments/`: Contains experiments for the state estimation.
 - `systems/`: Contains finite element models of the structures and solvers for response simulation.
 - `excitations/`: Contains the excitation models for the finite element simulations.
 - `dataset/`: Contains the data used in the paper.

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from models import Rnn
-from exps import shear_type_structure
+from experiments import shear_type_structure
 import pickle
 from utils import similarity
 

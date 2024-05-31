@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
-from exps import continuous_beam as cb
+from experiments import continuous_beam as cb
 import scipy.io
 import scipy.signal
 import torch
