@@ -1,6 +1,10 @@
-# TR-RNN-StatePrediction-StructDyn
+<h2 align="center"> State Estimation in Structural Dynamics through RNN Transfer Learning </h2>
 
-## State Estimation in Structural Dynamics through RNN Transfer Learning
+<div align="center"> Shuo Hao<sup>1</sup>, Hong-Wei Li<sup>1,2</sup>, Yi-Qing Ni<sup>1,2</sup>, Su-Mei Wang<sup>1</sup>, Wei-Jia Zhang<sup>1</sup>, Lei Yuan<sup>1,2</sup> </div>
+<div align="center"> <sup>1</sup>Department of Civil and Environmental Engineering, The Hong Kong Polytechnic University </div>
+<div align="center"> <sup>2</sup>National Rail Transit Electrification and Automation Engineering Technology Research Center (Hong Kong Branch) </div>
+
+## Introduction
 
 This is the code repository for the paper "State Estimation in Structural Dynamics through RNN Transfer Learning". It contains the code necessary to reproduce the numerical and experimental results presented in the paper. Now the code is under development and will be released soon.
 
