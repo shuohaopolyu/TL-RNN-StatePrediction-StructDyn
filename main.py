@@ -1,4 +1,4 @@
-from exps import (
+from experiments import (
     shear_type_structure,
     base_isolated_shear_type_structure,
     continuous_beam,
