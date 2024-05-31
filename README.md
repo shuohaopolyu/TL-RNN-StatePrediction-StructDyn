@@ -53,6 +53,6 @@ python main.py
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
-## References
+## Citation
 
 - Shuo Hao, Hong-Wei Li, Yi-Qing Ni, Su-Mei Wang, Wei-Jia Zhang, Lei Yuan. "State Estimation in Structural Dynamics through RNN Transfer Learning".
