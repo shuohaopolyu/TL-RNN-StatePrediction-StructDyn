@@ -1,12 +1,12 @@
-<h2 align="center"> State Estimation in Structural Dynamics through RNN Transfer Learning </h2>
-
+<!-- <h2 align="center"> State Estimation in Structural Dynamics through RNN Transfer Learning </h2> -->
+<!--
 <div align="center"> Shuo Hao<sup>1</sup>, Hong-Wei Li<sup>1,2</sup>, Yi-Qing Ni<sup>1,2</sup>, Wei-Jia Zhang<sup>1</sup>, Lei Yuan<sup>1,2</sup> </div>
 <div align="center"> <sup>1</sup>Department of Civil and Environmental Engineering, The Hong Kong Polytechnic University </div>
-<div align="center"> <sup>2</sup>National Rail Transit Electrification and Automation Engineering Technology Research Center (Hong Kong Branch) </div>
+<div align="center"> <sup>2</sup>National Rail Transit Electrification and Automation Engineering Technology Research Center (Hong Kong Branch) </div> -->
 
-## Introduction
+# TL-RNN-StatePrediction-StructDyn
 
-Model construction for state estimation is a pivotal concern in structural dynamics, driven by the need for effective control and health monitoring of structures. Traditional research has relied heavily on developing finite element models. However, the limited capability of finite element models to simulate actual structures and the complexity of the environments in which these structures operate pose significant challenges to the accuracy of model-based state estimations. This paper introduces a novel approach that leverages recurrent neural network (RNN)-based transfer learning to construct state estimation models, aiming to enhance the accuracy of state estimations for actual structures. A calibrated finite element model is used to generate extensive response data under synthetic excitation. This data is then processed and integrated to train an RNN model specifically designed for state estimation. Considering the diverse sensors involved in real-world structure monitoring, this study innovatively utilizes the collected data in a dual-purpose manner. A portion of this data serves as input for the RNN model, while the complete dataset facilitates the transfer learning process for the RNN model. This strategy enables the RNN model to adapt to real-structure state prediction. Unlike traditional deep learning transfer learning approaches that typically adjust parameters targeting the output layers, the proposed method fine-tunes parameters within the RNN cells at the network’s front end, ensuring the training converges effectively. Numerical and experimental studies demonstrate that the RNN, trained via transfer learning and integrating both model-generated and actual measurement data, achieves significantly higher accuracy under comparable data acquisition conditions than state estimation models based solely on finite element models.
+This repository contains the code for the paper "State Estimation in Structural Dynamics through RNN Transfer Learning". Feel free to contact us at [cee-shuo.hao@connect.polyu.hk](mailto:ceecee-shuo.hao@connect.polyu.hk) for any questions or comments.
 
 ## Installation
 
