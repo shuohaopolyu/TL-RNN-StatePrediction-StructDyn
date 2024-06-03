@@ -6,7 +6,7 @@
 
 # TL-RNN-StatePrediction-StructDyn
 
-This repository contains the code for the paper "State Estimation in Structural Dynamics through RNN Transfer Learning". Feel free to contact us at [cee-shuo.hao@connect.polyu.hk](mailto:ceecee-shuo.hao@connect.polyu.hk) for any questions or comments.
+This repository contains the code for the paper "State Estimation in Structural Dynamics through RNN Transfer Learning". Feel free to contact us for any questions or comments.
 
 ## Installation
 
