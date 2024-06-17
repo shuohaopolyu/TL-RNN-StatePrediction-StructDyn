@@ -39,6 +39,13 @@ def loss_curve():
         edgecolor="black",
         framealpha=1,
     )
+    # plt.legend(
+    #     ["RNN training", "BiRNN training"],
+    #     fontsize=8,
+    #     facecolor="white",
+    #     edgecolor="black",
+    #     framealpha=1,
+    # )
     plt.xlim(0, 80000)
     plt.xticks(
         [0, 20000, 40000, 60000, 80000],
@@ -49,7 +56,7 @@ def loss_curve():
     plt.xlabel(r"Epoch ($\times$10$^4$)", fontsize=8)
     plt.ylabel("Loss", fontsize=8)
     plt.grid(True)
-    # plt.savefig("./figures/loss_curve.svg", bbox_inches="tight")
+    plt.savefig("./figures/loss_curve.svg", bbox_inches="tight")
     plt.savefig("./figures/F_loss_curve.pdf", bbox_inches="tight")
     plt.show()
 
@@ -652,7 +659,10 @@ def performance_evaluation():
     # axs[0].set_ylim(0, 100)
     axs[0].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
     axs[0].set_ylabel("NRMSE")
-    axs[0].title.set_text("Displacement")
+    # axs[0].title.set_text("Displacement")
+    axs[0].text(
+        0.3, 0.9, "Displacement", ha="center", va="center", transform=axs[0].transAxes
+    )
     axs[0].tick_params(which="both", direction="in")
     axs[0].text(
         -0.1, -0.06, "(a)", ha="center", va="center", transform=axs[0].transAxes
@@ -679,13 +689,28 @@ def performance_evaluation():
         color="b",
         zorder=3,
     )
+    err = [mean_err_rnn_disp, mean_err_birnn_disp, mean_err_dkf_disp, mean_err_akf_disp]
+    # add bar labels
+    for i in range(4):
+        axs[0].text(
+            i,
+            err[i] + 0.006,
+            f"{err[i]:.3f}",
+            ha="center",
+            va="center",
+            color="black",
+        )
+
     # axs[0].savefig("./figures/performance_disp.svg", bbox_inches="tight")
     # plt.show()
     # plt.figure(figsize=(10 * cm, 8 * cm))
 
     axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
     axs[1].set_ylabel("NRMSE")
-    axs[1].title.set_text("Velocity")
+    # axs[1].title.set_text("Velocity")
+    axs[1].text(
+        0.3, 0.9, "Velocity", ha="center", va="center", transform=axs[1].transAxes
+    )
     axs[1].tick_params(which="both", direction="in")
     axs[1].text(
         -0.1,
@@ -695,8 +720,8 @@ def performance_evaluation():
         va="center",
         transform=axs[1].transAxes,
     )
-    axs[1].set_ylim(0, 0.3)
-    axs[1].set_yticks([0, 0.1, 0.2, 0.3])
+    axs[1].set_ylim(0, 0.2)
+    axs[1].set_yticks([0, 0.1, 0.2])
     axs[1].grid(True)
     axs[1].bar(
         np.arange(4),
@@ -716,6 +741,17 @@ def performance_evaluation():
         color="r",
         zorder=3,
     )
+    err = [mean_err_rnn_velo, mean_err_birnn_velo, mean_err_dkf_velo, mean_err_akf_velo]
+    # add bar labels
+    for i in range(4):
+        axs[1].text(
+            i,
+            err[i] + 0.006,
+            f"{err[i]:.3f}",
+            ha="center",
+            va="center",
+            color="black",
+        )
     plt.savefig("./figures/performance.svg", bbox_inches="tight")
     plt.savefig("./figures/F_performance.pdf", bbox_inches="tight")
     plt.show()

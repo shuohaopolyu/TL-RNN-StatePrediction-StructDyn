@@ -112,8 +112,10 @@ def ema():
         va="center",
         transform=axs[1, 1].transAxes,
     )
+    axs[1, 0].set_xlabel("Time (s)")
+    axs[1, 1].set_xlabel("Time (s)")
 
-    fig.supxlabel("Time (s)", fontsize=8)
+    # fig.supxlabel("Time (s)", fontsize=8)
     plt.savefig("./figures/F_csb_ema.pdf", bbox_inches="tight")
     plt.show()
 
@@ -170,7 +172,9 @@ def model_updating():
     axs[1, 2].plot(freq, phase_data[:, 2], color="red", linewidth=1.2)
     axs[1, 2].plot(freq, phase_mtx[:, 2], color="blue", linestyle="--", linewidth=1.2)
     # axs[1, 2].set_ylabel("Phase (rad)")
+    axs[1, 0].set_xlabel("Frequency (Hz)")
     axs[1, 1].set_xlabel("Frequency (Hz)")
+    axs[1, 2].set_xlabel("Frequency (Hz)")
 
     for j in range(3):
         for i in range(2):

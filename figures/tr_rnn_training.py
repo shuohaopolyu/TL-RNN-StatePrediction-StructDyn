@@ -667,101 +667,173 @@ def loss_curve():
         [0, 1, 2, 3, 4, 5, 6],
     ]
     figidx = ["(a)", "(b)", "(c)", "(d)"]
-    fig, axs = plt.subplots(2, 2, figsize=(18 * cm, 14 * cm))
+    # fig, axs = plt.subplots(2, 2, figsize=(18 * cm, 14 * cm))
 
-    for which in range(4):
-        comp_rate = 1
-        path = "./dataset/sts/tr_birnn" + format(which, "03") + ".pkl"
-        with open(path, "rb") as f:
-            tr_birnn_loss = pickle.load(f)
-        tr_birnn_loss = tr_birnn_loss[: epoch_list[which][1]]
-        tr_birnn_loss = np.array(tr_birnn_loss)
-        birnn_train_loss = tr_birnn_loss[::comp_rate, 0]
-        birnn_test_loss = tr_birnn_loss[::comp_rate, 1]
-        path = "./dataset/sts/tr_rnn" + format(which, "03") + ".pkl"
-        with open(path, "rb") as f:
-            tr_rnn_loss = pickle.load(f)
-        tr_rnn_loss = tr_rnn_loss[: epoch_list[which][0]]
-        tr_rnn_loss = np.array(tr_rnn_loss)
-        rnn_train_loss = tr_rnn_loss[::comp_rate, 0]
-        rnn_test_loss = tr_rnn_loss[::comp_rate, 1]
-        time_birnn = np.arange(0, len(birnn_train_loss) * comp_rate, comp_rate)
-        time = np.arange(0, len(rnn_train_loss) * comp_rate, comp_rate)
-        idx = (which // 2, which % 2)
-        axs[idx].plot(
-            time_birnn,
-            birnn_train_loss,
-            label="BiRNN training",
-            color="b",
-            linewidth=1.2,
-        )
-        axs[idx].plot(
-            time_birnn,
-            birnn_test_loss,
-            label="BiRNN test",
-            color="b",
-            linestyle="--",
-            linewidth=1.2,
-        )
-        axs[idx].plot(
-            time, rnn_train_loss, label="RNN training", color="r", linewidth=1.2
-        )
-        axs[idx].plot(
-            time,
-            rnn_test_loss,
-            label="RNN test",
-            color="r",
-            linestyle="--",
-            linewidth=1.2,
-        )
+    # for which in range(4):
+    #     comp_rate = 1
+    #     path = "./dataset/sts/tr_birnn" + format(which, "03") + ".pkl"
+    #     with open(path, "rb") as f:
+    #         tr_birnn_loss = pickle.load(f)
+    #     tr_birnn_loss = tr_birnn_loss[: epoch_list[which][1]]
+    #     tr_birnn_loss = np.array(tr_birnn_loss)
+    #     birnn_train_loss = tr_birnn_loss[::comp_rate, 0]
+    #     birnn_test_loss = tr_birnn_loss[::comp_rate, 1]
+    #     path = "./dataset/sts/tr_rnn" + format(which, "03") + ".pkl"
+    #     with open(path, "rb") as f:
+    #         tr_rnn_loss = pickle.load(f)
+    #     tr_rnn_loss = tr_rnn_loss[: epoch_list[which][0]]
+    #     tr_rnn_loss = np.array(tr_rnn_loss)
+    #     rnn_train_loss = tr_rnn_loss[::comp_rate, 0]
+    #     rnn_test_loss = tr_rnn_loss[::comp_rate, 1]
+    #     time_birnn = np.arange(0, len(birnn_train_loss) * comp_rate, comp_rate)
+    #     time = np.arange(0, len(rnn_train_loss) * comp_rate, comp_rate)
+    #     idx = (which // 2, which % 2)
+    #     axs[idx].plot(
+    #         time_birnn,
+    #         birnn_train_loss,
+    #         label="BiRNN training",
+    #         color="b",
+    #         linewidth=1.2,
+    #     )
+    #     axs[idx].plot(
+    #         time_birnn,
+    #         birnn_test_loss,
+    #         label="BiRNN test",
+    #         color="b",
+    #         linestyle="--",
+    #         linewidth=1.2,
+    #     )
+    #     axs[idx].plot(
+    #         time, rnn_train_loss, label="RNN training", color="r", linewidth=1.2
+    #     )
+    #     axs[idx].plot(
+    #         time,
+    #         rnn_test_loss,
+    #         label="RNN test",
+    #         color="r",
+    #         linestyle="--",
+    #         linewidth=1.2,
+    #     )
 
-        # axs[idx].legend(fontsize=8, facecolor="white", edgecolor="black", ncol=1)
-        axs[idx].set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
-        axs[idx].set_xticks(
-            x_ticks[which],
-            x_ticks_label[which],
-        )
-        axs[idx].set_xlabel(r"Epoch ($\times$10$^3$)", labelpad=0.1)
-        # ax.set_ylim(0, 0.1)
-        axs[idx].grid(True)
-        axs[idx].tick_params(which="both", direction="in")
-        axs[idx].set_ylabel("Loss")
-        axs[idx].set_yscale("log")
-        axs[idx].text(
-            -0.1,
-            -0.1,
-            figidx[which],
-            ha="center",
-            va="center",
-            transform=axs[idx].transAxes,
-        )
-        if which == 0:
-            fig.legend(
-                loc="outside upper center",
-                framealpha=1,
-                fontsize=8,
-                facecolor="white",
-                edgecolor="black",
-                ncol=4,
-                bbox_to_anchor=(0.5, 0.95),
-            )
+    #     # axs[idx].legend(fontsize=8, facecolor="white", edgecolor="black", ncol=1)
+    #     axs[idx].set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
+    #     axs[idx].set_xticks(
+    #         x_ticks[which],
+    #         x_ticks_label[which],
+    #     )
+    #     axs[idx].set_xlabel(r"Epoch ($\times$10$^3$)", labelpad=0.1)
+    #     # ax.set_ylim(0, 0.1)
+    #     axs[idx].grid(True)
+    #     axs[idx].tick_params(which="both", direction="in")
+    #     axs[idx].set_ylabel("Loss")
+    #     axs[idx].set_yscale("log")
+    #     axs[idx].text(
+    #         -0.1,
+    #         -0.1,
+    #         figidx[which],
+    #         ha="center",
+    #         va="center",
+    #         transform=axs[idx].transAxes,
+    #     )
+    #     if which == 0:
+    #         fig.legend(
+    #             loc="outside upper center",
+    #             framealpha=1,
+    #             fontsize=8,
+    #             facecolor="white",
+    #             edgecolor="black",
+    #             ncol=4,
+    #             bbox_to_anchor=(0.5, 0.95),
+    #         )
+    # # plt.tight_layout(pad=0.1)
+    # plt.savefig("./figures/tr_birnn_loss.svg", bbox_inches="tight")
+    # plt.savefig("./figures/F_tr_birnn_loss.pdf", bbox_inches="tight")
+    # plt.show()
+
+    # only plot the first
+    fig, ax = plt.subplots(1, 1, figsize=(9 * cm, 7 * cm))
+    which = 0
+    comp_rate = 1
+    path = "./dataset/sts/tr_birnn" + format(which, "03") + ".pkl"
+    with open(path, "rb") as f:
+        tr_birnn_loss = pickle.load(f)
+    tr_birnn_loss = tr_birnn_loss[: epoch_list[which][1]]
+    tr_birnn_loss = np.array(tr_birnn_loss)
+    birnn_train_loss = tr_birnn_loss[::comp_rate, 0]
+    birnn_test_loss = tr_birnn_loss[::comp_rate, 1]
+    path = "./dataset/sts/tr_rnn" + format(which, "03") + ".pkl"
+    with open(path, "rb") as f:
+        tr_rnn_loss = pickle.load(f)
+    tr_rnn_loss = tr_rnn_loss[: epoch_list[which][0]]
+    tr_rnn_loss = np.array(tr_rnn_loss)
+    rnn_train_loss = tr_rnn_loss[::comp_rate, 0]
+    rnn_test_loss = tr_rnn_loss[::comp_rate, 1]
+    time_birnn = np.arange(0, len(birnn_train_loss) * comp_rate, comp_rate)
+    time = np.arange(0, len(rnn_train_loss) * comp_rate, comp_rate)
+    ax.plot(
+        time_birnn,
+        birnn_train_loss,
+        label="BiRNN training",
+        color="b",
+        linewidth=1.2,
+    )
+    ax.plot(
+        time_birnn,
+        birnn_test_loss,
+        label="BiRNN test",
+        color="b",
+        linestyle="--",
+        linewidth=1.2,
+    )
+    ax.plot(time, rnn_train_loss, label="RNN training", color="r", linewidth=1.2)
+    ax.plot(
+        time,
+        rnn_test_loss,
+        label="RNN test",
+        color="r",
+        linestyle="--",
+        linewidth=1.2,
+    )
+
+    ax.legend(fontsize=8, facecolor="white", edgecolor="black", ncol=1)
+    ax.set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
+    ax.set_xticks(
+        x_ticks[which],
+        x_ticks_label[which],
+    )
+    ax.set_xlabel(r"Epoch ($\times$10$^3$)", labelpad=0.1)
+    # ax.set_ylim(0, 0.1)
+    ax.grid(True)
+    ax.tick_params(which="both", direction="in")
+    ax.set_ylabel("Loss")
+    ax.set_yscale("log")
     # plt.tight_layout(pad=0.1)
-    plt.savefig("./figures/tr_birnn_loss.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_tr_birnn_loss.pdf", bbox_inches="tight")
+    plt.savefig("./figures/tr_birnn_loss_1.svg", bbox_inches="tight")
+    plt.savefig("./figures/F_tr_birnn_loss_1.pdf", bbox_inches="tight")
     plt.show()
 
 
 def performance_evaluation():
     disp_akf, _ = shear_type_structure.integr_akf_seismic_pred()
-    fig, ax = plt.subplots(1, 1, figsize=(11 * cm, 6 * cm))
-    ax.set_xticks([0.6, 3.6, 6.6, 9.6], ["Kobe", "Kern County", "El Álamo", "Taiwan"])
+    fig, ax = plt.subplots(1, 1, figsize=(16 * cm, 6 * cm))
+    width_is = 1.4
+    batch_width = 5
+    ax.set_xticks(
+        [
+            width_is,
+            width_is + batch_width,
+            width_is + batch_width * 2,
+            width_is + batch_width * 3,
+        ],
+        ["Kobe", "Kern County", "El Álamo", "Taiwan"],
+    )
 
     # ax.set_ylim(0, 100)
     ax.set_ylabel("NRMSE")
     # ax.set_xlabel("Model")
     ax.tick_params(which="both", direction="in")
-    ax.set_ylim(0, 0.5)
-    ax.set_yticks(np.arange(0, 0.51, 0.1))
+    ax.set_ylim(0, 0.6)
+    ax.set_yticks(np.arange(0, 0.61, 0.1))
     ax.grid(True, zorder=-1.0)
 
     for i in range(4):
@@ -824,7 +896,11 @@ def performance_evaluation():
         color = ["b", "r", "grey"]
 
         ax.bar(
-            [0 + i * 3, 0.6 + i * 3, 1.2 + i * 3],
+            [
+                0 + i * batch_width,
+                width_is + i * batch_width,
+                width_is * 2 + i * batch_width,
+            ],
             [mean_error_trbirnn, mean_error_trrnn, mean_error_akf],
             # yerr=[
             #     std_error_trbirnn,
@@ -832,11 +908,25 @@ def performance_evaluation():
             #     std_error_akf,
             # ],
             color=color,
-            width=0.6,
+            width=width_is,
             # capsize=3,
             label=["TL-BiRNN", "TL-RNN", "Integr. AKF"],
             zorder=3,
         )
+
+        # add bar labels
+        for j, value in enumerate(
+            [mean_error_trbirnn, mean_error_trrnn, mean_error_akf]
+        ):
+            ax.text(
+                j * width_is + i * batch_width,
+                value + 0.01,
+                f"{value:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
         if i == 0:
             box = ax.get_position()
             ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -845,9 +935,9 @@ def performance_evaluation():
                 fontsize=8,
                 facecolor="white",
                 edgecolor="black",
-                ncol=1,
-                loc="center left",
-                bbox_to_anchor=(1, 0.5),
+                ncol=3,
+                # loc="center left",
+                # bbox_to_anchor=(1, 0.5),
             )
 
     plt.savefig("./figures/tr_birnn_performance.svg", bbox_inches="tight")

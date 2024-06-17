@@ -105,7 +105,7 @@ def plot_ground_motion():
         axs[i // 2, i % 2].set_yticks(yticks_list[i])
         axs[i // 2, i % 2].set_xticks(xticks_list[i])
         axs[i // 2, i % 2].text(
-            0.8,
+            0.5,
             0.85,
             text_desc[i],
             ha="center",
@@ -113,8 +113,10 @@ def plot_ground_motion():
             transform=axs[i // 2, i % 2].transAxes,
             fontsize=8,
         )
+        if i > 1:
+            axs[i // 2, i % 2].set_xlabel("Time (s)", fontsize=8)
 
-    fig.supxlabel("Time (s)", fontsize=8)
+    # fig.supxlabel("Time (s)", fontsize=8)
     fig.supylabel("Acceleration (g)", position=(0.05, 0.5), fontsize=8)
     plt.savefig("./figures/strong_ground_motion.svg", bbox_inches="tight")
     plt.savefig("./figures/F_strong_ground_motion.pdf", bbox_inches="tight")
