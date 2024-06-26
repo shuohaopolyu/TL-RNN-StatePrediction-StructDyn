@@ -42,7 +42,7 @@ def cwt_acc_g():
     cwtmatr = signal.cwt(acc_g, signal.ricker, widths)
     cwtmatr_yflip = np.flipud(cwtmatr)
 
-    fig, axs = plt.subplots(1, 2, figsize=(18 * cm, 7 * cm))
+    fig, axs = plt.subplots(1, 2, figsize=(16.4 * cm, 6 * cm))
     axs[0].plot(time, acc_g / 9.8, color="b", linewidth=1.5)
     axs[0].tick_params(which="both", direction="in")
     axs[0].set_xlabel("Time (s)", fontsize=7)

@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # tr_rnn_training.loss_curve()
     # tr_rnn_training.performance_evaluation()
     # csb_rnn.ema()
-    # csb_rnn.model_updating()
+    csb_rnn.model_updating()
     # csb_rnn.loss_curve()
     # csb_rnn.state_pred()
     # csb_rnn.input_acc()

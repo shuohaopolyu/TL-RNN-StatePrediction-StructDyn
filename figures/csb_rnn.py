@@ -188,7 +188,7 @@ def model_updating():
         freq, amp_data[:, 0], color="red", linewidth=1.2, label="Measurements"
     )
     axs[0, 0].plot(
-        freq, amp_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2, label="Model"
+        freq, amp_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2, label="Model results"
     )
 
     axs[0, 0].set_yscale("log")
@@ -205,7 +205,7 @@ def model_updating():
         freq, amp_data[:, 1], color="red", linewidth=1.2, label="Measurements"
     )
     axs[0, 1].plot(
-        freq, amp_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2, label="Model"
+        freq, amp_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2, label="Model results"
     )
     axs[0, 1].set_yscale("log")
     axs[0, 1].set_ylim(1e-2, 1e2)
