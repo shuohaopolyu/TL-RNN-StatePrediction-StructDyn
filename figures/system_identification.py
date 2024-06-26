@@ -6,12 +6,19 @@ import numpy.linalg as LA
 from matplotlib.legend import _get_legend_handles_labels
 import matplotlib.pylab as pl
 import matplotlib.gridspec as gridspec
+from matplotlib import rcParams
 
-# set the fonttype to be Arial
-plt.rcParams["font.family"] = "Times New Roman"
-# set the font size's default value
-plt.rcParams.update({"font.size": 8})
-ts = {"fontname": "Times New Roman"}
+# # set the fonttype to be Arial
+config = {
+    "font.family": "serif",
+    "font.serif": "Times New Roman",
+    "font.weight": "normal",
+    "font.size": 7,
+    "mathtext.fontset": "stix",
+}
+rcParams.update(config)
+
+
 cm = 1 / 2.54  # centimeters in inches
 
 
@@ -146,7 +153,7 @@ def base_loads():
     alpha = 0.7
     base_elastic_force = alpha * 1300 * disp[:, 0]
     base_hysteretic_force = (1 - alpha) * 10 * z
-    plt.figure(figsize=(18 * cm, 6 * cm))
+    plt.figure(figsize=(16.4 * cm, 5 * cm))
     plt.plot(
         time[:2000],
         base_elastic_force[:2000] * 1.2e2,
@@ -160,22 +167,25 @@ def base_loads():
         label="Hysteretic force",
         color="blue",
         linewidth=0.8,
+        linestyle="--",
     )
     plt.xlim(0, 100)
     plt.ylim(-10, 10)
-    plt.yticks(np.arange(-10, 11, 5), fontsize=8)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Base shear force (kN)")
+    plt.yticks(np.arange(-10, 11, 5), fontsize=7)
+    plt.xticks(np.arange(0, 101, 20), fontsize=7)
+    plt.xlabel("Time (s)", fontsize=7)
+    plt.ylabel("Base shear force (kN)", fontsize=7)
     plt.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
     )
     plt.grid(True)
     plt.tick_params(axis="both", direction="in")
-    plt.savefig("./figures/base_loads.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_base_loads.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.0)
+    plt.savefig("./figures/base_loads.svg")
+    plt.savefig("./figures/F_base_loads.pdf")
     plt.show()
 
 
@@ -195,14 +205,16 @@ def singular_values():
 
     fig.set_size_inches(9 * cm, 7 * cm)
     plt.tick_params(axis="both", direction="in")
-    plt.ylim([-80, 10])
-    plt.ylabel("Singular values of \n cross-spectral matrices (dB)")
-    plt.xlabel("Frequency (Hz)")
-    plt.xticks(fontsize=8)
-    plt.yticks(fontsize=8)
+    plt.ylim([-60, 10])
+    plt.xticks(np.arange(0, 9, 1), fontsize=7)
+    plt.ylabel("Singular values of \n cross-spectral matrices (dB)", fontsize=7)
+    plt.xlabel("Frequency (Hz)", fontsize=7)
+    plt.xticks(fontsize=7)
+    plt.yticks(fontsize=7)
     plt.title("")
-    plt.savefig("./figures/singular_values.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_singular_values.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.0)
+    plt.savefig("./figures/singular_values.svg")
+    plt.savefig("./figures/F_singular_values.pdf")
     plt.show()
 
 
@@ -244,15 +256,15 @@ def mode_shape_old():
         axs[i].set_ylim(-0.5, 12.5)
         axs[i].set_xlim(-1.1, 1.1)
         axs[i].grid(True)
-        axs[i].set_yticks(range(13), [str(i + 1) for i in range(13)], fontsize=8)
-        axs[i].set_xticks([0], [str(i + 1)], fontsize=8)
+        axs[i].set_yticks(range(13), [str(i + 1) for i in range(13)], fontsize=7)
+        axs[i].set_xticks([0], [str(i + 1)], fontsize=7)
         # axs[i].set_xlabel(idx_list[i])
         if i == 0:
             axs[i].set_ylabel("Degree of freedom")
             axs[0].legend(
                 loc="upper center",
                 bbox_to_anchor=(3, 1.1),
-                fontsize=8,
+                fontsize=7,
                 facecolor="white",
                 edgecolor="black",
                 ncol=2,
@@ -301,15 +313,15 @@ def mode_shape(i=0):
     plt.ylim(-0.5, 12.5)
     plt.xlim(-1.1, 1.1)
     plt.grid(True)
-    plt.yticks(range(13), [str(i + 1) for i in range(13)], fontsize=8)
-    plt.xticks([0], [str(i + 1)], fontsize=8)
+    plt.yticks(range(13), [str(i + 1) for i in range(13)], fontsize=7)
+    plt.xticks([0], [str(i + 1)], fontsize=7)
     # axs[i].set_xlabel(idx_list[i])
     if i == 0:
-        plt.ylabel("Degree of freedom", labelpad=0)
+        plt.ylabel("Degree of freedom", labelpad=-1, fontsize=7)
         plt.legend(
             loc="upper center",
             bbox_to_anchor=(3, 1.06),
-            fontsize=8,
+            fontsize=7,
             facecolor="white",
             edgecolor="black",
             ncol=2,
@@ -321,12 +333,13 @@ def mode_shape(i=0):
             ha="center",
             va="center",
             transform=plt.gca().transAxes,
+            fontsize=7,
         )
     else:
         plt.yticks(alpha=0)
         plt.ylabel(None)
     if i == 2:
-        plt.xlabel("Mode")
+        plt.xlabel("Mode", labelpad=0, fontsize=7)
 
 
 def natural_frequency():
@@ -343,17 +356,40 @@ def natural_frequency():
         0.25,
         color="red",
         label="Model results",
-    )
-    plt.bar(x + 0.125 + 1, nf[:5], 0.25, color="blue", label="Measurements")
-    plt.xlabel("Mode", fontsize=8, labelpad=0)
-    plt.tick_params(axis="both", direction="in")
-    plt.ylabel("Natural frequency (Hz)", labelpad=1)
-    plt.legend(
-        fontsize=8,
-        facecolor="white",
+        zorder=3,
         edgecolor="black",
     )
-    plt.text(-0.1, -0.1, "(b)", ha="center", va="center", transform=plt.gca().transAxes)
+    plt.bar(
+        x + 0.125 + 1,
+        nf[:5],
+        0.25,
+        color="blue",
+        label="Measurements",
+        zorder=2,
+        edgecolor="black",
+    )
+    plt.xlabel("Mode", fontsize=7, labelpad=0)
+    plt.tick_params(axis="both", direction="in")
+    plt.ylabel("Natural frequency (Hz)", labelpad=1, fontsize=7)
+    plt.legend(
+        fontsize=7,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=1,
+    )
+    plt.ylim(0, 5)
+    plt.yticks(np.arange(0, 5.1, 1), fontsize=7)
+    plt.xticks(np.arange(1, 6, 1), fontsize=7)
+    plt.grid(True, zorder=1)
+    plt.text(
+        -0.1,
+        -0.1,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=plt.gca().transAxes,
+        fontsize=7,
+    )
     # plt.savefig("./figures/natural_frequency.svg", bbox_inches="tight")
     # print((model_nf[:5] - nf[:5]) / nf[:5])
     # plt.show()
@@ -361,12 +397,6 @@ def natural_frequency():
 
 def params():
 
-    # Set the LaTeX preamble to use specific packages or font settings
-    # plt.rcParams["text.latex.preamble"] = [
-    #     r"\usepackage{amsmath}",  # for mathematical expressions
-    #     r"\usepackage{amssymb}",  # for mathematical symbols
-    #     r"\usepackage{mathpazo}",  # use the Palatino font
-    # ]
     k_sub = [
         r"$k_1$",
         r"$k_2$",
@@ -394,21 +424,47 @@ def params():
 
     # fig, ax = plt.subplots(1, 1, figsize=(8 * cm, 8 * cm))
     plt.barh(
-        x - 0.15 + 1, measured_params, 0.3, label="Updated parameters", color="blue"
-    )
-    plt.barh(x + 0.15 + 1, model_params, 0.3, label="True parameters", color="red")
-    plt.yticks(range(1, 14, 1))
-    plt.tick_params(axis="both", direction="in")
-    plt.legend(
-        fontsize=8,
-        facecolor="white",
+        x - 0.15 + 1,
+        measured_params,
+        0.3,
+        label="Updated parameters",
+        color="blue",
+        zorder=2,
         edgecolor="black",
     )
+    plt.barh(
+        x + 0.15 + 1,
+        model_params,
+        0.3,
+        label="True parameters",
+        color="red",
+        zorder=3,
+        edgecolor="black",
+    )
+    plt.yticks(range(1, 14, 1), fontsize=7)
+    plt.tick_params(axis="both", direction="in")
+    plt.legend(
+        fontsize=7,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=1,
+    )
     plt.xlim(0, 1.6)
-    plt.xticks(np.arange(0, 1.7, 0.4))
-    plt.xlabel(r"Stiffness parameter values ($\times$10$^5$ kN/m)", labelpad=1)
-    plt.yticks(x + 1, k_sub, fontsize=8)
-    plt.text(-0.1, -0.1, "(a)", ha="center", va="center", transform=plt.gca().transAxes)
+    plt.xticks(np.arange(0, 1.7, 0.4), ["0", "0.4", "0.8", "1.2", "1.6"], fontsize=7)
+    plt.grid(True, zorder=1)
+    plt.xlabel(
+        r"Stiffness parameter values ($\times$10$^5$ kN/m)", labelpad=0.1, fontsize=7
+    )
+    plt.yticks(x + 1, k_sub, fontsize=7)
+    plt.text(
+        -0.1,
+        -0.1,
+        "(a)",
+        ha="center",
+        va="center",
+        transform=plt.gca().transAxes,
+        fontsize=7,
+    )
 
     # plt.savefig("./figures/params.svg", bbox_inches="tight")
     # plt.show()
@@ -417,7 +473,7 @@ def params():
 def model_updating():
     # combine the above theree figures
     gs = gridspec.GridSpec(15, 19)
-    pl.figure(figsize=(19 * cm, 15 * cm))
+    pl.figure(figsize=(16.4 * cm, 14 * cm))
     ax1 = pl.subplot(gs[:8, :8])
     params()
     ax2 = pl.subplot(gs[9:, :8])
@@ -432,5 +488,8 @@ def model_updating():
     mode_shape(3)
     ax7 = pl.subplot(gs[:, 17:])
     mode_shape(4)
-
-    plt.savefig("./figures/F_model_updating.pdf", bbox_inches="tight")
+    plt.subplots_adjust(
+        left=0.05, right=0.99, top=0.95, bottom=0.05, wspace=0.2, hspace=0.2
+    )
+    plt.savefig("./figures/F_model_updating.pdf", dpi=300)
+    plt.show()

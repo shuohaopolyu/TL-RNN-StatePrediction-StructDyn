@@ -5,14 +5,24 @@ from models import Rnn
 from experiments import shear_type_structure
 import pickle
 from utils import similarity
+from matplotlib import rcParams
 
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Times New Roman"
 # set the font size's default value
-plt.rcParams.update({"font.size": 8})
+plt.rcParams.update({"font.size": 7})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+config = {
+    "font.family": "serif",
+    "font.serif": "Times New Roman",
+    "font.weight": "normal",
+    "font.size": 7,
+    "mathtext.fontset": "stix",
+}
+rcParams.update(config)
 
 
 def disp_birnn_pred(which=0):
@@ -76,7 +86,7 @@ def disp_birnn_pred(which=0):
     ax.set_ylim(-20, 20)
 
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         ncol=3,
@@ -159,7 +169,7 @@ def disp_rnn_pred(which=0):
 
     ax.set_ylim(-20, 60)
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         ncol=4,
@@ -241,7 +251,7 @@ def disp_kf_pred(which=0):
         linestyle="--",
     )
     ax.set_ylim(-20, 40)
-    ax.legend(fontsize=8, facecolor="white", edgecolor="black", ncol=3)
+    ax.legend(fontsize=7, facecolor="white", edgecolor="black", ncol=3)
     ax.set_xlim(0, 40)
     ax.grid(True)
     ax.tick_params(which="both", direction="in")
@@ -262,7 +272,8 @@ def disp_pred(which=1):
     xlim = (0, 70)
     ylim = (-6, 6)
     yticks = np.arange(-6, 7, 2)
-    fig, ax = plt.subplots(3, 1, figsize=(18 * cm, 18 * cm))
+    xticks = np.arange(0, 71, 10)
+    fig, ax = plt.subplots(3, 1, figsize=(16.4 * cm, 15 * cm))
 
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
@@ -309,6 +320,7 @@ def disp_pred(which=1):
         label="Ref.",
         color="k",
         linewidth=lw,
+        zorder=100,
     )
     ax[0].plot(
         time,
@@ -317,6 +329,7 @@ def disp_pred(which=1):
         color="r",
         linewidth=lw,
         linestyle="-.",
+        zorder=100,
     )
     ax[0].plot(
         time,
@@ -325,27 +338,40 @@ def disp_pred(which=1):
         color="b",
         linewidth=lw,
         linestyle="--",
+        zorder=100,
     )
     ax[0].set_ylim(*ylim)
 
     ax[0].legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         ncol=3,
         framealpha=1,
         loc="lower left",
-    )
+    ).set_zorder(10)
     ax[0].set_xlim(*xlim)
     ax[0].grid(True)
     ax[0].tick_params(which="both", direction="in")
-    ax[0].set_yticks(yticks)
+
+    ax[0].set_yticks(yticks, ["-6", "-4", "-2", "0", "2", "4", "6"], fontsize=7)
+    ax[0].set_xticks(
+        xticks, ["0", "10", "20", "30", "40", "50", "60", "70"], fontsize=7
+    )
     # ax[0].text(
     #     0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[0].transAxes
     # )
-    ax[0].text(-0.05, -0.1, "(a)", ha="center", va="center", transform=ax[0].transAxes)
+    ax[0].text(
+        -0.04,
+        -0.1,
+        "(a)",
+        ha="center",
+        va="center",
+        transform=ax[0].transAxes,
+        fontsize=7,
+    )
     # ax[0].set_xlabel("Time (s)")
-    ax[0].set_ylabel("Displacement (cm)")
+    ax[0].set_ylabel("Displacement (cm)", fontsize=7)
 
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
@@ -394,6 +420,7 @@ def disp_pred(which=1):
         label="Ref.",
         color="k",
         linewidth=lw,
+        zorder=100,
     )
     ax[1].plot(
         time,
@@ -402,6 +429,7 @@ def disp_pred(which=1):
         color="r",
         linewidth=lw,
         linestyle="-.",
+        zorder=100,
     )
     ax[1].plot(
         time,
@@ -410,26 +438,39 @@ def disp_pred(which=1):
         color="b",
         linewidth=lw,
         linestyle="--",
+        zorder=100,
     )
 
     ax[1].set_ylim(*ylim)
     ax[1].legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         ncol=3,
         framealpha=1,
-    )
+        loc="lower left",
+    ).set_zorder(10)
     ax[1].set_xlim(*xlim)
     ax[1].grid(True)
     ax[1].tick_params(which="both", direction="in")
-    ax[1].set_yticks(yticks)
     # ax[1].text(
     #     0.1, 0.1, "8th floor", ha="center", va="center", transform=ax[1].transAxes
     # )
     # ax[1].set_xlabel("Time (s)")
-    ax[1].set_ylabel("Displacement (cm)")
-    ax[1].text(-0.05, -0.1, "(b)", ha="center", va="center", transform=ax[1].transAxes)
+    ax[1].set_yticks(yticks, ["-6", "-4", "-2", "0", "2", "4", "6"], fontsize=7)
+    ax[1].set_xticks(
+        xticks, ["0", "10", "20", "30", "40", "50", "60", "70"], fontsize=7
+    )
+    ax[1].set_ylabel("Displacement (cm)", fontsize=7)
+    ax[1].text(
+        -0.04,
+        -0.1,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=ax[1].transAxes,
+        fontsize=7,
+    )
     acc_sensor = [0, 1, 2, 3, 4]
     num_seismic = 4
     _, state_list = shear_type_structure.generate_seismic_response(
@@ -462,6 +503,7 @@ def disp_pred(which=1):
         label="Ref.",
         color="k",
         linewidth=lw,
+        zorder=100,
     )
     ax[2].plot(
         time,
@@ -470,6 +512,7 @@ def disp_pred(which=1):
         color="r",
         linewidth=lw,
         linestyle="-.",
+        zorder=100,
     )
     ax[2].plot(
         time,
@@ -478,6 +521,7 @@ def disp_pred(which=1):
         color="b",
         linewidth=lw,
         linestyle="--",
+        zorder=100,
     )
     ax[2].plot(
         time,
@@ -486,6 +530,7 @@ def disp_pred(which=1):
         color="lime",
         linewidth=lw,
         linestyle=":",
+        zorder=100,
     )
     ax[2].plot(
         time,
@@ -494,27 +539,41 @@ def disp_pred(which=1):
         color="m",
         linewidth=lw,
         linestyle="--",
+        zorder=100,
     )
     ax[2].set_ylim(*ylim)
     ax[2].legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         ncol=5,
         framealpha=1,
-    )
+        loc="lower left",
+    ).set_zorder(10)
     ax[2].set_xlim(*xlim)
     ax[2].grid(True)
     ax[2].tick_params(which="both", direction="in")
-    ax[2].set_yticks(yticks)
     # ax[2].text(
     #     0.1, 0.125, "8th floor", ha="center", va="center", transform=ax[2].transAxes
     # )
-    ax[2].set_xlabel("Time (s)")
-    ax[2].set_ylabel("Displacement (cm)")
-    ax[2].text(-0.05, -0.1, "(c)", ha="center", va="center", transform=ax[2].transAxes)
-    plt.savefig("./figures/tr_disp.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_tr_disp.pdf", bbox_inches="tight")
+    ax[2].set_xlabel("Time (s)", fontsize=7)
+    ax[2].set_ylabel("Displacement (cm)", fontsize=7)
+    ax[2].text(
+        -0.04,
+        -0.1,
+        "(c)",
+        ha="center",
+        va="center",
+        transform=ax[2].transAxes,
+        fontsize=7,
+    )
+    ax[2].set_yticks(yticks, ["-6", "-4", "-2", "0", "2", "4", "6"], fontsize=7)
+    ax[2].set_xticks(
+        xticks, ["0", "10", "20", "30", "40", "50", "60", "70"], fontsize=7
+    )
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/tr_disp.svg")
+    plt.savefig("./figures/F_tr_disp.pdf")
     plt.show()
 
 
@@ -587,9 +646,14 @@ def velo_pred(which=1):
     output6[1:, :] = output6[:-1, :]
     output6[:, 0] = 0
     time = np.arange(0, output.shape[0] / 20, 1 / 20)
-    fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
+    fig, ax = plt.subplots(1, 1, figsize=(16.4 * cm, 5 * cm))
     ax.plot(
-        time, state_tensor[:, dof + 13] * 100, label="Ref.", color="k", linewidth=1.2
+        time,
+        state_tensor[:, dof + 13] * 100,
+        label="Ref.",
+        color="k",
+        linewidth=1.2,
+        zorder=100,
     )
     ax.plot(
         time,
@@ -598,6 +662,7 @@ def velo_pred(which=1):
         color="r",
         linewidth=0.8,
         linestyle="--",
+        zorder=100,
     )
     ax.plot(
         time,
@@ -606,6 +671,7 @@ def velo_pred(which=1):
         color="b",
         linewidth=0.8,
         linestyle=":",
+        zorder=100,
     )
     ax.plot(
         time,
@@ -614,6 +680,7 @@ def velo_pred(which=1):
         color="orange",
         linewidth=0.8,
         linestyle="-.",
+        zorder=100,
     )
     ax.plot(
         time,
@@ -622,19 +689,26 @@ def velo_pred(which=1):
         color="m",
         linewidth=0.8,
         linestyle="-.",
+        zorder=100,
     )
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         ncol=3,
         framealpha=1,
-    )
+        loc="upper right",
+    ).set_zorder(10)
     ax.set_xlim(0, 70)
     ax.set_ylim(-20, 20)
     ax.grid(True)
     ax.tick_params(which="both", direction="in")
-    ax.set_yticks(np.arange(-20, 21, 10))
+    ax.set_yticks(np.arange(-20, 21, 10), ["-20", "-10", "0", "10", "20"], fontsize=7)
+    ax.set_xticks(
+        np.arange(0, 71, 10),
+        ["0", "10", "20", "30", "40", "50", "60", "70"],
+        fontsize=7,
+    )
     ax.text(
         0.1,
         0.875,
@@ -642,11 +716,13 @@ def velo_pred(which=1):
         ha="center",
         va="center",
         transform=plt.gca().transAxes,
+        fontsize=7,
     )
-    ax.set_xlabel("Time (s)")
-    ax.set_ylabel("Velocity (cm/s)")
-    plt.savefig("./figures/tr_velo.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_tr_velo.pdf", bbox_inches="tight")
+    ax.set_xlabel("Time (s)", fontsize=7)
+    ax.set_ylabel("Velocity (cm/s)", fontsize=7)
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/tr_velo.svg")
+    plt.savefig("./figures/F_tr_velo.pdf")
     plt.show()
 
 
@@ -715,7 +791,7 @@ def loss_curve():
     #         linewidth=1.2,
     #     )
 
-    #     # axs[idx].legend(fontsize=8, facecolor="white", edgecolor="black", ncol=1)
+    #     # axs[idx].legend(fontsize=7, facecolor="white", edgecolor="black", ncol=1)
     #     axs[idx].set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
     #     axs[idx].set_xticks(
     #         x_ticks[which],
@@ -739,7 +815,7 @@ def loss_curve():
     #         fig.legend(
     #             loc="outside upper center",
     #             framealpha=1,
-    #             fontsize=8,
+    #             fontsize=7,
     #             facecolor="white",
     #             edgecolor="black",
     #             ncol=4,
@@ -795,27 +871,30 @@ def loss_curve():
         linewidth=1.2,
     )
 
-    ax.legend(fontsize=8, facecolor="white", edgecolor="black", ncol=1)
-    ax.set_xlim(-xlim_max[which] * 0.01, xlim_max[which])
+    ax.legend(fontsize=7, facecolor="white", edgecolor="black", ncol=1)
+    ax.set_xlim(0, xlim_max[which])
+    ax.set_ylim(1e-8, 1e-3)
     ax.set_xticks(
         x_ticks[which],
         x_ticks_label[which],
+        fontsize=7,
     )
-    ax.set_xlabel(r"Epoch ($\times$10$^3$)", labelpad=0.1)
+    plt.yticks(fontsize=7)
+    ax.set_xlabel(r"Epoch ($\times$10$^3$)", labelpad=0.1, fontsize=7)
     # ax.set_ylim(0, 0.1)
     ax.grid(True)
     ax.tick_params(which="both", direction="in")
-    ax.set_ylabel("Loss")
+    ax.set_ylabel("Loss", fontsize=7)
     ax.set_yscale("log")
-    # plt.tight_layout(pad=0.1)
-    plt.savefig("./figures/tr_birnn_loss_1.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_tr_birnn_loss_1.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/tr_birnn_loss_1.svg")
+    plt.savefig("./figures/F_tr_birnn_loss_1.pdf")
     plt.show()
 
 
 def performance_evaluation():
     disp_akf, _ = shear_type_structure.integr_akf_seismic_pred()
-    fig, ax = plt.subplots(1, 1, figsize=(16 * cm, 6 * cm))
+    fig, ax = plt.subplots(1, 1, figsize=(14 * cm, 5 * cm))
     width_is = 1.4
     batch_width = 5
     ax.set_xticks(
@@ -826,14 +905,19 @@ def performance_evaluation():
             width_is + batch_width * 3,
         ],
         ["Kobe", "Kern County", "El Álamo", "Taiwan"],
+        fontsize=7,
     )
 
     # ax.set_ylim(0, 100)
-    ax.set_ylabel("NRMSE")
+    ax.set_ylabel("NRMSE", fontsize=7)
     # ax.set_xlabel("Model")
     ax.tick_params(which="both", direction="in")
     ax.set_ylim(0, 0.6)
-    ax.set_yticks(np.arange(0, 0.61, 0.1))
+    ax.set_yticks(
+        np.arange(0, 0.61, 0.1),
+        ["0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6"],
+        fontsize=7,
+    )
     ax.grid(True, zorder=-1.0)
 
     for i in range(4):
@@ -912,6 +996,7 @@ def performance_evaluation():
             # capsize=3,
             label=["TL-BiRNN", "TL-RNN", "Integr. AKF"],
             zorder=3,
+            edgecolor="black",
         )
 
         # add bar labels
@@ -924,7 +1009,7 @@ def performance_evaluation():
                 f"{value:.3f}",
                 ha="center",
                 va="bottom",
-                fontsize=8,
+                fontsize=7,
             )
 
         if i == 0:
@@ -932,14 +1017,14 @@ def performance_evaluation():
             ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
             ax.legend(
                 ["TL-BiRNN", "TL-RNN", "Integr. AKF"],
-                fontsize=8,
+                fontsize=7,
                 facecolor="white",
                 edgecolor="black",
                 ncol=3,
                 # loc="center left",
                 # bbox_to_anchor=(1, 0.5),
             )
-
-    plt.savefig("./figures/tr_birnn_performance.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_tr_birnn_performance.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/tr_birnn_performance.svg")
+    plt.savefig("./figures/F_tr_birnn_performance.pdf")
     plt.show()

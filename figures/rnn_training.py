@@ -5,13 +5,25 @@ from models import Rnn
 from experiments import shear_type_structure
 import pickle
 from utils import similarity
+from matplotlib import rcParams
 
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Times New Roman"
 # set the font size's default value
-plt.rcParams.update({"font.size": 8})
+plt.rcParams.update({"font.size": 7})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
+
+# # set the fonttype to be Arial
+config = {
+    "font.family": "serif",
+    "font.serif": "Times New Roman",
+    "font.weight": "normal",
+    "font.size": 7,
+    "mathtext.fontset": "stix",
+}
+rcParams.update(config)
+
 
 
 def loss_curve():
@@ -34,30 +46,36 @@ def loss_curve():
     plt.tick_params(which="both", direction="in")
     plt.legend(
         ["RNN training", "RNN test", "BiRNN training", "BiRNN test"],
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
     )
     # plt.legend(
     #     ["RNN training", "BiRNN training"],
-    #     fontsize=8,
+    #     fontsize=7,
     #     facecolor="white",
     #     edgecolor="black",
     #     framealpha=1,
     # )
+    plt.ylim(1e-5, 0.1)
     plt.xlim(0, 80000)
     plt.xticks(
         [0, 20000, 40000, 60000, 80000],
         ["0", "2", "4", "6", "8"],
-        fontsize=8,
+        fontsize=7,
     )
+
     plt.yscale("log")
-    plt.xlabel(r"Epoch ($\times$10$^4$)", fontsize=8)
-    plt.ylabel("Loss", fontsize=8)
+    plt.yticks(
+        fontsize=7,
+    )
+    plt.xlabel(r"Epoch ($\times$10$^4$)", fontsize=7)
+    plt.ylabel("Loss", fontsize=7)
     plt.grid(True)
-    plt.savefig("./figures/loss_curve.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_loss_curve.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/loss_curve.svg")
+    plt.savefig("./figures/F_loss_curve.pdf")
     plt.show()
 
 
@@ -150,7 +168,7 @@ def disp_pred():
         color="darkviolet",
         linewidth=1.2,
     )
-    plt.legend(fontsize=8, facecolor="white", edgecolor="black", ncol=3)
+    plt.legend(fontsize=7, facecolor="white", edgecolor="black", ncol=3)
     plt.grid(True)
     plt.xlabel("Time (s)")
     plt.ylabel("Displacement (cm)")
@@ -254,7 +272,7 @@ def velo_pred():
         color="darkviolet",
         linewidth=1.2,
     )
-    plt.legend(fontsize=8, facecolor="white", edgecolor="black", ncol=3)
+    plt.legend(fontsize=7, facecolor="white", edgecolor="black", ncol=3)
     plt.text(
         0.9,
         0.125,
@@ -329,9 +347,14 @@ def state_pred():
     akf_state_pred[file_idx, 1:] = akf_state_pred[file_idx, :-1]
     akf_state_pred[file_idx, 0] = 0
 
-    fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
+    fig, axs = plt.subplots(2, 1, figsize=(16.4 * cm, 10 * cm))
     axs[0].plot(
-        time, state_test[file_idx, :] * 100, label="Ref.", color="k", linewidth=lw
+        time,
+        state_test[file_idx, :] * 100,
+        label="Ref.",
+        color="k",
+        linewidth=lw,
+        zorder=100,
     )
     axs[0].plot(
         time,
@@ -340,6 +363,7 @@ def state_pred():
         linestyle="-.",
         color="b",
         linewidth=lw,
+        zorder=100,
     )
     axs[0].plot(
         time,
@@ -348,6 +372,7 @@ def state_pred():
         linestyle="--",
         color="r",
         linewidth=lw,
+        zorder=100,
     )
     axs[0].plot(
         time,
@@ -356,6 +381,7 @@ def state_pred():
         linestyle=":",
         color="lime",
         linewidth=lw,
+        zorder=100,
     )
     axs[0].plot(
         time,
@@ -364,30 +390,53 @@ def state_pred():
         linestyle="--",
         color="darkviolet",
         linewidth=1.2,
+        zorder=100,
     )
-    # axs[0].legend(fontsize=8, facecolor="white", edgecolor="black", ncol=3)
+    # axs[0].legend(fontsize=7, facecolor="white", edgecolor="black", ncol=3)
     axs[0].text(
-        0.8, 0.125, "9th floor", ha="center", va="center", transform=axs[0].transAxes
+        0.8,
+        0.125,
+        "9th floor",
+        ha="center",
+        va="center",
+        transform=axs[0].transAxes,
+        fontsize=7,
     )
     axs[0].text(
-        -0.1 / 3, -0.1, "(a)", ha="center", va="center", transform=axs[0].transAxes
+        -0.1 / 3,
+        -0.1,
+        "(a)",
+        ha="center",
+        va="center",
+        transform=axs[0].transAxes,
+        fontsize=7,
     )
-    axs[0].grid(True)
+    axs[0].grid(True, zorder=0)
     # axs[0].set_xlabel("Time (s)")
-    axs[0].set_ylabel("Displacement (cm)")
+    axs[0].set_ylabel("Displacement (cm)", fontsize=7)
     axs[0].tick_params(which="both", direction="in")
     axs[0].set_xlim(0, 40)
     axs[0].set_ylim(-0.4 * 100, 0.4 * 100)
-    axs[0].set_yticks([-40, -20, 0, 20, 40])
-    axs[0].set_xticks([0, 10, 20, 30, 40])
-    fig.legend(
-        bbox_to_anchor=(0.5, 0.95),
-        loc="outside upper center",
-        fontsize=8,
+    axs[0].set_yticks(
+        [-40, -20, 0, 20, 40], ["-40", "-20", "0", "20", "40"], fontsize=7
+    )
+    axs[0].set_xticks([0, 10, 20, 30, 40], ["0", "10", "20", "30", "40"], fontsize=7)
+    # fig.legend(
+    #     bbox_to_anchor=(0.5, 0.95),
+    #     loc="outside upper center",
+    #     fontsize=7,
+    #     facecolor="white",
+    #     edgecolor="black",
+    #     ncol=5,
+    # )
+    axs[0].legend(
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
-        ncol=5,
-    )
+        ncol=3,
+        loc="upper left",
+        framealpha=1,
+    ).set_zorder(10)
     x1, x2, y1, y2 = 11.5, 12.7, -20, -4.5
     axins = axs[0].inset_axes(
         [0.01, 0.03, 0.26, 0.26],
@@ -475,6 +524,7 @@ def state_pred():
         linestyle="-.",
         color="b",
         linewidth=lw,
+        zorder=100,
     )
     axs[1].plot(
         time,
@@ -483,6 +533,7 @@ def state_pred():
         linestyle="--",
         color="r",
         linewidth=lw,
+        zorder=100,
     )
     axs[1].plot(
         time,
@@ -491,6 +542,7 @@ def state_pred():
         linestyle=":",
         color="lime",
         linewidth=lw,
+        zorder=100,
     )
     axs[1].plot(
         time,
@@ -499,6 +551,7 @@ def state_pred():
         linestyle="--",
         color="darkviolet",
         linewidth=lw,
+        zorder=100,
     )
 
     axs[1].text(
@@ -508,6 +561,7 @@ def state_pred():
         ha="center",
         va="center",
         transform=axs[1].transAxes,
+        fontsize=7,
     )
     axs[1].text(
         -0.1 / 3,
@@ -516,15 +570,24 @@ def state_pred():
         ha="center",
         va="center",
         transform=axs[1].transAxes,
+        fontsize=7,
     )
-    axs[1].grid(True)
-    axs[1].set_xlabel("Time (s)")
-    axs[1].set_ylabel("Velocity (m/s)")
+    # axs[1].legend(
+    #     fontsize=7,
+    #     facecolor="white",
+    #     edgecolor="black",
+    #     ncol=3,
+    #     loc="upper left",
+    #     framealpha=1,
+    # ).set_zorder(10)
+    axs[1].grid(True, zorder=0)
+    axs[1].set_xlabel("Time (s)", fontsize=7)
+    axs[1].set_ylabel("Velocity (m/s)", fontsize=7)
     axs[1].tick_params(which="both", direction="in")
     axs[1].set_xlim(0, 40)
     axs[1].set_ylim(-2, 2)
-    axs[1].set_xticks([0, 10, 20, 30, 40])
-    axs[1].set_yticks([-2, -1, 0, 1, 2])
+    axs[1].set_xticks([0, 10, 20, 30, 40], ["0", "10", "20", "30", "40"], fontsize=7)
+    axs[1].set_yticks([-2, -1, 0, 1, 2], ["-2", "-1", "0", "1", "2"], fontsize=7)
     x1, x2, y1, y2 = 12.9, 14.2, -0.98, -0.16
     axins2 = axs[1].inset_axes(
         [0.01, 0.03, 0.26, 0.26],
@@ -575,9 +638,9 @@ def state_pred():
     axins2.set_xticks([])
     axins2.set_yticks([])
     axs[1].indicate_inset_zoom(axins2, edgecolor="black")
-
-    plt.savefig("./figures/state_pred.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_state_pred.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/state_pred.svg")
+    plt.savefig("./figures/F_state_pred.pdf")
     plt.show()
 
 
@@ -654,18 +717,30 @@ def performance_evaluation():
     # std_err_dkf_velo = np.std(err_mtx_dkf_velo)
     # std_err_akf_disp = np.std(err_mtx_akf_disp)
     # std_err_akf_velo = np.std(err_mtx_akf_velo)
-    fig, axs = plt.subplots(1, 2, figsize=(18 * cm, 8 * cm))
+    fig, axs = plt.subplots(1, 2, figsize=(16.4 * cm, 7 * cm))
 
     # axs[0].set_ylim(0, 100)
-    axs[0].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
-    axs[0].set_ylabel("NRMSE")
+    axs[0].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"], fontsize=7)
+    axs[0].set_ylabel("NRMSE", fontsize=7, labelpad=0.1)
     # axs[0].title.set_text("Displacement")
     axs[0].text(
-        0.3, 0.9, "Displacement", ha="center", va="center", transform=axs[0].transAxes
+        0.3,
+        0.9,
+        "Displacement",
+        ha="center",
+        va="center",
+        transform=axs[0].transAxes,
+        fontsize=7,
     )
     axs[0].tick_params(which="both", direction="in")
     axs[0].text(
-        -0.1, -0.06, "(a)", ha="center", va="center", transform=axs[0].transAxes
+        -0.06,
+        -0.06,
+        "(a)",
+        ha="center",
+        va="center",
+        transform=axs[0].transAxes,
+        fontsize=7,
     )
     axs[0].set_ylim(0, 0.2)
     axs[0].set_yticks([0, 0.1, 0.2])
@@ -688,6 +763,7 @@ def performance_evaluation():
         # capsize=5,
         color="b",
         zorder=3,
+        edgecolor="black",
     )
     err = [mean_err_rnn_disp, mean_err_birnn_disp, mean_err_dkf_disp, mean_err_akf_disp]
     # add bar labels
@@ -699,26 +775,34 @@ def performance_evaluation():
             ha="center",
             va="center",
             color="black",
+            fontsize=7,
         )
 
     # axs[0].savefig("./figures/performance_disp.svg", bbox_inches="tight")
     # plt.show()
     # plt.figure(figsize=(10 * cm, 8 * cm))
 
-    axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"])
-    axs[1].set_ylabel("NRMSE")
+    axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"], fontsize=7)
+    axs[1].set_ylabel("NRMSE", fontsize=7, labelpad=0.1)
     # axs[1].title.set_text("Velocity")
     axs[1].text(
-        0.3, 0.9, "Velocity", ha="center", va="center", transform=axs[1].transAxes
+        0.3,
+        0.9,
+        "Velocity",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+        fontsize=7,
     )
     axs[1].tick_params(which="both", direction="in")
     axs[1].text(
-        -0.1,
+        -0.06,
         -0.06,
         "(b)",
         ha="center",
         va="center",
         transform=axs[1].transAxes,
+        fontsize=7,
     )
     axs[1].set_ylim(0, 0.2)
     axs[1].set_yticks([0, 0.1, 0.2])
@@ -740,6 +824,7 @@ def performance_evaluation():
         # capsize=5,
         color="r",
         zorder=3,
+        edgecolor="black",
     )
     err = [mean_err_rnn_velo, mean_err_birnn_velo, mean_err_dkf_velo, mean_err_akf_velo]
     # add bar labels
@@ -751,7 +836,9 @@ def performance_evaluation():
             ha="center",
             va="center",
             color="black",
+            fontsize=7,
         )
-    plt.savefig("./figures/performance.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_performance.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/performance.svg")
+    plt.savefig("./figures/F_performance.pdf")
     plt.show()

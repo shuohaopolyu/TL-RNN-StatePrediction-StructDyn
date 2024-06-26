@@ -5,14 +5,27 @@ from experiments import continuous_beam as cb
 import scipy.io
 import scipy.signal
 import torch
+from matplotlib import rcParams
+import matplotlib.ticker as mticker
+
+plt.rcParams["axes.unicode_minus"] = False
 
 
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Times New Roman"
 # set the font size's default value
-plt.rcParams.update({"font.size": 8})
+plt.rcParams.update({"font.size": 7})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
+# # set the fonttype to be Arial
+config = {
+    "font.family": "serif",
+    "font.serif": "Times New Roman",
+    "font.weight": "normal",
+    "font.size": 7,
+    "mathtext.fontset": "stix",
+}
+rcParams.update(config)
 
 
 def ema():
@@ -23,11 +36,16 @@ def ema():
     acc3 = -exp_data["Data1_AI_3_AI_3"][2000:7000, 0].reshape(-1, 1)
     force = exp_data["Data1_AI_4_AI_4"][2000:7000, 0].reshape(-1, 1)
     time = np.arange(0, 0.0002 * len(acc1), 0.0002)
-    fig, axs = plt.subplots(2, 2, figsize=(18 * cm, 8 * cm))
+    fig, axs = plt.subplots(2, 2, figsize=(16.4 * cm, 7 * cm))
     axs[0, 0].set_ylabel("Acceleration (g)")
     axs[0, 0].set_xlim(0, 1)
     axs[0, 0].set_ylim(-3, 3)
-    axs[0, 0].set_yticks([-3, -1.5, 0, 1.5, 3])
+    axs[0, 0].set_yticks(
+        [-3, -1.5, 0, 1.5, 3], ["-3.0", "-1.5", "0", "1.5", "3.0"], fontsize=7
+    )
+    axs[0, 0].set_xticks(
+        [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
+    )
     axs[0, 0].tick_params(axis="both", direction="in", which="both")
     axs[0, 0].grid(True)
     axs[0, 0].plot(time, acc3, color="black", linewidth=0.6)
@@ -38,6 +56,7 @@ def ema():
         ha="center",
         va="center",
         transform=axs[0, 0].transAxes,
+        fontsize=7,
     )
     axs[0, 0].text(
         0.9,
@@ -46,12 +65,18 @@ def ema():
         ha="center",
         va="center",
         transform=axs[0, 0].transAxes,
+        fontsize=7,
     )
 
-    axs[0, 1].set_ylabel("Acceleration (g)")
+    axs[0, 1].set_ylabel("Acceleration (g)", fontsize=7)
     axs[0, 1].set_xlim(0, 1)
     axs[0, 1].set_ylim(-3, 3)
-    axs[0, 1].set_yticks([-3, -1.5, 0, 1.5, 3])
+    axs[0, 1].set_yticks(
+        [-3, -1.5, 0, 1.5, 3], ["-3.0", "-1.5", "0", "1.5", "3.0"], fontsize=7
+    )
+    axs[0, 1].set_xticks(
+        [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
+    )
     axs[0, 1].tick_params(axis="both", direction="in", which="both")
     axs[0, 1].grid(True)
     axs[0, 1].plot(time, acc2, color="black", linewidth=0.6)
@@ -62,6 +87,7 @@ def ema():
         ha="center",
         va="center",
         transform=axs[0, 1].transAxes,
+        fontsize=7,
     )
     axs[0, 1].text(
         0.9,
@@ -70,13 +96,19 @@ def ema():
         ha="center",
         va="center",
         transform=axs[0, 1].transAxes,
+        fontsize=7,
     )
 
-    axs[1, 0].set_ylabel("Acceleration (g)")
+    axs[1, 0].set_ylabel("Acceleration (g)", fontsize=7)
     axs[1, 0].set_xlim(0, 1)
 
     axs[1, 0].set_ylim(-4, 4)
-    axs[1, 0].set_yticks([-4, -2, 0, 2, 4], ["-4.0", "-2.0", "0.0", "2.0", "4.0"])
+    axs[1, 0].set_yticks(
+        [-4, -2, 0, 2, 4], ["-4.0", "-2.0", "0", "2.0", "4.0"], fontsize=7
+    )
+    axs[1, 0].set_xticks(
+        [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
+    )
     axs[1, 0].tick_params(axis="both", direction="in", which="both")
     axs[1, 0].grid(True)
     axs[1, 0].plot(time, acc1, color="black", linewidth=0.6)
@@ -87,6 +119,7 @@ def ema():
         ha="center",
         va="center",
         transform=axs[1, 0].transAxes,
+        fontsize=7,
     )
     axs[1, 0].text(
         0.9,
@@ -95,12 +128,18 @@ def ema():
         ha="center",
         va="center",
         transform=axs[1, 0].transAxes,
+        fontsize=7,
     )
 
-    axs[1, 1].set_ylabel("Force (N)")
+    axs[1, 1].set_ylabel("Force (N)", fontsize=7)
     axs[1, 1].set_xlim(0, 1)
     axs[1, 1].set_ylim(-2, 2)
-    axs[1, 1].set_yticks([-2, -1, 0, 1, 2], ["-2.0", "-1.0", "0.0", "1.0", "2.0"])
+    axs[1, 1].set_yticks(
+        [-2, -1, 0, 1, 2], ["-2.0", "-1.0", "0", "1.0", "2.0"], fontsize=7
+    )
+    axs[1, 1].set_xticks(
+        [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
+    )
     axs[1, 1].tick_params(axis="both", direction="in", which="both")
     axs[1, 1].grid(True)
     axs[1, 1].plot(time, force, color="black", linewidth=0.6)
@@ -111,12 +150,14 @@ def ema():
         ha="center",
         va="center",
         transform=axs[1, 1].transAxes,
+        fontsize=7,
     )
-    axs[1, 0].set_xlabel("Time (s)")
-    axs[1, 1].set_xlabel("Time (s)")
+    axs[1, 0].set_xlabel("Time (s)", fontsize=7)
+    axs[1, 1].set_xlabel("Time (s)", fontsize=7)
 
-    # fig.supxlabel("Time (s)", fontsize=8)
-    plt.savefig("./figures/F_csb_ema.pdf", bbox_inches="tight")
+    # fig.supxlabel("Time (s)", fontsize=7)
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/F_csb_ema.pdf")
     plt.show()
 
 
@@ -142,10 +183,16 @@ def model_updating():
 
     freq = np.linspace(10, 100, 450)
     figidx = ["(a)", "(b)", "(c)", "(d)", "(e)", "(f)"]
-    fig, axs = plt.subplots(2, 3, figsize=(18 * cm, 10 * cm))
-    axs[0, 0].plot(freq, amp_data[:, 0], color="red", linewidth=1.2)
-    axs[0, 0].plot(freq, amp_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2)
+    fig, axs = plt.subplots(2, 3, figsize=(16.4 * cm, 8 * cm))
+    axs[0, 0].plot(
+        freq, amp_data[:, 0], color="red", linewidth=1.2, label="Measurements"
+    )
+    axs[0, 0].plot(
+        freq, amp_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2, label="Model"
+    )
+
     axs[0, 0].set_yscale("log")
+    axs[0, 0].set_ylim(1e-2, 1e2)
     axs[0, 0].set_ylabel(
         r"Magnitude (g/N)",
     )
@@ -161,6 +208,15 @@ def model_updating():
         freq, amp_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2, label="Model"
     )
     axs[0, 1].set_yscale("log")
+    axs[0, 1].set_ylim(1e-2, 1e2)
+    axs[0, 1].legend(
+        loc="lower left",
+        fontsize=7,
+        facecolor="white",
+        edgecolor="black",
+        framealpha=1,
+        ncol=1,
+    )
     # axs[0, 1].set_ylabel(r"Magnitude (m/s$^2$/N)")
     axs[1, 1].plot(freq, phase_data[:, 1], color="red", linewidth=1.2)
     axs[1, 1].plot(freq, phase_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2)
@@ -168,6 +224,7 @@ def model_updating():
     axs[0, 2].plot(freq, amp_data[:, 2], color="red", linewidth=1.2)
     axs[0, 2].plot(freq, amp_mtx[:, 2], color="blue", linestyle="--", linewidth=1.2)
     axs[0, 2].set_yscale("log")
+    axs[0, 2].set_ylim(1e-2, 1e2)
     # axs[0, 2].set_ylabel(r"Magnitude (m/s$^2$/N)")
     axs[1, 2].plot(freq, phase_data[:, 2], color="red", linewidth=1.2)
     axs[1, 2].plot(freq, phase_mtx[:, 2], color="blue", linestyle="--", linewidth=1.2)
@@ -180,7 +237,7 @@ def model_updating():
         for i in range(2):
             axs[i, j].tick_params(axis="y", direction="in", which="both")
             axs[i, j].set_xlim(10, 100)
-            axs[1, j].set_ylim(0, 3.15)
+            axs[1, j].set_ylim(0, 4)
             # axs[i, 0].set_ylim(1, 1000)
             axs[i, j].grid(True)
             axs[i, j].text(
@@ -194,18 +251,12 @@ def model_updating():
             axs[i, j].tick_params(axis="x", direction="in", which="both")
             axs[i, j].set_xticks([10, 20, 40, 60, 80, 100])
             axs[i, j].set_xticklabels(["10", "20", "40", "60", "80", "100"])
-        # let legend outside the plot
-    axs[0, 1].legend(
-        loc="upper center",
-        bbox_to_anchor=(0.5, 1.2),
-        fontsize=8,
-        facecolor="white",
-        edgecolor="black",
-        ncol=2,
-    )
-    plt.tight_layout()
 
-    plt.savefig("./figures/F_csb_model_updating.pdf", bbox_inches="tight")
+        # let legend outside the plot
+
+    plt.tight_layout(pad=0.1)
+
+    plt.savefig("./figures/F_csb_model_updating.pdf")
     plt.show()
 
 
@@ -263,8 +314,8 @@ def loss_curve():
         linestyle="--",
         label="BiRNN test",
     )
-    ax.set_xlabel(r"Epoch ($\times$10$^4$)", fontsize=8)
-    ax.set_ylabel("Loss")
+    ax.set_xlabel(r"Epoch ($\times$10$^4$)", fontsize=7)
+    ax.set_ylabel("Loss", fontsize=7)
     ax.set_yscale("log")
     ax.set_xlim(0, 50000)
     ax.set_ylim(1e-4, 1e-1)
@@ -272,17 +323,20 @@ def loss_curve():
         [0, 10000, 20000, 30000, 40000, 50000],
         ["0", "1", "2", "3", "4", "5"],
     )
+    plt.yticks(fontsize=7)
+    plt.xticks(fontsize=7)
     # ax.set_yticks([1e-4, 1e-3, 1e-2])
     ax.tick_params(axis="both", direction="in", which="both")
     ax.grid(True)
 
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
     )
-    plt.savefig("./figures/F_csb_rnn_training.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/F_csb_rnn_training.pdf")
     plt.show()
 
 
@@ -297,7 +351,7 @@ def state_pred():
     idx = 0
     cmap = "seismic"
     time = np.arange(0, 0.0002 * step, 0.0002)
-    fig, axs = plt.subplots(3, 2, figsize=(18 * cm, 12 * cm))
+    fig, axs = plt.subplots(3, 2, figsize=(16.4 * cm, 10 * cm))
     wv = axs[0, 0].imshow(
         rnn_state_test[idx, start : step + start, 0:128:2].T,
         aspect="auto",
@@ -306,21 +360,36 @@ def state_pred():
         interpolation="spline16",
     )
 
-    axs[0, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[0, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0"], fontsize=7)
     axs[0, 0].set_ylim(0, 63)
     axs[0, 0].tick_params(axis="both", direction="in", which="both")
     axs[0, 0].set_xlim(0, 2000)
     axs[0, 0].set_xticks(
-        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+        [0, 500, 1000, 1500, 2000], ["0", "0.1", "0.2", "0.3", "0.4"], fontsize=7
     )
-    axs[0, 0].set_ylabel("x", style="italic", labelpad=3)
-    axs[0, 0].set_xlabel("t", style="italic")
-    cbar = fig.colorbar(wv, ax=axs[0, 0], orientation="vertical", extend="both")
+    axs[0, 0].set_ylabel("x", style="italic", labelpad=3, fontsize=7)
+    # axs[0, 0].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(
+        wv,
+        ax=axs[0, 0],
+        orientation="vertical",
+        extend="both",
+        ticks=[-0.3, 0, 0.3],
+        format=mticker.FixedFormatter(["-0.3", "0", "0.3"]),
+    )
     cbar.minorticks_on()
+    cbar.ax.tick_params(direction="in", which="both")
     axs[0, 0].text(
-        -0.1, -0.16, "(a)", ha="center", va="center", transform=axs[0, 0].transAxes
+        -0.1,
+        -0.16,
+        "(a)",
+        ha="center",
+        va="center",
+        transform=axs[0, 0].transAxes,
+        fontsize=7,
     )
-    axs[0, 0].title.set_text("Ref. displacement field")
+    axs[0, 0].set_title("Ref. displacement field", fontsize=7)
+
     wv = axs[1, 0].imshow(
         rnn_state_pred[idx, start : step + start, 0:128:2].T,
         aspect="auto",
@@ -328,21 +397,35 @@ def state_pred():
         origin="lower",
         interpolation="spline16",
     )
-    axs[1, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[1, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0"], fontsize=7)
     axs[1, 0].set_ylim(0, 63)
     axs[1, 0].tick_params(axis="both", direction="in", which="both")
     axs[1, 0].set_xlim(0, 2000)
     axs[1, 0].set_xticks(
-        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+        [0, 500, 1000, 1500, 2000], ["0", "0.1", "0.2", "0.3", "0.4"], fontsize=7
     )
-    axs[1, 0].set_ylabel("x", style="italic", labelpad=3)
-    axs[1, 0].set_xlabel("t", style="italic")
-    cbar = fig.colorbar(wv, ax=axs[1, 0], orientation="vertical", extend="both")
+    axs[1, 0].set_ylabel("x", style="italic", labelpad=3, fontsize=7)
+    # axs[1, 0].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(
+        wv,
+        ax=axs[1, 0],
+        orientation="vertical",
+        extend="both",
+        ticks=[-0.3, 0, 0.3],
+        format=mticker.FixedFormatter(["-0.3", "0", "0.3"]),
+    )
     cbar.minorticks_on()
+    cbar.ax.tick_params(direction="in", which="both")
     axs[1, 0].text(
-        -0.1, -0.16, "(b)", ha="center", va="center", transform=axs[1, 0].transAxes
+        -0.1,
+        -0.16,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=axs[1, 0].transAxes,
+        fontsize=7,
     )
-    axs[1, 0].title.set_text("RNN pred. displacement field")
+    axs[1, 0].set_title("RNN pred. displacement field", fontsize=7)
 
     wv = axs[2, 0].imshow(
         birnn_state_pred[idx, start : step + start, 0:128:2].T,
@@ -351,21 +434,35 @@ def state_pred():
         origin="lower",
         interpolation="spline16",
     )
-    axs[2, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[2, 0].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0"], fontsize=7)
     axs[2, 0].set_ylim(0, 63)
     axs[2, 0].tick_params(axis="both", direction="in", which="both")
     axs[2, 0].set_xlim(0, 2000)
     axs[2, 0].set_xticks(
-        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+        [0, 500, 1000, 1500, 2000], ["0", "0.1", "0.2", "0.3", "0.4"], fontsize=7
     )
-    axs[2, 0].set_ylabel("x", style="italic", labelpad=3)
-    axs[2, 0].set_xlabel("t", style="italic")
-    cbar = fig.colorbar(wv, ax=axs[2, 0], orientation="vertical", extend="both")
+    axs[2, 0].set_ylabel("x", style="italic", labelpad=3, fontsize=7)
+    axs[2, 0].set_xlabel("t", style="italic", fontsize=7)
+    cbar = fig.colorbar(
+        wv,
+        ax=axs[2, 0],
+        orientation="vertical",
+        extend="both",
+        ticks=[-0.3, 0, 0.3],
+        format=mticker.FixedFormatter(["-0.3", "0", "0.3"]),
+    )
     cbar.minorticks_on()
+    cbar.ax.tick_params(direction="in", which="both")
     axs[2, 0].text(
-        -0.1, -0.16, "(c)", ha="center", va="center", transform=axs[2, 0].transAxes
+        -0.1,
+        -0.16,
+        "(c)",
+        ha="center",
+        va="center",
+        transform=axs[2, 0].transAxes,
+        fontsize=7,
     )
-    axs[2, 0].title.set_text("BiRNN pred. displacement field")
+    axs[2, 0].set_title("BiRNN pred. displacement field", fontsize=7)
 
     wv = axs[0, 1].imshow(
         rnn_state_test[idx, start : step + start, 128:256:2].T,
@@ -373,21 +470,35 @@ def state_pred():
         cmap=cmap,
         origin="lower",
     )
-    axs[0, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[0, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0"], fontsize=7)
     axs[0, 1].set_ylim(0, 63)
     axs[0, 1].tick_params(axis="both", direction="in", which="both")
     axs[0, 1].set_xlim(0, 2000)
     axs[0, 1].set_xticks(
-        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+        [0, 500, 1000, 1500, 2000], ["0", "0.1", "0.2", "0.3", "0.4"], fontsize=7
     )
-    axs[0, 1].set_ylabel("x", style="italic", labelpad=3)
-    axs[0, 1].set_xlabel("t", style="italic")
-    cbar = fig.colorbar(wv, ax=axs[0, 1], orientation="vertical", extend="both")
+    # axs[0, 1].set_ylabel("x", style="italic", labelpad=3)
+    # axs[0, 1].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(
+        wv,
+        ax=axs[0, 1],
+        orientation="vertical",
+        extend="both",
+        ticks=[-0.06, 0, 0.06],
+        format=mticker.FixedFormatter(["-0.06", "0", "0.06"]),
+    )
     cbar.minorticks_on()
+    cbar.ax.tick_params(direction="in", which="both")
     axs[0, 1].text(
-        -0.1, -0.16, "(d)", ha="center", va="center", transform=axs[0, 1].transAxes
+        -0.1,
+        -0.16,
+        "(d)",
+        ha="center",
+        va="center",
+        transform=axs[0, 1].transAxes,
+        fontsize=7,
     )
-    axs[0, 1].title.set_text("Ref. velocity field")
+    axs[0, 1].set_title("Ref. velocity field", fontsize=7)
 
     wv = axs[1, 1].imshow(
         rnn_state_pred[idx, start : step + start, 128:256:2].T,
@@ -395,21 +506,35 @@ def state_pred():
         cmap=cmap,
         origin="lower",
     )
-    axs[1, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[1, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0"], fontsize=7)
     axs[1, 1].set_ylim(0, 63)
     axs[1, 1].tick_params(axis="both", direction="in", which="both")
     axs[1, 1].set_xlim(0, 2000)
     axs[1, 1].set_xticks(
-        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+        [0, 500, 1000, 1500, 2000], ["0", "0.1", "0.2", "0.3", "0.4"], fontsize=7
     )
-    axs[1, 1].set_ylabel("x", style="italic", labelpad=3)
-    axs[1, 1].set_xlabel("t", style="italic")
-    cbar = fig.colorbar(wv, ax=axs[1, 1], orientation="vertical", extend="both")
+    # axs[1, 1].set_ylabel("x", style="italic", labelpad=3)
+    # axs[1, 1].set_xlabel("t", style="italic")
+    cbar = fig.colorbar(
+        wv,
+        ax=axs[1, 1],
+        orientation="vertical",
+        extend="both",
+        ticks=[-0.06, 0, 0.06],
+        format=mticker.FixedFormatter(["-0.06", "0", "0.06"]),
+    )
     cbar.minorticks_on()
+    cbar.ax.tick_params(direction="in", which="both")
     axs[1, 1].text(
-        -0.1, -0.16, "(e)", ha="center", va="center", transform=axs[1, 1].transAxes
+        -0.1,
+        -0.16,
+        "(e)",
+        ha="center",
+        va="center",
+        transform=axs[1, 1].transAxes,
+        fontsize=7,
     )
-    axs[1, 1].title.set_text("RNN pred. velocity field")
+    axs[1, 1].set_title("RNN pred. velocity field", fontsize=7)
 
     wv = axs[2, 1].imshow(
         birnn_state_pred[idx, start : step + start, 128:256:2].T,
@@ -417,31 +542,45 @@ def state_pred():
         cmap=cmap,
         origin="lower",
     )
-    axs[2, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0.00"])
+    axs[2, 1].set_yticks([0, 21, 42, 63], ["1.26", "0.84", "0.42", "0"], fontsize=7)
     axs[2, 1].set_ylim(0, 63)
     axs[2, 1].tick_params(axis="both", direction="in", which="both")
     axs[2, 1].set_xlim(0, 2000)
     axs[2, 1].set_xticks(
-        [0, 500, 1000, 1500, 2000], ["0.0", "0.1", "0.2", "0.3", "0.4"]
+        [0, 500, 1000, 1500, 2000], ["0", "0.1", "0.2", "0.3", "0.4"], fontsize=7
     )
-    axs[2, 1].set_ylabel("x", style="italic", labelpad=3)
-    axs[2, 1].set_xlabel("t", style="italic")
-    cbar = fig.colorbar(wv, ax=axs[2, 1], orientation="vertical", extend="both")
+    # axs[2, 1].set_ylabel("x", style="italic", labelpad=3)
+    axs[2, 1].set_xlabel("t", style="italic", fontsize=7)
+    cbar = fig.colorbar(
+        wv,
+        ax=axs[2, 1],
+        orientation="vertical",
+        extend="both",
+        ticks=[-0.06, 0, 0.06],
+        format=mticker.FixedFormatter(["-0.06", "0", "0.06"]),
+    )
     cbar.minorticks_on()
+    cbar.ax.tick_params(direction="in")
     axs[2, 1].text(
-        -0.1, -0.16, "(f)", ha="center", va="center", transform=axs[2, 1].transAxes
+        -0.1,
+        -0.16,
+        "(f)",
+        ha="center",
+        va="center",
+        transform=axs[2, 1].transAxes,
+        fontsize=7,
     )
-    axs[2, 1].title.set_text("BiRNN pred. velocity field")
+    axs[2, 1].set_title("BiRNN pred. velocity field", fontsize=7)
 
-    plt.tight_layout()
-    plt.savefig("./figures/F_csb_state_img.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/F_csb_state_img.pdf")
     plt.show()
 
     start = 0
     step = 10000
     time = np.arange(0, 0.0002 * step, 0.0002)
 
-    fig, axs = plt.subplots(2, 1, figsize=(18 * cm, 12 * cm))
+    fig, axs = plt.subplots(2, 1, figsize=(16.4 * cm, 10 * cm))
     axs[0].plot(
         time,
         rnn_state_test[idx, start : step + start, dof1],
@@ -465,19 +604,32 @@ def state_pred():
         label="BiRNN pred.",
         linestyle="--",
     )
-    axs[0].set_ylabel("Deflection (mm)")
+    axs[0].set_ylabel("Deflection (mm)", fontsize=7)
     axs[0].set_ylim(-1.0, 1.0)
-    fig.legend(
-        bbox_to_anchor=(0.5, 0.95),
-        loc="outside upper center",
-        fontsize=8,
+    axs[0].set_yticks(
+        [-1.0, -0.5, 0, 0.5, 1.0], ["-1.0", "-0.5", "0", "0.5", "1.0"], fontsize=7
+    )
+    axs[0].set_xticks(
+        [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
+        ["0", "0.25", "0.50", "0.75", "1.00", "1.25", "1.50", "1.75", "2.00"],
+        fontsize=7,
+    )
+    axs[0].legend(
+        loc="upper left",
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
         ncol=3,
     )
     axs[0].text(
-        -0.1 / 3, -0.1, "(a)", ha="center", va="center", transform=axs[0].transAxes
+        -0.1 / 3,
+        -0.1,
+        "(a)",
+        ha="center",
+        va="center",
+        transform=axs[0].transAxes,
+        fontsize=7,
     )
     # x1, x2, y1, y2 = 1.1, 1.4, -0.1, 0.1
     # axins = axs[0].inset_axes(
@@ -534,18 +686,32 @@ def state_pred():
         label="BiRNN pred.",
         linestyle="--",
     )
-    axs[1].set_ylabel("Rotational speed (rad/s)")
-    axs[1].set_xlabel("Time (s)")
+    axs[1].set_ylabel("Rotational speed (rad/s)", fontsize=7)
+    axs[1].set_xlabel("Time (s)", fontsize=7)
     axs[1].set_ylim(-0.6, 0.6)
     axs[1].text(
-        -0.1 / 3, -0.1, "(b)", ha="center", va="center", transform=axs[1].transAxes
+        -0.1 / 3,
+        -0.1,
+        "(b)",
+        ha="center",
+        va="center",
+        transform=axs[1].transAxes,
+        fontsize=7,
+    )
+    axs[1].set_yticks(
+        [-0.6, -0.3, 0, 0.3, 0.6], ["-0.6", "-0.3", "0", "0.3", "0.6"], fontsize=7
+    )
+    axs[1].set_xticks(
+        [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
+        ["0", "0.25", "0.50", "0.75", "1.00", "1.25", "1.50", "1.75", "2.00"],
+        fontsize=7,
     )
     for i in range(2):
         axs[i].tick_params(axis="both", direction="in", which="both")
         axs[i].grid(True)
         axs[i].set_xlim(0, 2)
-
-    plt.savefig("./figures/F_csb_state_pred.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/F_csb_state_pred.pdf")
     plt.show()
 
 
@@ -558,65 +724,62 @@ def input_acc():
     acc2 = -exp_data["acc2"][:data_length:1].reshape(-1, 1)
     acc3 = -exp_data["acc3"][:data_length:1].reshape(-1, 1)
     time = np.arange(0, 0.0002 * data_length, 0.0002)
-    fig, axs = plt.subplots(1, 3, figsize=(18 * cm, 6 * cm))
+    fig, axs = plt.subplots(1, 3, figsize=(16.4 * cm, 4 * cm))
     axs[0].plot(time, acc3, color="black", linewidth=0.8)
     axs[0].set_ylim(-3.6, 3.6)
     axs[0].set_yticks([-3.6, -1.8, 0, 1.8, 3.6])
     axs[0].text(
-        -0.1,
+        -0.06,
         -0.1,
         "(a)",
         ha="center",
         va="center",
         transform=axs[0].transAxes,
+        fontsize=7,
     )
     axs[0].text(
-        0.1,
-        0.1,
-        "A1",
-        ha="center",
-        va="center",
-        transform=axs[0].transAxes,
+        0.1, 0.1, "A1", ha="center", va="center", transform=axs[0].transAxes, fontsize=7
     )
-    axs[0].set_xticks([0, 1, 2, 3, 4])
+    axs[0].set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
+    axs[0].set_yticks(
+        [-3.6, -1.8, 0, 1.8, 3.6], ["-3.6", "-1.8", "0", "1.8", "3.6"], fontsize=7
+    )
     axs[1].plot(time, acc2, color="black", linewidth=0.8)
     axs[1].set_ylim(-4.0, 4.0)
-    axs[1].set_yticks([-4.0, -2.0, 0, 2.0, 4.0], ["-4.0", "-2.0", "0.0", "2.0", "4.0"])
+    axs[1].set_yticks(
+        [-4.0, -2.0, 0, 2.0, 4.0], ["-4.0", "-2.0", "0", "2.0", "4.0"], fontsize=7
+    )
+    axs[1].set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
     axs[1].text(
-        -0.1,
+        -0.06,
         -0.1,
         "(b)",
         ha="center",
         va="center",
         transform=axs[1].transAxes,
+        fontsize=7,
     )
     axs[1].text(
-        0.1,
-        0.1,
-        "A2",
-        ha="center",
-        va="center",
-        transform=axs[1].transAxes,
+        0.1, 0.1, "A2", ha="center", va="center", transform=axs[1].transAxes, fontsize=7
     )
     axs[1].set_xticks([0, 1, 2, 3, 4])
     axs[2].plot(time, acc1, color="black", linewidth=0.8)
     axs[2].set_ylim(-4.8, 4.8)
-    axs[2].set_yticks([-4.8, -2.4, 0, 2.4, 4.8])
+    axs[2].set_yticks(
+        [-4.8, -2.4, 0, 2.4, 4.8], ["-4.8", "-2.4", "0", "2.4", "4.8"], fontsize=7
+    )
+    axs[2].set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
     axs[2].text(
-        -0.1,
+        -0.06,
         -0.1,
         "(c)",
         ha="center",
         va="center",
         transform=axs[2].transAxes,
+        fontsize=7,
     )
     axs[2].text(
-        0.1,
-        0.1,
-        "A3",
-        ha="center",
-        va="center",
-        transform=axs[2].transAxes,
+        0.1, 0.1, "A3", ha="center", va="center", transform=axs[2].transAxes, fontsize=7
     )
     axs[2].set_xticks([0, 1, 2, 3, 4])
     axs[0].set_ylabel("Acceleration (g)")
@@ -625,8 +788,9 @@ def input_acc():
         axs[i].set_xlim(0, 4)
         axs[i].tick_params(axis="both", direction="in", which="both")
         axs[i].grid(True)
-        axs[i].set_xlabel("Time (s)")
-    plt.savefig("./figures/F_csb_input_acc.pdf", bbox_inches="tight")
+        axs[i].set_xlabel("Time (s)", fontsize=7)
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/F_csb_input_acc.pdf")
     plt.show()
 
 
@@ -669,7 +833,7 @@ def rnn_birnn_pred():
     ax.tick_params(axis="both", direction="in", which="both")
     ax.grid(True)
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
@@ -732,7 +896,7 @@ def tr_loss_curve():
     ax.tick_params(axis="both", direction="in", which="both")
     ax.grid(True)
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
@@ -753,13 +917,13 @@ def tr_rnn_birnn_pred():
     shift = 52
     data_length = 20000
     time = np.arange(0, 0.0002 * data_length, 0.0002)
-    fig, ax = plt.subplots(1, 1, figsize=(18 * cm, 6 * cm))
+    fig, ax = plt.subplots(1, 1, figsize=(16.4 * cm, 5 * cm))
     ax.plot(
         time,
         disp[shift : data_length + shift],
         color="black",
         linewidth=0.8,
-        label="Ref.",
+        label="Meas.",
     )
     ax.plot(
         time,
@@ -777,23 +941,28 @@ def tr_rnn_birnn_pred():
         label="TL-BiRNN pred.",
         linestyle="--",
     )
-    ax.set_xlabel("Time (s)")
-    ax.set_ylabel("Deflection (mm)")
+    ax.set_xlabel("Time (s)", fontsize=7)
+    ax.set_ylabel("Deflection (mm)", fontsize=7)
     ax.set_ylim(-0.16, 0.16)
     ax.set_xlim(0, 4)
-    ax.set_xticks([0, 1, 2, 3, 4])
-    ax.set_yticks([-0.16, -0.08, 0, 0.08, 0.16])
+    ax.set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
+    ax.set_yticks(
+        [-0.16, -0.08, 0, 0.08, 0.16],
+        ["-0.16", "-0.08", "0", "0.08", "0.16"],
+        fontsize=7,
+    )
     ax.tick_params(axis="both", direction="in", which="both")
     ax.grid(True)
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
         loc="lower left",
         ncol=3,
     )
-    plt.savefig("./figures/F_csb_tr_rnn_birnn_pred.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/F_csb_tr_rnn_birnn_pred.pdf")
     plt.show()
 
 
@@ -854,8 +1023,9 @@ def performance_evaluation():
         label="Before TL",
         color="blue",
         zorder=3,
+        edgecolor="black",
     )
-    ax.bar_label(rects, padding=3)
+    ax.bar_label(rects, padding=3, fmt="%.3f", fontsize=7)
     rects = ax.bar(
         0 + width,
         metric[1],
@@ -863,37 +1033,42 @@ def performance_evaluation():
         label="After TL",
         color="red",
         zorder=3,
+        edgecolor="black",
     )
-    ax.bar_label(rects, padding=3)
+    ax.bar_label(rects, padding=3, fmt="%.3f", fontsize=7)
     rects = ax.bar(
         1,
         metric[2],
         width,
         color="blue",
         zorder=3,
+        edgecolor="black",
     )
-    ax.bar_label(rects, padding=3)
+    ax.bar_label(rects, padding=3, fmt="%.3f", fontsize=7)
     rects = ax.bar(
         1 + width,
         metric[3],
         width,
         color="red",
         zorder=3,
+        edgecolor="black",
     )
-    ax.bar_label(rects, padding=3, fmt="%.3f")
+    ax.bar_label(rects, padding=3, fmt="%.3f", fontsize=7)
     ax.grid(True)
-    ax.set_xticks([0.175, 0.5, 0.825, 1.175], ["RNN", "", "", "BiRNN"])
+    ax.set_xticks([0.175, 0.5, 0.825, 1.175], ["RNN", "", "", "BiRNN"], fontsize=7)
     ax.tick_params(axis="both", direction="in", which="both")
     ax.legend(
-        fontsize=8,
+        fontsize=7,
         facecolor="white",
         edgecolor="black",
         framealpha=1,
         loc="upper right",
     )
 
-    ax.set_ylabel("NRMSE")
+    ax.set_ylabel("NRMSE", fontsize=7)
     ax.set_ylim(0, 0.6)
+    plt.yticks(fontsize=7)
     ax.tick_params(axis="both", direction="in", which="both")
-    plt.savefig("./figures/F_csb_performance_evaluation.pdf", bbox_inches="tight")
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/F_csb_performance_evaluation.pdf")
     plt.show()

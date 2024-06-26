@@ -11,7 +11,7 @@ import os
 # set the fonttype to be Arial
 plt.rcParams["font.family"] = "Times New Roman"
 # set the font size's default value
-plt.rcParams.update({"font.size": 8})
+plt.rcParams.update({"font.size": 7})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
 
@@ -79,6 +79,14 @@ def plot_ground_motion():
         np.arange(-0.4, 0.5, 0.1),
         np.arange(-0.7, 0.8, 0.2),
     ]
+    yticks_str_list = [
+        ["-0.60", "-0.30", "0", "0.30", "0.60"],
+        ["-0.10", "-0.05", "0", "0.05", "0.10"],
+        ["-0.30", "-0.15", "0", "0.15", "0.30"],
+        ["-0.30", "-0.15", "0", "0.15", "0.30"],
+        ["-0.4", "-0.3", "-0.2", "-0.1", "0", "0.1", "0.2", "0.3", "0.4"],
+        ["-0.7", "-0.5", "-0.3", "-0.1", "0", "0.1", "0.3", "0.5", "0.7"],
+    ]
     xticks_list = [
         np.arange(0, 41, 10),
         np.arange(0, 71, 10),
@@ -87,10 +95,18 @@ def plot_ground_motion():
         np.arange(0, 61, 10),
         np.arange(0, 41, 10),
     ]
+    xticks_str_list = [
+        ["0", "10", "20", "30", "40"],
+        ["0", "10", "20", "30", "40", "50", "60", "70"],
+        ["0", "10", "20", "30", "40", "50", "60"],
+        ["0", "10", "20", "30", "40", "50"],
+        ["0", "10", "20", "30", "40", "50", "60"],
+        ["0", "10", "20", "30", "40"],
+    ]
 
-    text_desc = ["Kobe", "Kern County", "El Álamo", "Taiwan"]
+    text_desc = ["Kobe, 1995", "Kern County, 1952", "El Álamo, 1956", "Taiwan, 1986"]
     factors = [1, 1, 6, 2, 2, 2]
-    fig, axs = plt.subplots(2, 2, figsize=(18 * cm, 8 * cm))
+    fig, axs = plt.subplots(2, 2, figsize=(16.4 * cm, 7 * cm))
     for i, acc_file_i in enumerate(acc_file_name_list):
         desc, _, _, time, inp_acc = processNGAfile(acc_file_i)
         print(desc)
@@ -102,8 +118,8 @@ def plot_ground_motion():
         axs[i // 2, i % 2].grid(True)
         axs[i // 2, i % 2].set_xlim(xlim_list[i])
         axs[i // 2, i % 2].set_ylim(ylim_list[i])
-        axs[i // 2, i % 2].set_yticks(yticks_list[i])
-        axs[i // 2, i % 2].set_xticks(xticks_list[i])
+        axs[i // 2, i % 2].set_yticks(yticks_list[i], yticks_str_list[i], fontsize=7)
+        axs[i // 2, i % 2].set_xticks(xticks_list[i], xticks_str_list[i], fontsize=7)
         axs[i // 2, i % 2].text(
             0.5,
             0.85,
@@ -111,13 +127,16 @@ def plot_ground_motion():
             ha="center",
             va="center",
             transform=axs[i // 2, i % 2].transAxes,
-            fontsize=8,
+            fontsize=7,
         )
         if i > 1:
-            axs[i // 2, i % 2].set_xlabel("Time (s)", fontsize=8)
+            axs[i // 2, i % 2].set_xlabel("Time (s)", fontsize=7)
+    axs[0, 0].set_ylabel("Acceleration (g)", fontsize=7)
+    axs[1, 0].set_ylabel("Acceleration (g)", fontsize=7)
 
-    # fig.supxlabel("Time (s)", fontsize=8)
-    fig.supylabel("Acceleration (g)", position=(0.05, 0.5), fontsize=8)
-    plt.savefig("./figures/strong_ground_motion.svg", bbox_inches="tight")
-    plt.savefig("./figures/F_strong_ground_motion.pdf", bbox_inches="tight")
+    # fig.supxlabel("Time (s)", fontsize=7)
+    # fig.supylabel("Acceleration (g)", position=(0.05, 0.5), fontsize=7)
+    plt.tight_layout(pad=0.1)
+    plt.savefig("./figures/strong_ground_motion.svg")
+    plt.savefig("./figures/F_strong_ground_motion.pdf")
     plt.show()
