@@ -14,6 +14,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams.update({"font.size": 7})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
+plt.rcParams["axes.unicode_minus"] = True
 
 
 def processNGAfile(filepath, scalefactor=None):
@@ -80,12 +81,32 @@ def plot_ground_motion():
         np.arange(-0.7, 0.8, 0.2),
     ]
     yticks_str_list = [
-        ["-0.60", "-0.30", "0", "0.30", "0.60"],
-        ["-0.10", "-0.05", "0", "0.05", "0.10"],
-        ["-0.30", "-0.15", "0", "0.15", "0.30"],
-        ["-0.30", "-0.15", "0", "0.15", "0.30"],
-        ["-0.4", "-0.3", "-0.2", "-0.1", "0", "0.1", "0.2", "0.3", "0.4"],
-        ["-0.7", "-0.5", "-0.3", "-0.1", "0", "0.1", "0.3", "0.5", "0.7"],
+        ["\N{MINUS SIGN}0.6", "\N{MINUS SIGN}0.3", "0", "0.3", "0.6"],
+        ["\N{MINUS SIGN}0.1", "\N{MINUS SIGN}0.05", "0", "0.05", "0.1"],
+        ["\N{MINUS SIGN}0.3", "\N{MINUS SIGN}0.15", "0", "0.15", "0.3"],
+        ["\N{MINUS SIGN}0.3", "\N{MINUS SIGN}0.15", "0", "0.15", "0.3"],
+        [
+            "\N{MINUS SIGN}0.4",
+            "\N{MINUS SIGN}0.3",
+            "\N{MINUS SIGN}0.2",
+            "\N{MINUS SIGN}0.1",
+            "0",
+            "0.1",
+            "0.2",
+            "0.3",
+            "0.4",
+        ],
+        [
+            "\N{MINUS SIGN}0.7",
+            "\N{MINUS SIGN}0.5",
+            "\N{MINUS SIGN}0.3",
+            "\N{MINUS SIGN}0.1",
+            "0",
+            "0.1",
+            "0.3",
+            "0.5",
+            "0.7",
+        ],
     ]
     xticks_list = [
         np.arange(0, 41, 10),

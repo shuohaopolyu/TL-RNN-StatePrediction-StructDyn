@@ -23,7 +23,7 @@ config = {
     "mathtext.fontset": "stix",
 }
 rcParams.update(config)
-
+plt.rcParams["axes.unicode_minus"] = True
 
 
 def loss_curve():
@@ -418,7 +418,9 @@ def state_pred():
     axs[0].set_xlim(0, 40)
     axs[0].set_ylim(-0.4 * 100, 0.4 * 100)
     axs[0].set_yticks(
-        [-40, -20, 0, 20, 40], ["-40", "-20", "0", "20", "40"], fontsize=7
+        [-40, -20, 0, 20, 40],
+        ["\N{MINUS SIGN}40", "\N{MINUS SIGN}20", "0", "20", "40"],
+        fontsize=7,
     )
     axs[0].set_xticks([0, 10, 20, 30, 40], ["0", "10", "20", "30", "40"], fontsize=7)
     # fig.legend(
@@ -587,7 +589,11 @@ def state_pred():
     axs[1].set_xlim(0, 40)
     axs[1].set_ylim(-2, 2)
     axs[1].set_xticks([0, 10, 20, 30, 40], ["0", "10", "20", "30", "40"], fontsize=7)
-    axs[1].set_yticks([-2, -1, 0, 1, 2], ["-2", "-1", "0", "1", "2"], fontsize=7)
+    axs[1].set_yticks(
+        [-2, -1, 0, 1, 2],
+        ["\N{MINUS SIGN}2", "\N{MINUS SIGN}1", "0", "1", "2"],
+        fontsize=7,
+    )
     x1, x2, y1, y2 = 12.9, 14.2, -0.98, -0.16
     axins2 = axs[1].inset_axes(
         [0.01, 0.03, 0.26, 0.26],
@@ -765,6 +771,8 @@ def performance_evaluation():
         zorder=3,
         edgecolor="black",
     )
+    axs[0].set_yticks([0, 0.1, 0.2], ["0", "0.1", "0.2"], fontsize=7)
+
     err = [mean_err_rnn_disp, mean_err_birnn_disp, mean_err_dkf_disp, mean_err_akf_disp]
     # add bar labels
     for i in range(4):
@@ -783,6 +791,7 @@ def performance_evaluation():
     # plt.figure(figsize=(10 * cm, 8 * cm))
 
     axs[1].set_xticks([0, 1, 2, 3], ["RNN", "BiRNN", "DKF", "AKF"], fontsize=7)
+    axs[1].set_yticks([0, 0.1, 0.2], ["0", "0.1", "0.2"], fontsize=7)
     axs[1].set_ylabel("NRMSE", fontsize=7, labelpad=0.1)
     # axs[1].title.set_text("Velocity")
     axs[1].text(

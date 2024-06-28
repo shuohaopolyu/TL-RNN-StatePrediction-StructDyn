@@ -23,6 +23,7 @@ config = {
     "mathtext.fontset": "stix",
 }
 rcParams.update(config)
+plt.rcParams["axes.unicode_minus"] = True
 
 
 def disp_birnn_pred(which=0):
@@ -354,7 +355,11 @@ def disp_pred(which=1):
     ax[0].grid(True)
     ax[0].tick_params(which="both", direction="in")
 
-    ax[0].set_yticks(yticks, ["-6", "-4", "-2", "0", "2", "4", "6"], fontsize=7)
+    ax[0].set_yticks(
+        yticks,
+        ["\N{MINUS SIGN}6", "\N{MINUS SIGN}4", "\N{MINUS SIGN}2", "0", "2", "4", "6"],
+        fontsize=7,
+    )
     ax[0].set_xticks(
         xticks, ["0", "10", "20", "30", "40", "50", "60", "70"], fontsize=7
     )
@@ -457,7 +462,11 @@ def disp_pred(which=1):
     #     0.1, 0.1, "8th floor", ha="center", va="center", transform=ax[1].transAxes
     # )
     # ax[1].set_xlabel("Time (s)")
-    ax[1].set_yticks(yticks, ["-6", "-4", "-2", "0", "2", "4", "6"], fontsize=7)
+    ax[1].set_yticks(
+        yticks,
+        ["\N{MINUS SIGN}6", "\N{MINUS SIGN}4", "\N{MINUS SIGN}2", "0", "2", "4", "6"],
+        fontsize=7,
+    )
     ax[1].set_xticks(
         xticks, ["0", "10", "20", "30", "40", "50", "60", "70"], fontsize=7
     )
@@ -567,7 +576,11 @@ def disp_pred(which=1):
         transform=ax[2].transAxes,
         fontsize=7,
     )
-    ax[2].set_yticks(yticks, ["-6", "-4", "-2", "0", "2", "4", "6"], fontsize=7)
+    ax[2].set_yticks(
+        yticks,
+        ["\N{MINUS SIGN}6", "\N{MINUS SIGN}4", "\N{MINUS SIGN}2", "0", "2", "4", "6"],
+        fontsize=7,
+    )
     ax[2].set_xticks(
         xticks, ["0", "10", "20", "30", "40", "50", "60", "70"], fontsize=7
     )
@@ -703,7 +716,11 @@ def velo_pred(which=1):
     ax.set_ylim(-20, 20)
     ax.grid(True)
     ax.tick_params(which="both", direction="in")
-    ax.set_yticks(np.arange(-20, 21, 10), ["-20", "-10", "0", "10", "20"], fontsize=7)
+    ax.set_yticks(
+        np.arange(-20, 21, 10),
+        ["-\N{MINUS SIGN}20", "\N{MINUS SIGN}10", "0", "10", "20"],
+        fontsize=7,
+    )
     ax.set_xticks(
         np.arange(0, 71, 10),
         ["0", "10", "20", "30", "40", "50", "60", "70"],

@@ -8,7 +8,7 @@ import torch
 from matplotlib import rcParams
 import matplotlib.ticker as mticker
 
-plt.rcParams["axes.unicode_minus"] = False
+plt.rcParams["axes.unicode_minus"] = True
 
 
 # set the fonttype to be Arial
@@ -41,7 +41,9 @@ def ema():
     axs[0, 0].set_xlim(0, 1)
     axs[0, 0].set_ylim(-3, 3)
     axs[0, 0].set_yticks(
-        [-3, -1.5, 0, 1.5, 3], ["-3.0", "-1.5", "0", "1.5", "3.0"], fontsize=7
+        [-3, -1.5, 0, 1.5, 3],
+        ["\N{MINUS SIGN}3", "\N{MINUS SIGN}1.5", "0", "1.5", "3"],
+        fontsize=7,
     )
     axs[0, 0].set_xticks(
         [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
@@ -72,7 +74,9 @@ def ema():
     axs[0, 1].set_xlim(0, 1)
     axs[0, 1].set_ylim(-3, 3)
     axs[0, 1].set_yticks(
-        [-3, -1.5, 0, 1.5, 3], ["-3.0", "-1.5", "0", "1.5", "3.0"], fontsize=7
+        [-3, -1.5, 0, 1.5, 3],
+        ["\N{MINUS SIGN}3", "\N{MINUS SIGN}1.5", "0", "1.5", "3"],
+        fontsize=7,
     )
     axs[0, 1].set_xticks(
         [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
@@ -104,7 +108,9 @@ def ema():
 
     axs[1, 0].set_ylim(-4, 4)
     axs[1, 0].set_yticks(
-        [-4, -2, 0, 2, 4], ["-4.0", "-2.0", "0", "2.0", "4.0"], fontsize=7
+        [-4, -2, 0, 2, 4],
+        ["\N{MINUS SIGN}4", "\N{MINUS SIGN}2", "0", "2", "4"],
+        fontsize=7,
     )
     axs[1, 0].set_xticks(
         [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
@@ -135,7 +141,9 @@ def ema():
     axs[1, 1].set_xlim(0, 1)
     axs[1, 1].set_ylim(-2, 2)
     axs[1, 1].set_yticks(
-        [-2, -1, 0, 1, 2], ["-2.0", "-1.0", "0", "1.0", "2.0"], fontsize=7
+        [-2, -1, 0, 1, 2],
+        ["\N{MINUS SIGN}2", "\N{MINUS SIGN}1", "0", "1", "2"],
+        fontsize=7,
     )
     axs[1, 1].set_xticks(
         [0, 0.2, 0.4, 0.6, 0.8, 1], ["0", "0.2", "0.4", "0.6", "0.8", "1"], fontsize=7
@@ -188,7 +196,12 @@ def model_updating():
         freq, amp_data[:, 0], color="red", linewidth=1.2, label="Measurements"
     )
     axs[0, 0].plot(
-        freq, amp_mtx[:, 0], color="blue", linestyle="--", linewidth=1.2, label="Model results"
+        freq,
+        amp_mtx[:, 0],
+        color="blue",
+        linestyle="--",
+        linewidth=1.2,
+        label="Model results",
     )
 
     axs[0, 0].set_yscale("log")
@@ -205,7 +218,12 @@ def model_updating():
         freq, amp_data[:, 1], color="red", linewidth=1.2, label="Measurements"
     )
     axs[0, 1].plot(
-        freq, amp_mtx[:, 1], color="blue", linestyle="--", linewidth=1.2, label="Model results"
+        freq,
+        amp_mtx[:, 1],
+        color="blue",
+        linestyle="--",
+        linewidth=1.2,
+        label="Model results",
     )
     axs[0, 1].set_yscale("log")
     axs[0, 1].set_ylim(1e-2, 1e2)
@@ -375,7 +393,7 @@ def state_pred():
         orientation="vertical",
         extend="both",
         ticks=[-0.3, 0, 0.3],
-        format=mticker.FixedFormatter(["-0.3", "0", "0.3"]),
+        format=mticker.FixedFormatter(["\N{MINUS SIGN}0.3", "0", "0.3"]),
     )
     cbar.minorticks_on()
     cbar.ax.tick_params(direction="in", which="both")
@@ -412,7 +430,7 @@ def state_pred():
         orientation="vertical",
         extend="both",
         ticks=[-0.3, 0, 0.3],
-        format=mticker.FixedFormatter(["-0.3", "0", "0.3"]),
+        format=mticker.FixedFormatter(["\N{MINUS SIGN}0.3", "0", "0.3"]),
     )
     cbar.minorticks_on()
     cbar.ax.tick_params(direction="in", which="both")
@@ -449,7 +467,7 @@ def state_pred():
         orientation="vertical",
         extend="both",
         ticks=[-0.3, 0, 0.3],
-        format=mticker.FixedFormatter(["-0.3", "0", "0.3"]),
+        format=mticker.FixedFormatter(["\N{MINUS SIGN}0.3", "0", "0.3"]),
     )
     cbar.minorticks_on()
     cbar.ax.tick_params(direction="in", which="both")
@@ -485,7 +503,7 @@ def state_pred():
         orientation="vertical",
         extend="both",
         ticks=[-0.06, 0, 0.06],
-        format=mticker.FixedFormatter(["-0.06", "0", "0.06"]),
+        format=mticker.FixedFormatter(["\N{MINUS SIGN}0.06", "0", "0.06"]),
     )
     cbar.minorticks_on()
     cbar.ax.tick_params(direction="in", which="both")
@@ -521,7 +539,7 @@ def state_pred():
         orientation="vertical",
         extend="both",
         ticks=[-0.06, 0, 0.06],
-        format=mticker.FixedFormatter(["-0.06", "0", "0.06"]),
+        format=mticker.FixedFormatter(["\N{MINUS SIGN}0.06", "0", "0.06"]),
     )
     cbar.minorticks_on()
     cbar.ax.tick_params(direction="in", which="both")
@@ -557,7 +575,7 @@ def state_pred():
         orientation="vertical",
         extend="both",
         ticks=[-0.06, 0, 0.06],
-        format=mticker.FixedFormatter(["-0.06", "0", "0.06"]),
+        format=mticker.FixedFormatter(["\N{MINUS SIGN}0.06", "0", "0.06"]),
     )
     cbar.minorticks_on()
     cbar.ax.tick_params(direction="in")
@@ -607,11 +625,13 @@ def state_pred():
     axs[0].set_ylabel("Deflection (mm)", fontsize=7)
     axs[0].set_ylim(-1.0, 1.0)
     axs[0].set_yticks(
-        [-1.0, -0.5, 0, 0.5, 1.0], ["-1.0", "-0.5", "0", "0.5", "1.0"], fontsize=7
+        [-1.0, -0.5, 0, 0.5, 1.0],
+        ["\N{MINUS SIGN}1", "\N{MINUS SIGN}0.5", "0", "0.5", "1"],
+        fontsize=7,
     )
     axs[0].set_xticks(
         [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
-        ["0", "0.25", "0.50", "0.75", "1.00", "1.25", "1.50", "1.75", "2.00"],
+        ["0", "0.25", "0.5", "0.75", "1", "1.25", "1.5", "1.75", "2"],
         fontsize=7,
     )
     axs[0].legend(
@@ -699,11 +719,13 @@ def state_pred():
         fontsize=7,
     )
     axs[1].set_yticks(
-        [-0.6, -0.3, 0, 0.3, 0.6], ["-0.6", "-0.3", "0", "0.3", "0.6"], fontsize=7
+        [-0.6, -0.3, 0, 0.3, 0.6],
+        ["\N{MINUS SIGN}0.6", "\N{MINUS SIGN}0.3", "0", "0.3", "0.6"],
+        fontsize=7,
     )
     axs[1].set_xticks(
         [0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
-        ["0", "0.25", "0.50", "0.75", "1.00", "1.25", "1.50", "1.75", "2.00"],
+        ["0", "0.25", "0.5", "0.75", "1", "1.25", "1.5", "1.75", "2"],
         fontsize=7,
     )
     for i in range(2):
@@ -727,7 +749,7 @@ def input_acc():
     fig, axs = plt.subplots(1, 3, figsize=(16.4 * cm, 4 * cm))
     axs[0].plot(time, acc3, color="black", linewidth=0.8)
     axs[0].set_ylim(-3.6, 3.6)
-    axs[0].set_yticks([-3.6, -1.8, 0, 1.8, 3.6])
+    # axs[0].set_yticks([-3.6, -1.8, 0, 1.8, 3.6])
     axs[0].text(
         -0.06,
         -0.1,
@@ -742,12 +764,16 @@ def input_acc():
     )
     axs[0].set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
     axs[0].set_yticks(
-        [-3.6, -1.8, 0, 1.8, 3.6], ["-3.6", "-1.8", "0", "1.8", "3.6"], fontsize=7
+        [-3.6, -1.8, 0, 1.8, 3.6],
+        ["\N{MINUS SIGN}3.6", "\N{MINUS SIGN}1.8", "0", "1.8", "3.6"],
+        fontsize=7,
     )
     axs[1].plot(time, acc2, color="black", linewidth=0.8)
     axs[1].set_ylim(-4.0, 4.0)
     axs[1].set_yticks(
-        [-4.0, -2.0, 0, 2.0, 4.0], ["-4.0", "-2.0", "0", "2.0", "4.0"], fontsize=7
+        [-4.0, -2.0, 0, 2.0, 4.0],
+        ["\N{MINUS SIGN}4", "\N{MINUS SIGN}2", "0", "2", "4"],
+        fontsize=7,
     )
     axs[1].set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
     axs[1].text(
@@ -766,7 +792,9 @@ def input_acc():
     axs[2].plot(time, acc1, color="black", linewidth=0.8)
     axs[2].set_ylim(-4.8, 4.8)
     axs[2].set_yticks(
-        [-4.8, -2.4, 0, 2.4, 4.8], ["-4.8", "-2.4", "0", "2.4", "4.8"], fontsize=7
+        [-4.8, -2.4, 0, 2.4, 4.8],
+        ["\N{MINUS SIGN}4.8", "\N{MINUS SIGN}2.4", "0", "2.4", "4.8"],
+        fontsize=7,
     )
     axs[2].set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
     axs[2].text(
@@ -948,7 +976,7 @@ def tr_rnn_birnn_pred():
     ax.set_xticks([0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], fontsize=7)
     ax.set_yticks(
         [-0.16, -0.08, 0, 0.08, 0.16],
-        ["-0.16", "-0.08", "0", "0.08", "0.16"],
+        ["\N{MINUS SIGN}0.16", "\N{MINUS SIGN}0.08", "0", "0.08", "0.16"],
         fontsize=7,
     )
     ax.tick_params(axis="both", direction="in", which="both")
@@ -1056,6 +1084,11 @@ def performance_evaluation():
     ax.bar_label(rects, padding=3, fmt="%.3f", fontsize=7)
     ax.grid(True)
     ax.set_xticks([0.175, 0.5, 0.825, 1.175], ["RNN", "", "", "BiRNN"], fontsize=7)
+    ax.set_yticks(
+        [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+        ["0", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6"],
+        fontsize=7,
+    )
     ax.tick_params(axis="both", direction="in", which="both")
     ax.legend(
         fontsize=7,

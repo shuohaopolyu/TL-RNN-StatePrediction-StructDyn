@@ -9,6 +9,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams.update({"font.size": 7})
 ts = {"fontname": "Times New Roman"}
 cm = 1 / 2.54  # centimeters in inches
+plt.rcParams["axes.unicode_minus"] = True
 
 
 def compound_envelope(b1, b2, gamma, t_array):
@@ -42,11 +43,13 @@ def cwt_acc_g():
     cwtmatr = signal.cwt(acc_g, signal.ricker, widths)
     cwtmatr_yflip = np.flipud(cwtmatr)
 
-    fig, axs = plt.subplots(1, 2, figsize=(16.4 * cm, 6 * cm))
+    fig, axs = plt.subplots(
+        1, 3, figsize=(16.4 * cm, 6 * cm), gridspec_kw={"width_ratios": [1, 0.03, 1]}
+    )
     axs[0].plot(time, acc_g / 9.8, color="b", linewidth=1.5)
     axs[0].tick_params(which="both", direction="in")
     axs[0].set_xlabel("Time (s)", fontsize=7)
-    axs[0].set_ylabel("Acceleration (g)", color="b", fontsize=7)
+    axs[0].set_ylabel("Acceleration (g)", color="b", fontsize=7, labelpad=1)
     axs[0].set_xlim(0, 40)
     axs[0].set_xticks(
         np.arange(0, 41, 5),
@@ -56,7 +59,17 @@ def cwt_acc_g():
     axs[0].set_ylim(-0.8, 0.8)
     axs[0].set_yticks(
         np.arange(-0.8, 0.9, 0.2),
-        ["-0.8", "-0.6", "-0.4", "-0.2", "0", "0.2", "0.4", "0.6", "0.8"],
+        [
+            "\N{MINUS SIGN}0.8",
+            "\N{MINUS SIGN}0.6",
+            "\N{MINUS SIGN}0.4",
+            "\N{MINUS SIGN}0.2",
+            "0",
+            "0.2",
+            "0.4",
+            "0.6",
+            "0.8",
+        ],
     )
     axs[0].tick_params(axis="y", labelcolor="b", direction="in", which="both")
     axs[0].text(-4, -0.96, "(a)", fontsize=7)
@@ -67,13 +80,24 @@ def cwt_acc_g():
     ax2.set_ylim(-1.2, 1.2)
     ax2.set_yticks(
         np.arange(-1.2, 1.3, 0.4),
-        ["-1.2", "-0.8", "-0.4", "0", "0.4", "0.8", "1.2"],
+        [
+            "\N{MINUS SIGN}1.2",
+            "\N{MINUS SIGN}0.8",
+            "\N{MINUS SIGN}0.4",
+            "0",
+            "0.4",
+            "0.8",
+            "1.2",
+        ],
         fontsize=7,
     )
     axs[0].grid(True)
     # axs[0].legend(["Ground acceleration"], fontsize=10, facecolor="white", edgecolor="black")
     # ax2.legend(["Window function"], fontsize=10, facecolor="white", edgecolor="black")
-    wv = axs[1].imshow(
+    for item in [fig, axs[1]]:
+        item.patch.set_visible(False)
+    axs[1].axis("off")
+    wv = axs[2].imshow(
         abs(cwtmatr_yflip),
         extent=[0, 40, 1 / 10, 10],
         cmap="seismic",
@@ -82,21 +106,21 @@ def cwt_acc_g():
         vmin=0,
     )
     # axs[1].set_yscale('log')
-    axs[1].set_xlabel("Time (s)", fontsize=7)
-    axs[1].set_ylabel("Frequency (Hz)", fontsize=7)
-    axs[1].tick_params(which="both", direction="in")
-    axs[1].text(-4, -1, "(b)", fontsize=7)
-    axs[1].set_yticks(
+    axs[2].set_xlabel("Time (s)", fontsize=7)
+    axs[2].tick_params(which="both", direction="in")
+    axs[2].text(-4, -1, "(b)", fontsize=7)
+    axs[2].set_yticks(
         [0.1, 2, 4, 6, 8, 10], ["0", "2", "4", "6", "8", "10"], fontsize=7
     )
-    axs[1].set_xticks(np.arange(0, 41, 10), ["0", "10", "20", "30", "40"], fontsize=7)
-    cbar = fig.colorbar(wv, ax=axs[1], orientation="vertical", extend="both")
+    axs[2].set_xticks(np.arange(0, 41, 10), ["0", "10", "20", "30", "40"], fontsize=7)
+    # axs[1].tick_params(axis="y", pad=0.1)
+    cbar = fig.colorbar(wv, ax=axs[2], orientation="vertical", extend="both")
     cbar.ax.tick_params(direction="in")
-
+    axs[2].set_ylabel("Frequency (Hz)", fontsize=7, labelpad=0.1)
     for t in cbar.ax.get_yticklabels():
         t.set_fontsize(7)
     # cbar.minorticks_on()
-    fig.tight_layout(pad=0.1)
+    fig.tight_layout(pad=0.1, w_pad=0.1, h_pad=0.1)
     plt.savefig("./figures/cwt_acc_g.svg")
-    plt.savefig("./figures/F_cwt_acc_g.pdf")
+    plt.savefig("./figures/F_cwt_acc_g.pdf", dpi=300)
     plt.show()
