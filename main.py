@@ -62,15 +62,15 @@ if __name__ == "__main__":
     # continuous_beam.birnn_pred(path="./dataset/csb/tr_birnn.pth")
 
     # figure plot
-    system_identification.base_loads()
-    system_identification.singular_values()
+    # system_identification.base_loads()
+    # system_identification.singular_values()
     # system_identification.model_updating()
     # artifical_acc.cwt_acc_g()
     # rnn_training.loss_curve()
     # rnn_training.state_pred()
     # rnn_training.performance_evaluation()
     # strong_ground_motion.plot_ground_motion()
-    # tr_rnn_training.velo_pred()
+    tr_rnn_training.velo_pred()
     # tr_rnn_training.disp_pred()
     # tr_rnn_training.loss_curve()
     # tr_rnn_training.performance_evaluation()

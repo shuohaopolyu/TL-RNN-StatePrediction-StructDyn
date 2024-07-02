@@ -718,7 +718,7 @@ def velo_pred(which=1):
     ax.tick_params(which="both", direction="in")
     ax.set_yticks(
         np.arange(-20, 21, 10),
-        ["-\N{MINUS SIGN}20", "\N{MINUS SIGN}10", "0", "10", "20"],
+        ["\N{MINUS SIGN}20", "\N{MINUS SIGN}10", "0", "10", "20"],
         fontsize=7,
     )
     ax.set_xticks(
