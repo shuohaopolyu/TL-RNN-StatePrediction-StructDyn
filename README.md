@@ -13,8 +13,8 @@ This repository contains the code for the paper "State Estimation in Structural 
 Clone the repository and navigate to the directory.
 
 ```bash
-git clone https://github.com/shuohaopolyu/TR-RNN-StatePrediction-StructDyn.git
-cd TR-RNN-StatePrediction-StructDyn
+git clone https://github.com/shuohaopolyu/TL-RNN-StatePrediction-StructDyn.git
+cd TL-RNN-StatePrediction-StructDyn
 ```
 
 Install the conda package manager from [here](https://docs.conda.io/en/latest/miniconda.html).

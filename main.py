@@ -28,7 +28,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
 if __name__ == "__main__":
-    # base_isolated_shear_type_structure.ambient_response()
+    base_isolated_shear_type_structure.ambient_response()
     # shear_type_structure.modal_analysis()
     # shear_type_structure.model_updating(num_modes=5)
     # shear_type_structure.seismic_response(num=100)
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # system_identification.base_loads()
     # system_identification.singular_values()
     # system_identification.model_updating()
-    artifical_acc.cwt_acc_g()
+    # artifical_acc.cwt_acc_g()
     # rnn_training.loss_curve()
     # rnn_training.state_pred()
     # rnn_training.performance_evaluation()
