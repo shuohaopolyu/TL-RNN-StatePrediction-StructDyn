@@ -20,8 +20,8 @@ cd TL-RNN-StatePrediction-StructDyn
 Install the conda package manager from [here](https://docs.conda.io/en/latest/miniconda.html).
 
 ```bash
-conda create --name trrnn python=3.10.14
-conda activate trrnn
+conda create --name tlrnn python=3.10.14
+conda activate tlrnn
 ```
 
 Install the required packages.
@@ -48,6 +48,8 @@ To run the experiments, use the following command:
 ```bash
 python main.py
 ```
+
+Note: Depending on which steps of the experiment you wish to run, you may need to uncomment or comment certain lines in `main.py` to include or exclude specific functions. This allows you to execute different parts of the experiment as needed.
 
 ## License
 
