@@ -49,7 +49,7 @@ To run the experiments, use the following command:
 python main.py
 ```
 
-Note: Depending on which steps of the experiment you wish to run, you may need to uncomment or comment certain lines in `main.py` to include or exclude specific functions. This allows you to execute different parts of the experiment as needed.
+_Note_: Depending on which steps of the experiment you wish to run, you may need to uncomment or comment certain lines in `main.py` to include or exclude specific functions. This allows you to execute different parts of the experiment as needed.
 
 ## License
 
