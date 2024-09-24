@@ -9,13 +9,9 @@ from scipy import interpolate
 import os
 
 
-"""
-@author: Daniel Hutabarat - UC Berkeley, 2017
-"""
-
-
 def processNGAfile(filepath, scalefactor=None):
     """
+    This function is by Dr. Daniel Hutabarat
     This function process acceleration history for NGA data file (.AT2 format)
     to a single column value and return the total number of data points and
     time iterval of the recording.
