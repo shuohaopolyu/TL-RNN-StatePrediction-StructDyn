@@ -160,8 +160,8 @@ class MultiDOF:
                 2 * np.sqrt(mo_mass[i, i] * mo_stiff[i, i])
             )
         return damping_ratio
-
-    def state_space_mtx(self, type="continuous"):
+    
+    def state_space_mtx(self, seismic4bd="False", type="continuous"):
         """
         type: 'continuous' or 'discrete'
         Return the continuous/discrete time state space matrices of the system A, B, C, D
@@ -171,22 +171,39 @@ class MultiDOF:
         C_c, C_d: n_s*2DOF numpy arrays
         D_c, D_d: n_s*n_f numpy arrays
         """
-        L = np.zeros((self.DOF, len(self.f_dof)))
-        for i in range(self.n_f):
-            L[self.f_dof[i], i] = 1
-        invM = LA.inv(self.mass_mtx)
-        A = np.vstack(
-            (
-                np.hstack((np.zeros((self.DOF, self.DOF)), np.eye(self.DOF))),
-                np.hstack((-invM @ self.stiff_mtx, -invM @ self.damp_mtx)),
+        if seismic4bd:
+            L = np.ones((self.DOF, 1))
+            self.n_f = 1
+            invM = LA.inv(self.mass_mtx)
+            A = np.vstack(
+                (
+                    np.hstack((np.zeros((self.DOF, self.DOF)), np.eye(self.DOF))),
+                    np.hstack((-invM @ self.stiff_mtx, -invM @ self.damp_mtx)),
+                )
             )
-        )
-        B = np.vstack(
-            (
-                np.zeros((self.DOF, len(self.f_dof))),
-                invM @ L,
+            B = np.vstack(
+                (
+                    np.zeros((self.DOF, 1)),
+                    invM @ L,
+                )
             )
-        )
+        else:
+            L = np.zeros((self.DOF, len(self.f_dof)))
+            for i in range(self.n_f):
+                L[self.f_dof[i], i] = 1
+            invM = LA.inv(self.mass_mtx)
+            A = np.vstack(
+                (
+                    np.hstack((np.zeros((self.DOF, self.DOF)), np.eye(self.DOF))),
+                    np.hstack((-invM @ self.stiff_mtx, -invM @ self.damp_mtx)),
+                )
+            )
+            B = np.vstack(
+                (
+                    np.zeros((self.DOF, len(self.f_dof))),
+                    invM @ L,
+                )
+            )
         J = np.zeros((self.n_s, self.DOF))
         for i in range(self.n_s):
             J[i, self.resp_dof[i]] = 1
@@ -253,14 +270,14 @@ class MultiDOF:
             B_d = (A_d - np.eye(2 * truncation)) @ LA.inv(A_c) @ B_c
             return A_d, B_d, C_c, D_c
 
-    def markov_params(self):
+    def markov_params(self, seismic4bd="True"):
         """
-        Return
-        -------
-        Markov parameters of the system mp
+        Return  Markov parameters of the system mp
         m_p is a list contains n_t elements, each element is a n_s*n_f numpy array
         """
-        A_d, B_d, C_d, D_d = self.state_space_mtx(type="discrete")
+        A_d, B_d, C_d, D_d = self.state_space_mtx(seismic4bd=seismic4bd, type="discrete")
+        if seismic4bd:
+            D_d *= 0
         m_p = []
         A_acum = np.eye(2 * self.DOF)
         for i in range(self.t_eval.size):
@@ -311,6 +328,18 @@ class MultiDOF:
             return Delta_1 @ H @ LA.inv(Delta_2)
         else:
             return H
+        
+    def observability_mtx(self):
+        """
+        Return the observability matrix of the system
+        """
+        O_mtx = np.zeros((self.n_s*self.n_t, self.DOF*2))
+        A_d, _, C_d, _ = self.state_space_mtx(seismic4bd="True",type="discrete")
+        A_acum = np.eye(2*self.DOF)
+        for i in range(self.n_t):
+            O_mtx[i*self.n_s:(i+1)*self.n_s, :] = C_d @ A_acum
+            A_acum = A_acum @ A_d
+        return O_mtx
 
     def frf_mtx(self, resp_dof, f_dof, omega):
         """

@@ -28,7 +28,8 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 
 if __name__ == "__main__":
-    base_isolated_shear_type_structure.ambient_response()
+    # base_isolated_shear_type_structure.ambient_response()
+    shear_type_structure.strong_observability()
     # shear_type_structure.modal_analysis()
     # shear_type_structure.model_updating(num_modes=5)
     # shear_type_structure.seismic_response(num=100)

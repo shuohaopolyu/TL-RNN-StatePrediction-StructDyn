@@ -1198,3 +1198,35 @@ def tr_rnn():
         plt.yscale("log")
         plt.legend()
         plt.show()
+
+def strong_observability(acc_sensor=[0, 1, 2, 3, 4]):
+    data_path = "./dataset/sts/model_updating.pkl"
+    with open(data_path, "rb") as f:
+        solution = pickle.load(f)
+    params = solution["params"]
+    nf = solution["nf"]
+    dp = solution["dp"]
+    stiff_factor = 1e2
+    mass_vec = 1 * np.ones(13)
+    stiff_vec = (
+        np.array([13, 12, 12, 12, 8, 8, 8, 8, 8, 5, 5, 5, 5]) *
+        stiff_factor * params
+    )
+    damp_vec = np.array([dp[0], dp[1], nf[0], nf[1]])
+    time = np.arange(0, 1, 1 / 20)
+    acc_g = np.zeros_like(time)
+    parametric_sts = ShearTypeStructure(
+        mass_vec=mass_vec,
+        stiff_vec=stiff_vec,
+        damp_vec=damp_vec,
+        damp_type="Rayleigh",
+        t=time,
+        acc_g=acc_g,
+    )
+    parametric_sts.resp_dof = acc_sensor
+    parametric_sts.n_s = len(acc_sensor)
+    H = parametric_sts.transfer_mtx(abs_triangular=False)
+    O = parametric_sts.observability_mtx()
+    print("Rank of H: ", np.linalg.matrix_rank(H))
+    print("Rank of [O,H]: ", np.linalg.matrix_rank(np.hstack([O, H])))
+
