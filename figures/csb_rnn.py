@@ -578,7 +578,8 @@ def state_pred():
         format=mticker.FixedFormatter(["\N{MINUS SIGN}0.06", "0", "0.06"]),
     )
     cbar.minorticks_on()
-    cbar.ax.tick_params(direction="in")
+    cbar.ax.tick_params(direction="in", which="both")
+
     axs[2, 1].text(
         -0.1,
         -0.16,
